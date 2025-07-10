@@ -49,7 +49,7 @@ db_name = <tên_database>
 Sau đó, khởi động Odoo với file cấu hình này:
 
 ```bash
-odoo -c odoo.cfg
+python odoo-bin -c odoo.cfg -i base
 ```
 
 ## Đóng góp

@@ -31,6 +31,10 @@
                 <sheet>
                     <header>
                         <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa Service" confirm="Bạn có chắc chắn muốn xóa Service này?"/>
+                        <button name="action_configure_steps"
+                                type="object"
+                                string="Cấu hình các bước"
+                                class="oe_highlight"/>
                     </header>
                     <group>
                         <field name="name"/>
