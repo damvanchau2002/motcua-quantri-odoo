@@ -1,0 +1,15 @@
+<odoo>
+    <record id="student_service_step_1" model="student.service.step">
+        <field name="name">Bước 1: Tiếp nhận hồ sơ</field>
+        <field name="sequence">1</field>
+        <field name="nextstep">99</field>
+        <field name="description">Bước đầu tiên tiếp nhận hồ sơ dịch vụ.</field>
+
+    </record>
+    <record id="student_service_step_99" model="student.service.step">
+        <field name="name">Bước 99: Hoàn tất</field>
+        <field name="sequence">99</field>
+        <field name="nextstep">0</field>
+        <field name="description">Kết thúc quy trình duyệt dịch vụ.</field>
+    </record>
+</odoo>

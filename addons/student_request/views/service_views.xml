@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Đảm bảo action_student_service_file được khai báo TRƯỚC view_student_service_form -->
+    <record id="action_student_service_file" model="ir.actions.act_window">
+        <field name="name">Files</field>
+        <field name="res_model">student.service.file</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="view_student_service_list" model="ir.ui.view">
+        <field name="name">student.service.list</field>
+        <field name="model">student.service</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="description"/>
+                <field name="state"/>
+                <field name="files" widget="many2many_tags"/>
+                <field name="users" widget="many2many_tags"/>
+                <field name="step_ids" widget="many2many_tags"/>
+                <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa Service" confirm="Bạn có chắc chắn muốn xóa Service này?"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_student_service_form" model="ir.ui.view">
+        <field name="name">student.service.form</field>
+        <field name="model">student.service</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <header>
+                        <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa Service" confirm="Bạn có chắc chắn muốn xóa Service này?"/>
+                    </header>
+                    <group>
+                        <field name="name"/>
+                        <field name="description"/>
+                        <field name="state"/>
+                        <field name="users" widget="many2many_tags"/>
+                        <field name="files" widget="many2many_tags"/>
+                        <field name="step_ids" widget="many2many_tags"
+                            domain="[]"
+                            context="{'default_sequence': 1, 'default_nextstep': 99}"
+                            options="{'no_create': False, 'no_create_edit': False}"
+                        />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_service" model="ir.actions.act_window">
+        <field name="name">Services</field>
+        <field name="res_model">student.service</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- View list và form cho student.service.file -->
+    <record id="view_student_service_file_list" model="ir.ui.view">
+        <field name="name">student.service.file.list</field>
+        <field name="model">student.service.file</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa File" confirm="Bạn có chắc chắn muốn xóa File này?"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_student_service_file_form" model="ir.ui.view">
+        <field name="name">student.service.file.form</field>
+        <field name="model">student.service.file</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <header>
+                        <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa File" confirm="Bạn có chắc chắn muốn xóa File này?"/>
+                    </header>
+                    <group>
+                        <field name="name"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- View list và form cho student.service.step -->
+    <record id="view_student_service_step_list" model="ir.ui.view">
+        <field name="name">student.service.step.list</field>
+        <field name="model">student.service.step</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="sequence"/>
+                <field name="nextstep"/>
+                <field name="user_ids" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_student_service_step_form" model="ir.ui.view">
+        <field name="name">student.service.step.form</field>
+        <field name="model">student.service.step</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+                        <field name="nextstep"/>
+                        <field name="user_ids" widget="many2many_tags"/>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_student_service_step" model="ir.actions.act_window">
+        <field name="name">Service Steps</field>
+        <field name="res_model">student.service.step</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
