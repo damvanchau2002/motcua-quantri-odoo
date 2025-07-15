@@ -26,3 +26,5 @@
 # - activity: Quản lý hoạt động (chấm công việc).
 # - map: Bản đồ (Odoo Enterprise).
 # - cohort, gantt, dashboard, timeline, grid, diagram, etc. (tùy phiên bản Odoo)
+
+# Không cần sửa nếu đã có views/service_views.xml và views/menus.xml

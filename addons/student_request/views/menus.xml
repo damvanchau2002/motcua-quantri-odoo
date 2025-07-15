@@ -4,4 +4,6 @@
     <menuitem id="student_service_menu" name="Services" parent="student_request_root" action="action_student_service"/>
     <menuitem id="student_step_menu" name="Steps" parent="student_request_root" action="action_student_service_step"/>
     <menuitem id="student_file_menu" name="Files" parent="student_request_root" action="action_student_service_file"/>
+    <menuitem id="menu_service_group_root" name="Groups" parent="student_request_root" sequence="5" action="student_request.action_service_group"/>
+    <menuitem id="menu_service_request" name="Test" parent="student_request_root" action="student_request.action_service_request"/>
 </odoo>

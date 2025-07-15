@@ -10,12 +10,23 @@ class ServiceFile(models.Model):
 class ServiceStep(models.Model):
     _name = 'student.service.step'
     _description = 'Bước duyệt dịch vụ'
+    _order = 'sequence'
 
     name = fields.Char('Tên bước', required=True)
     sequence = fields.Integer('Thứ tự', default=1)
     description = fields.Text('Mô tả bước')
     user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Người thực hiện bước này')
     nextstep = fields.Integer('Thứ tự', default=99)
+
+class ServiceGroup(models.Model):
+    _name = 'student.service.group'
+    _description = 'Nhóm dịch vụ'
+
+    name = fields.Char('Tên nhóm', required=True)
+    description = fields.Text('Mô tả nhóm')
+    service_ids = fields.One2many('student.service', 'group_id', string='Dịch vụ thuộc nhóm')
+    parent_id = fields.Many2one('student.service.group', string='Nhóm cha')
+    child_ids = fields.One2many('student.service.group', 'parent_id', string='Nhóm con')
 
 class Service(models.Model):
     _name = 'student.service'
@@ -30,6 +41,7 @@ class Service(models.Model):
     ], string='Hoạt động', default='enabled')
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
+    group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
 
     def action_configure_steps(self):
         """
@@ -60,7 +72,63 @@ class Service(models.Model):
                 })
                 service.step_ids = [(4, step99.id)]
 
+class ServiceRequestStepHistory(models.Model):
+    _name = 'student.service.request.step.history'
+    _description = 'Lịch sử duyệt từng bước của Request'
+
+    request_id = fields.Many2one('student.service.request', string='Request', required=True, ondelete='cascade')
+    step_id = fields.Many2one('student.service.step', string='Bước duyệt', required=True)
+    user_id = fields.Many2one('res.users', string='Người duyệt')
+    state = fields.Selection([
+        ('pending', 'Chờ duyệt'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối')
+    ], string='Trạng thái', default='pending')
+    approve_content = fields.Text('Nội dung duyệt')
+    approve_date = fields.Datetime('Ngày duyệt')
+
+class ServiceRequest(models.Model):
+    _name = 'student.service.request'
+    _description = 'Yêu cầu dịch vụ của sinh viên'
+
+    service_id = fields.Many2one('student.service', string='Dịch vụ', required=True)
+    request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user)
+    request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now)
+    note = fields.Text('Ghi chú')
+    file_ids = fields.Many2many('student.service.file', string='Files đính kèm')
+    step_history_ids = fields.One2many('student.service.request.step.history', 'request_id', string='Lịch sử các bước duyệt')
+    final_state = fields.Selection([
+        ('pending', 'Chờ duyệt'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối')
+    ], string='Trạng thái duyệt cuối', default='pending')
+    approve_content = fields.Text('Nội dung duyệt cuối')
+    approve_date = fields.Datetime('Ngày duyệt cuối')
+
+    def action_approve_request(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Duyệt yêu cầu dịch vụ',
+            'res_model': 'student.service.request',
+            'view_mode': 'form',
+            'view_id': self.env.ref('student_request.view_service_request_approve_form').id,
+            'res_id': self.id,
+            'target': 'new',
+            'context': dict(self.env.context),
+        }
+
+    def action_confirm_approve(self):
+        self.final_state = 'approved'
+        self.approve_date = fields.Datetime.now()
+        # ...bạn có thể thêm logic lưu lịch sử duyệt ở đây...
+        return {'type': 'ir.actions.act_window_close'}
+
 # Các chức năng đã có trong module Student_Request:
 # - Quản lý danh mục file cần gửi kèm dịch vụ (`student.service.file`)
 # - Quản lý các bước duyệt dịch vụ, phân công người thực hiện từng bước (`student.service.step`)
 # - Quản lý dịch vụ: tên, mô tả, trạng thái hoạt động, người duyệt, các file cần gửi kèm, các bước duyệt (`student.service`)
+# - Quản lý nhóm dịch vụ (`student.service.group`)
+# - Quản lý yêu cầu dịch vụ của sinh viên (`student.service.request`)
+# - Lịch sử duyệt từng bước của Request (`student.service.request.step.history`)
+# - Quản lý yêu cầu dịch vụ của sinh viên (`student.service.request`)
+# - Lịch sử duyệt từng bước của Request (`student.service.request.step.history`)
