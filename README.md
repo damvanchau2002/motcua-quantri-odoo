@@ -92,6 +92,25 @@ Content-Type: application/json
 ```
 Trả về danh sách các yêu cầu dịch vụ, có thể lọc theo dịch vụ hoặc user gửi.
 
+### Đăng nhập lấy session (User Login)
+```
+POST /web/session/authenticate
+Content-Type: application/json
+
+{
+  "params": {
+    "db": "<tên_database>",
+    "login": "<username>",
+    "password": "<password>"
+  }
+}
+```
+Trả về thông tin user và session_id. Sử dụng session_id này cho các API cần xác thực user.
+
+**Ví dụ sử dụng session cho các API:**
+- Gửi cookie `session_id` trong header khi gọi các API có `auth='user'`.
+- Với các API public, không cần session.
+
 
 
 
