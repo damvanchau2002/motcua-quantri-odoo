@@ -52,6 +52,47 @@ Sau đó, khởi động Odoo với file cấu hình này:
 python odoo-bin -c odoo.cfg -i base
 ```
 
-## Đóng góp
+## API
 
-Vui lòng tạo pull request hoặc liên hệ trực tiếp để đóng góp cho dự án.
+### Danh sách dịch vụ
+```
+GET /student_service/api/services
+```
+Trả về danh sách các dịch vụ.
+
+### Danh sách nhóm dịch vụ và các dịch vụ trong nhóm
+```
+GET /api/service/groups
+```
+Trả về danh sách nhóm dịch vụ và các dịch vụ thuộc từng nhóm.
+
+### Tạo yêu cầu dịch vụ
+```
+POST /api/service/request/create
+Content-Type: application/json
+
+{
+  "service_id": <id dịch vụ>,
+  "request_user_id": <id user>,
+  "note": "ghi chú",
+  "file_ids": [<id file 1>, <id file 2>, ...]
+}
+```
+Trả về thông tin yêu cầu vừa tạo.
+
+### Danh sách các yêu cầu dịch vụ
+```
+POST /api/service/request/list
+Content-Type: application/json
+
+{
+  "service_id": <id dịch vụ>,        // optional
+  "request_user_id": <id user>       // optional
+}
+```
+Trả về danh sách các yêu cầu dịch vụ, có thể lọc theo dịch vụ hoặc user gửi.
+
+
+
+
+
