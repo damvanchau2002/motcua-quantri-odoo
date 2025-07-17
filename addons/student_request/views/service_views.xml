@@ -33,6 +33,7 @@
                         <field name="child_ids">
                             <list>
                                 <field name="name"/>
+                                <field name="description"/>
                             </list>
                         </field>
                     </group>
@@ -40,8 +41,8 @@
             </form>
         </field>
     </record>
-    <record id="student_request.action_service_group" model="ir.actions.act_window">
-        <field name="name">Nhóm dịch vụ</field>
+    <record id="action_service_group" model="ir.actions.act_window">
+        <field name="name">Quản lý nhóm dịch vụ</field>
         <field name="res_model">student.service.group</field>
         <field name="view_mode">list,form</field>
     </record>
@@ -69,10 +70,6 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <header>
-                        <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa Service" confirm="Bạn có chắc chắn muốn xóa Service này?"/>
-                        <button name="action_configure_steps" type="object" string="Cấu hình các bước" class="oe_highlight"/>
-                    </header>
                     <group>
                         <group class="col-md-6 col-sm-12">
                             <field name="name" title=""/>
@@ -178,22 +175,10 @@
     </record>
 
     <!-- === REQUEST === -->
-    <record id="view_service_request" model="ir.ui.view">
-        <field name="name">student.service.request.list</field>
-        <field name="model">student.service.request</field>
-        <field name="arch" type="xml">
-            <list string="Yêu cầu dịch vụ">
-                <field name="service_id"/>
-                <field name="request_user_id"/>
-                <field name="request_date"/>
-                <field name="file_ids" widget="many2many_tags"/>
-                <field name="note"/>
-            </list>
-        </field>
-    </record>
+    <!-- View form tạo yêu cầu dịch vụ -->           
     <record id="view_service_request_form" model="ir.ui.view">
         <field name="name">student.service.request.form</field>
-        <field name="model">student.service.request</field>
+        <field name="model">student.service.request</field> 
         <field name="arch" type="xml">
             <form>
                 <sheet>
@@ -206,16 +191,13 @@
                         <field name="request_date"/>
                         <field name="file_ids" widget="many2many_tags"/>
                         <field name="note"/>
+                        
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
-    <record id="student_request.action_service_request" model="ir.actions.act_window">
-        <field name="name">Yêu cầu dịch vụ</field>
-        <field name="res_model">student.service.request</field>
-        <field name="view_mode">list,form</field>
-    </record>
+    <!-- View form popup duyệt -->
     <record id="view_service_request_approve_form" model="ir.ui.view">
         <field name="name">student.service.request.approve.form</field>
         <field name="model">student.service.request</field>
@@ -223,14 +205,51 @@
             <form string="Duyệt yêu cầu dịch vụ">
                 <sheet>
                     <group>
+                        <field name="step_id" options="{'no_create': True}" required="1"/>
                         <field name="approve_content"/>
                         <field name="final_state"/>
                     </group>
                     <footer>
-                        <!-- Có thể thêm nút xác nhận duyệt ở đây nếu cần -->
+                        <button name="action_confirm_approve" string="Xác nhận duyệt" type="object" class="btn-primary"/>
+                        <button string="Đóng" class="btn-secondary" special="cancel"/>
                     </footer>
                 </sheet>
             </form>
         </field>
     </record>
+    <!-- Action mở popup duyệt -->
+    <record id="action_service_request_approve" model="ir.actions.act_window">
+        <field name="name">Popup duyệt </field>
+        <field name="res_model">student.service.request</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_service_request_approve_form"/>
+    </record>
+   
+    <!-- View danh sách yêu cầu dịch vụ -->
+    <record id="view_service_request" model="ir.ui.view">
+        <field name="name">student.service.request.list</field>
+        <field name="model">student.service.request</field>
+        <field name="arch" type="xml">
+            <list string="Yêu cầu dịch vụ" delete="false" edit="false">
+                <field name="service_id"/>
+                <field name="request_user_name"/>
+                <field name="request_user_avatar" widget="image" options="{'size': [32, 32]}"/>
+                <field name="request_date"/>
+                <field name="file_ids" widget="many2many_tags"/>
+                <field name="note"/>
+                <button name="%(action_service_request)d"
+                            string="Duyệt"
+                            type="action"
+                            icon="fa-check" invisible="final_state!='pending'" />
+            </list>
+        </field>
+    </record>
+    <!-- Action mở form tạo yêu cầu dịch vụ -->
+    <record id="action_service_request" model="ir.actions.act_window">
+        <field name="name">Yêu cầu dịch vụ</field>
+        <field name="res_model">student.service.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="views" eval="[(ref('view_service_request'), 'list'), (ref('view_service_request_form'), 'form')]"/>
+    </record>
+    
 </odoo>

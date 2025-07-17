@@ -38,34 +38,6 @@ class Service(models.Model):
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
     group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
 
-    def action_configure_steps(self):
-        """
-        Tự động cấu hình các bước cho service:
-        - Thêm bước 1 (Khởi tạo) vào đầu nếu chưa có
-        - Thêm bước 99 (Kết thúc) vào cuối nếu chưa có
-        """
-        Step = self.env['student.service.step']
-        for service in self:
-            steps = service.step_ids.sorted('sequence')
-            step_names = steps.mapped('name')
-            # Thêm bước 1 nếu chưa có
-            if not any(s.sequence == 1 for s in steps):
-                step1 = Step.create({
-                    'name': 'Khởi tạo',
-                    'sequence': 1,
-                    'description': 'Bước khởi tạo',
-                    'nextstep': steps[0].sequence if steps else 99,
-                })
-                service.step_ids = [(4, step1.id)]
-            # Thêm bước 99 nếu chưa có
-            if not any(s.sequence == 99 for s in steps):
-                step99 = Step.create({
-                    'name': 'Kết thúc',
-                    'sequence': 99,
-                    'description': 'Bước kết thúc',
-                    'nextstep': 0,
-                })
-                service.step_ids = [(4, step99.id)]
 
 # Model quản lý các bước duyệt dịch vụ
 class ServiceStep(models.Model):
@@ -92,6 +64,7 @@ class ServiceFile(models.Model):
     _description = 'File cần gửi kèm dịch vụ'
 
     name = fields.Char('Tên file', required=True)
+    attachment = fields.Char('File Attachment', required=False)
 
 # Model lưu lịch sử duyệt từng bước của một yêu cầu dịch vụ
 class ServiceRequestStepHistory(models.Model):
@@ -116,36 +89,38 @@ class ServiceRequest(models.Model):
 
     service_id = fields.Many2one('student.service', string='Dịch vụ', required=True)
     request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user)
+    request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name')
+    request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920')
+
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now)
     note = fields.Text('Ghi chú')
     file_ids = fields.Many2many('student.service.file', string='Files đính kèm')
+
     step_history_ids = fields.One2many('student.service.request.step.history', 'request_id', string='Lịch sử các bước duyệt')
     final_state = fields.Selection([
         ('pending', 'Chờ duyệt'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối')
-    ], string='Trạng thái duyệt cuối', default='pending')
+      ], string='Trạng thái duyệt cuối', default='pending')
     approve_content = fields.Text('Nội dung duyệt cuối')
     approve_date = fields.Datetime('Ngày duyệt cuối')
 
-    def action_approve_request(self):
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Duyệt yêu cầu dịch vụ',
-            'res_model': 'student.service.request',
-            'view_mode': 'form',
-            'view_id': self.env.ref('student_request.view_service_request_approve_form').id,
-            'res_id': self.id,
-            'target': 'new',
-            'context': dict(self.env.context),
-        }
+    step_id = fields.Many2one('student.service.step', string='Bước duyệt hiện tại', required=False)
+
 
     def action_confirm_approve(self):
         self.final_state = 'approved'
         self.approve_date = fields.Datetime.now()
-        # ...bạn có thể thêm logic lưu lịch sử duyệt ở đây...
-        return {'type': 'ir.actions.act_window_close'}
-        # ...bạn có thể thêm logic lưu lịch sử duyệt ở đây...
+        # Tạo bản ghi lịch sử duyệt bước
+        if self.step_id:
+            self.env['student.service.request.step.history'].create({
+                'request_id': self.id,
+                'step_id': self.step_id.id,
+                'user_id': self.env.user.id,
+                'state': 'approved',
+                'approve_content': self.approve_content,
+                'approve_date': fields.Datetime.now(),
+            })
         return {'type': 'ir.actions.act_window_close'}
 
 # Các chức năng đã có trong module Student_Request:
