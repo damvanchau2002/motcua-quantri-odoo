@@ -1,23 +1,6 @@
 from odoo import models, fields, api
 
-class ServiceFile(models.Model):
-    _name = 'student.service.file'
-    _description = 'File cần gửi kèm dịch vụ'
-
-    name = fields.Char('Tên file', required=True)
-    
-
-class ServiceStep(models.Model):
-    _name = 'student.service.step'
-    _description = 'Bước duyệt dịch vụ'
-    _order = 'sequence'
-
-    name = fields.Char('Tên bước', required=True)
-    sequence = fields.Integer('Thứ tự', default=1)
-    description = fields.Text('Mô tả bước')
-    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Người thực hiện bước này')
-    nextstep = fields.Integer('Thứ tự', default=99)
-
+# Model quản lý nhóm dịch vụ (có thể lồng nhiều cấp)
 class ServiceGroup(models.Model):
     _name = 'student.service.group'
     _description = 'Nhóm dịch vụ'
@@ -28,6 +11,18 @@ class ServiceGroup(models.Model):
     parent_id = fields.Many2one('student.service.group', string='Nhóm cha')
     child_ids = fields.One2many('student.service.group', 'parent_id', string='Nhóm con')
 
+    def action_unlink_with_children(self):
+        for group in self:
+            group._unlink_with_children_recursive()
+
+    def _unlink_with_children_recursive(self):
+        # Xóa tất cả nhóm con trước
+        for child in self.child_ids:
+            child._unlink_with_children_recursive()
+        # Xóa chính nó
+        self.unlink()
+
+# Model quản lý dịch vụ
 class Service(models.Model):
     _name = 'student.service'
     _description = 'Dịch vụ'
@@ -72,6 +67,33 @@ class Service(models.Model):
                 })
                 service.step_ids = [(4, step99.id)]
 
+# Model quản lý các bước duyệt dịch vụ
+class ServiceStep(models.Model):
+    _name = 'student.service.step'
+    _description = 'Bước duyệt dịch vụ'
+    _order = 'sequence'
+
+    name = fields.Char('Tên bước', required=True, help='Tên bước duyệt dịch vụ')
+    sequence = fields.Integer('Thứ tự', default=1)
+    description = fields.Text('Mô tả bước')
+    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Người thực hiện bước này')
+    nextstep = fields.Integer('Thứ tự', default=99)
+    state = fields.Integer('Trạng thái', default=1)  # Trạng thái bước, mặc định là 1 (có thể chỉnh sửa)
+
+    def unlink(self):
+        for step in self:
+            if step.state == 0:
+                raise models.ValidationError("Không thể xóa bước mặc định!")
+        return super().unlink()
+
+# Model quản lý file cần gửi kèm dịch vụ
+class ServiceFile(models.Model):
+    _name = 'student.service.file'
+    _description = 'File cần gửi kèm dịch vụ'
+
+    name = fields.Char('Tên file', required=True)
+
+# Model lưu lịch sử duyệt từng bước của một yêu cầu dịch vụ
 class ServiceRequestStepHistory(models.Model):
     _name = 'student.service.request.step.history'
     _description = 'Lịch sử duyệt từng bước của Request'
@@ -87,6 +109,7 @@ class ServiceRequestStepHistory(models.Model):
     approve_content = fields.Text('Nội dung duyệt')
     approve_date = fields.Datetime('Ngày duyệt')
 
+# Model quản lý yêu cầu dịch vụ của sinh viên
 class ServiceRequest(models.Model):
     _name = 'student.service.request'
     _description = 'Yêu cầu dịch vụ của sinh viên'
@@ -120,6 +143,8 @@ class ServiceRequest(models.Model):
     def action_confirm_approve(self):
         self.final_state = 'approved'
         self.approve_date = fields.Datetime.now()
+        # ...bạn có thể thêm logic lưu lịch sử duyệt ở đây...
+        return {'type': 'ir.actions.act_window_close'}
         # ...bạn có thể thêm logic lưu lịch sử duyệt ở đây...
         return {'type': 'ir.actions.act_window_close'}
 

@@ -1,12 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Đảm bảo action_student_service_file được khai báo TRƯỚC view_student_service_form -->
-    <record id="action_student_service_file" model="ir.actions.act_window">
-        <field name="name">Files</field>
-        <field name="res_model">student.service.file</field>
+    <!-- === GROUP === -->
+    <record id="view_service_group_list" model="ir.ui.view">
+        <field name="name">student.service.group.list</field>
+        <field name="model">student.service.group</field>
+        <field name="arch" type="xml">
+            <list string="Danh mục">
+                <field name="name"/>
+                <field name="parent_id"/>
+                <field name="description"/>
+                <button name="action_unlink_with_children"
+                        type="object"
+                        icon="fa-trash"
+                        string="Xóa"
+                        title="Xóa nhóm (bao gồm tất cả nhóm con)"
+                        confirm="Bạn có chắc chắn muốn xóa nhóm này và toàn bộ nhóm con cháu không?"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_service_group_form" model="ir.ui.view">
+        <field name="name">student.service.group.form</field>
+        <field name="model">student.service.group</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="parent_id"/>
+                        <field name="description"/>
+                    </group>
+                    <group>
+                        <field name="child_ids">
+                            <list>
+                                <field name="name"/>
+                            </list>
+                        </field>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="student_request.action_service_group" model="ir.actions.act_window">
+        <field name="name">Nhóm dịch vụ</field>
+        <field name="res_model">student.service.group</field>
         <field name="view_mode">list,form</field>
     </record>
 
+    <!-- === SERVICE === -->
     <record id="view_student_service_list" model="ir.ui.view">
         <field name="name">student.service.list</field>
         <field name="model">student.service</field>
@@ -23,7 +63,6 @@
             </list>
         </field>
     </record>
-
     <record id="view_student_service_form" model="ir.ui.view">
         <field name="name">student.service.form</field>
         <field name="model">student.service</field>
@@ -35,64 +74,33 @@
                         <button name="action_configure_steps" type="object" string="Cấu hình các bước" class="oe_highlight"/>
                     </header>
                     <group>
-                        
-                            <group class="col-md-6 col-sm-12">
-                                <field name="name" title=""/>
-                                <field name="description"/>
-                                <field name="state"/>
-                                        <field name="group_id" />
-                                        <field name="users" widget="many2many_tags"/>
-                            </group>
-                            <group class="col-md-6 col-sm-12">
-                                <field name="files" widget="many2many_tags"/>
-                                <field name="step_ids" widget="many2many_tags"
-                                    domain="[]"
-                                    context="{'default_sequence': 1, 'default_nextstep': 99}"
-                                    options="{'no_create': true, 'no_create_edit': true}"
-                                />
-                            </group>
-                        
+                        <group class="col-md-6 col-sm-12">
+                            <field name="name" title=""/>
+                            <field name="description"/>
+                            <field name="state"/>
+                            <field name="group_id" />
+                            <field name="users" widget="many2many_tags"/>
+                        </group>
+                        <group class="col-md-6 col-sm-12">
+                            <field name="files" widget="many2many_tags"/>
+                            <field name="step_ids" widget="many2many_tags"
+                                domain="[]"
+                                context="{'default_sequence': 1, 'default_nextstep': 99}"
+                                options="{'no_create': true, 'no_create_edit': true}"
+                            />
+                        </group>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
-
     <record id="action_student_service" model="ir.actions.act_window">
         <field name="name">Services</field>
         <field name="res_model">student.service</field>
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- View list và form cho student.service.file -->
-    <record id="view_student_service_file_list" model="ir.ui.view">
-        <field name="name">student.service.file.list</field>
-        <field name="model">student.service.file</field>
-        <field name="arch" type="xml">
-            <list>
-                <field name="name"/>
-                <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa File" confirm="Bạn có chắc chắn muốn xóa File này?"/>
-            </list>
-        </field>
-    </record>
-    <record id="view_student_service_file_form" model="ir.ui.view">
-        <field name="name">student.service.file.form</field>
-        <field name="model">student.service.file</field>
-        <field name="arch" type="xml">
-            <form>
-                <sheet>
-                    <header>
-                        <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa File" confirm="Bạn có chắc chắn muốn xóa File này?"/>
-                    </header>
-                    <group>
-                        <field name="name"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <!-- View list và form cho student.service.step -->
+    <!-- === STEP === -->
     <record id="view_student_service_step_list" model="ir.ui.view">
         <field name="name">student.service.step.list</field>
         <field name="model">student.service.step</field>
@@ -102,6 +110,14 @@
                 <field name="sequence"/>
                 <field name="nextstep"/>
                 <field name="user_ids" widget="many2many_tags"/>
+                <field name="state"/>
+                <button name="unlink"
+                        type="object"
+                        icon="fa-trash"
+                        string="Xóa"
+                        title="Xóa bước"
+                        confirm="Bạn có chắc chắn muốn xóa bước này?"
+                        invisible="state == 0"/>
             </list>
         </field>
     </record>
@@ -128,79 +144,40 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- Thêm view form, tree cho nhóm dịch vụ và cập nhật view dịch vụ. -->
-    <record id="view_service_group_list" model="ir.ui.view">
-        <field name="name">student.service.group.list</field>
-        <field name="model">student.service.group</field>
+    <!-- === FILE === -->
+    <record id="view_student_service_file_list" model="ir.ui.view">
+        <field name="name">student.service.file.list</field>
+        <field name="model">student.service.file</field>
         <field name="arch" type="xml">
-            <list string="Danh mục">
+            <list>
                 <field name="name"/>
-                <field name="parent_id"/>
+                <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa File" confirm="Bạn có chắc chắn muốn xóa File này?"/>
             </list>
         </field>
     </record>
-
-    <record id="view_service_group_form" model="ir.ui.view">
-        <field name="name">student.service.group.form</field>
-        <field name="model">student.service.group</field>
+    <record id="view_student_service_file_form" model="ir.ui.view">
+        <field name="name">student.service.file.form</field>
+        <field name="model">student.service.file</field>
         <field name="arch" type="xml">
             <form>
                 <sheet>
+                    <header>
+                        <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa File" confirm="Bạn có chắc chắn muốn xóa File này?"/>
+                    </header>
                     <group>
                         <field name="name"/>
-                        <field name="parent_id"/>
-                        <field name="description"/>
-                    </group>
-                    <group>
-                        <field name="child_ids">
-                            <list>
-                                <field name="name"/>
-                            </list>
-                        </field>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
-
-    <record id="student_request.action_service_group" model="ir.actions.act_window">
-        <field name="name">Nhóm dịch vụ</field>
-        <field name="res_model">student.service.group</field>
+    <record id="action_student_service_file" model="ir.actions.act_window">
+        <field name="name">Files</field>
+        <field name="res_model">student.service.file</field>
         <field name="view_mode">list,form</field>
     </record>
 
-    <!-- Cập nhật view dịch vụ để thêm trường group_id -->
-    <record id="view_service_form" model="ir.ui.view">
-        <field name="name">student.service.form</field>
-        <field name="model">student.service</field>
-        <field name="arch" type="xml">
-            <form>
-                <sheet>
-                    <group>
-                        <field name="name"/>
-                        <field name="group_id"/>
-                        <field name="description"/>
-                        <field name="state"/>
-                        <field name="users" widget="many2many_tags"/>
-                        <field name="files" widget="many2many_tags"/>
-                        <field name="step_ids" widget="many2many_tags"
-                            domain="[]"
-                            context="{'default_sequence': 1, 'default_nextstep': 99}"
-                            options="{'no_create': False, 'no_create_edit': False}"
-                        />
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <!-- Request dịch vụ -->
-    <record id="student_request.action_service_request" model="ir.actions.act_window">
-        <field name="name">Yêu cầu dịch vụ</field>
-        <field name="res_model">student.service.request</field>
-        <field name="view_mode">list,form</field>
-    </record>
-
+    <!-- === REQUEST === -->
     <record id="view_service_request" model="ir.ui.view">
         <field name="name">student.service.request.list</field>
         <field name="model">student.service.request</field>
@@ -214,7 +191,6 @@
             </list>
         </field>
     </record>
-
     <record id="view_service_request_form" model="ir.ui.view">
         <field name="name">student.service.request.form</field>
         <field name="model">student.service.request</field>
@@ -222,7 +198,7 @@
             <form>
                 <sheet>
                     <header>
-                       
+                        <!-- Có thể thêm nút duyệt ở đây nếu cần -->
                     </header>
                     <group>
                         <field name="service_id"/>
@@ -235,8 +211,11 @@
             </form>
         </field>
     </record>
-
-    <!-- Popup form duyệt request -->
+    <record id="student_request.action_service_request" model="ir.actions.act_window">
+        <field name="name">Yêu cầu dịch vụ</field>
+        <field name="res_model">student.service.request</field>
+        <field name="view_mode">list,form</field>
+    </record>
     <record id="view_service_request_approve_form" model="ir.ui.view">
         <field name="name">student.service.request.approve.form</field>
         <field name="model">student.service.request</field>
@@ -248,7 +227,7 @@
                         <field name="final_state"/>
                     </group>
                     <footer>
-                        
+                        <!-- Có thể thêm nút xác nhận duyệt ở đây nếu cần -->
                     </footer>
                 </sheet>
             </form>
