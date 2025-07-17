@@ -108,6 +108,16 @@ class ServiceRequest(models.Model):
     step_id = fields.Many2one('student.service.step', string='Bước duyệt hiện tại', required=False)
 
 
+    def action_open_approve(self):
+        return {
+        'type': 'ir.actions.act_window',
+        'name': 'Duyệt yêu cầu',
+        'res_model': 'student.service.request',
+        'view_mode': 'form',
+        'view_id': self.env.ref('student_request.popup_service_request_approve_form').id,
+        'target': 'new', 
+    }
+
     def action_confirm_approve(self):
         self.final_state = 'approved'
         self.approve_date = fields.Datetime.now()
