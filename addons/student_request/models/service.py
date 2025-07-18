@@ -65,6 +65,7 @@ class ServiceFile(models.Model):
 
     name = fields.Char('Tên file', required=True)
     attachment = fields.Char('File Attachment', required=False)
+    description = fields.Text('Mô tả file')
 
 # Model lưu lịch sử duyệt từng bước của một yêu cầu dịch vụ
 class ServiceRequestStepHistory(models.Model):

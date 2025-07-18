@@ -5,6 +5,7 @@ import json
 import base64
 
 class ServiceApiController(http.Controller):
+    # Lấy danh sách các nhóm dịch vụ và các dịch vụ trong nhóm
     @http.route('/api/service/groups', type='http', auth='public', methods=['GET'], csrf=False)
     def get_groups_and_services(self):
         groups = request.env['student.service.group'].search([])
@@ -33,7 +34,8 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
-
+        
+    # Lấy danh sách các dịch vụ
     @http.route('/student_service/api/services', type='http', auth='public', methods=['GET'], csrf=False)
     def list_services(self, **kwargs):
         services = request.env['student.service'].sudo().search([])
@@ -55,6 +57,38 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
+
+    # Create public user without password
+    @http.route('/api/public_user/create', type='json', auth='public', methods=['POST'], csrf=False)
+    def create_public_user(self, name=None, image_url=None):
+        import requests as py_requests
+        import base64
+
+        image_data = False
+        if image_url:
+            try:
+                resp = py_requests.get(image_url)
+                if resp.status_code == 200:
+                    image_data = base64.b64encode(resp.content).decode('utf-8')
+            except Exception:
+                image_data = False
+
+        vals = {
+            'name': name,
+            'active': True,
+            'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],  # chỉ gán group public
+            # Không set password
+        }
+        if image_data:
+            vals['image_1920'] = image_data
+
+        user = request.env['res.users'].sudo().create(vals)
+        return {
+            'id': user.id,
+            'name': user.name,
+            'can_login': False,
+            'image_1920': bool(image_data),
+        }
 
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
@@ -109,6 +143,42 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
+
+    # Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
+    @http.route('/api/service/request/user', type='json', auth='public', methods=['GET'], csrf=False)
+    def list_requests_by_user(self, user_id=None):
+        domain = []
+        if user_id:
+            domain.append(('request_user_id', '=', user_id))
+        requests = request.env['student.service.request'].sudo().search(domain)
+        data = []
+        for req in requests:
+            histories = []
+            for h in req.step_history_ids:
+                histories.append({
+                    'id': h.id,
+                    'step_id': h.step_id.id if h.step_id else None,
+                    'step_name': h.step_id.name if h.step_id else '',
+                    'user_id': h.user_id.id if h.user_id else None,
+                    'user_name': h.user_id.name if h.user_id else '',
+                    'state': h.state,
+                    'approve_content': h.approve_content,
+                    'approve_date': h.approve_date.strftime('%Y-%m-%d %H:%M:%S') if h.approve_date else '',
+                })
+            data.append({
+                'id': req.id,
+                'service_id': req.service_id.id,
+                'service_name': req.service_id.name,
+                'request_user_id': req.request_user_id.id,
+                'request_user_name': req.request_user_id.name,
+                'note': req.note,
+                'file_ids': [f.id for f in req.file_ids],
+                'image_attachment_ids': [a.id for a in req.image_attachment_ids],
+                'request_date': req.request_date.strftime('%Y-%m-%d %H:%M:%S') if req.request_date else '',
+                'final_state': req.final_state,
+                'step_history': histories,
+            })
+        return data
 
     @http.route('/api/service/request/list', type='json', auth='public', methods=['GET'], csrf=False)
     def list_service_requests(self, **post):

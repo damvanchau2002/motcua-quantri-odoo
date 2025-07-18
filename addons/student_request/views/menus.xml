@@ -6,7 +6,7 @@
     <menuitem id="student_request_config" name="Cấu hình" parent="student_request_root"/>
 
     <menuitem id="menu_service_group_root" name="Nhóm dịch vụ" parent="student_request_config" action="action_service_group"/>
-    <menuitem id="student_service_menu" name="Dịch vụ" parent="student_request_config" action="action_student_service"/>
+    <menuitem id="student_service_menu" name="Các dịch vụ" parent="student_request_config" action="action_student_service"/>
     <menuitem id="student_step_menu" name="Các bước duyệt" parent="student_request_config" action="action_student_service_step"/>
     <menuitem id="student_file_menu" name="Giấy tờ nộp kèm" parent="student_request_config" action="action_student_service_file"/>
 </odoo>

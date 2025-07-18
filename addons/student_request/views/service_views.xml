@@ -157,6 +157,7 @@
                     </header>
                     <group>
                         <field name="name"/>
+                        <field name="description"/>
                     </group>
                 </sheet>
             </form>
