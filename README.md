@@ -51,7 +51,6 @@ Sau đó, khởi động Odoo với file cấu hình này:
 ```bash
 python odoo-bin -c odoo.cfg -i base
 ```
-
 ## API
 
 ### Danh sách dịch vụ
@@ -67,7 +66,6 @@ GET /api/service/groups
 Trả về danh sách nhóm dịch vụ và các dịch vụ thuộc từng nhóm.
 
 ### Tạo yêu cầu dịch vụ (có upload nhiều ảnh)
-
 ```
 POST /api/service/request/create
 Content-Type: multipart/form-data
@@ -78,7 +76,6 @@ Form data:
   note: <ghi chú>
   files: <chọn nhiều file ảnh> (có thể gửi nhiều file, mỗi file là một ảnh đính kèm)
 ```
-
 **Ví dụ dùng curl:**
 ```bash
 curl --location 'http://localhost:8069/api/service/request/create' \
@@ -88,20 +85,18 @@ curl --location 'http://localhost:8069/api/service/request/create' \
 --form 'files=@"/path/to/image1.jpg"' \
 --form 'files=@"/path/to/image2.png"'
 ```
-
 Trả về thông tin yêu cầu vừa tạo, bao gồm danh sách id ảnh đính kèm.
 
-### Danh sách các yêu cầu dịch vụ
+### Danh sách các yêu cầu dịch vụ của một user (có lịch sử duyệt)
 ```
-POST /api/service/request/list
+POST /api/service/request/user
 Content-Type: application/json
 
 {
-  "service_id": <id dịch vụ>,        // optional
-  "request_user_id": <id user>       // optional
+  "user_id": <id user>
 }
 ```
-Trả về danh sách các yêu cầu dịch vụ, có thể lọc theo dịch vụ hoặc user gửi.
+Trả về danh sách các yêu cầu dịch vụ của user, kèm lịch sử duyệt từng yêu cầu.
 
 ### Đăng nhập lấy session (User Login)
 ```
@@ -122,7 +117,15 @@ Trả về thông tin user và session_id. Sử dụng session_id này cho các 
 - Gửi cookie `session_id` trong header khi gọi các API có `auth='user'`.
 - Với các API public, không cần session.
 
+### Tạo user public (không đăng nhập Odoo)
+- Để đồng bộ tài khoản Sinh Viên
+```
+POST /api/public_user/create
+Content-Type: application/json
 
-
-
-
+{
+  "username": "<tên người dùng>",
+  "image_url": "<url ảnh đại diện>"
+}
+```
+Trả về thông tin user vừa tạo (id, tên, ảnh)

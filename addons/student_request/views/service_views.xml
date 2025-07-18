@@ -221,7 +221,7 @@
             <list string="Yêu cầu dịch vụ" delete="false" edit="false">
                 <field name="service_id"/>
                 <field name="request_user_name"/>
-                <field name="request_user_avatar" widget="image" options="{'size': [32, 32]}"/>
+                <field name="request_user_avatar" widget="image" options="{'size': [24, 24]}"/>
                 <field name="request_date"/>
                 <field name="image_attachment_ids" widget="many2many_kanban">
                     <kanban>

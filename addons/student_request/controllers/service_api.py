@@ -34,7 +34,7 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
-        
+
     # Lấy danh sách các dịch vụ
     @http.route('/student_service/api/services', type='http', auth='public', methods=['GET'], csrf=False)
     def list_services(self, **kwargs):
@@ -60,7 +60,10 @@ class ServiceApiController(http.Controller):
 
     # Create public user without password
     @http.route('/api/public_user/create', type='json', auth='public', methods=['POST'], csrf=False)
-    def create_public_user(self, name=None, image_url=None):
+    def create_public_user(self, username=None, image_url=None):
+        if not username:
+            username = "Test User"
+
         import requests as py_requests
         import base64
 
@@ -74,7 +77,8 @@ class ServiceApiController(http.Controller):
                 image_data = False
 
         vals = {
-            'name': name,
+            'name': username,
+            'login': username,  # Bắt buộc phải có login
             'active': True,
             'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],  # chỉ gán group public
             # Không set password
