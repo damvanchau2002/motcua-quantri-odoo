@@ -65,6 +65,7 @@ class ServiceApiController(http.Controller):
     def create_public_user(self):
         params = request.httprequest.get_json(force=True, silent=True) or {}
         username = params.get('username')
+        loginname = params.get('loginname')
         image_url = params.get('image_url')
         print("POST API /api/public_user/create:", params, username, image_url)
         
@@ -82,7 +83,7 @@ class ServiceApiController(http.Controller):
 
         vals = {
             'name': username,
-            'login': username,  # Bắt buộc phải có login
+            'login': loginname or username.lower().replace(' ', '_'),
             'active': True,
             'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],  # chỉ gán group public
             # Không set password

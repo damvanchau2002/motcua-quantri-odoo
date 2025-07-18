@@ -125,6 +125,7 @@ Content-Type: application/json
 
 {
   "username": "<tên người dùng>",
+  "loginname": "<tên đăng nhập>",
   "image_url": "<url ảnh đại diện>"
 }
 ```
