@@ -1,6 +1,8 @@
 from odoo import http
 from odoo.http import request, Response
 from odoo.fields import Datetime
+import requests as py_requests
+
 import json
 import base64
 
@@ -59,14 +61,16 @@ class ServiceApiController(http.Controller):
         )
 
     # Create public user without password
-    @http.route('/api/public_user/create', type='json', auth='public', methods=['POST'], csrf=False)
-    def create_public_user(self, username=None, image_url=None):
+    @http.route('/api/public_user/create', type='http', auth='public', methods=['POST'], csrf=False)
+    def create_public_user(self):
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        username = params.get('username')
+        image_url = params.get('image_url')
+        print("POST API /api/public_user/create:", params, username, image_url)
+        
         if not username:
             username = "Test User"
-
-        import requests as py_requests
-        import base64
-
+        # Nếu có image_url, tải ảnh về và encode base64
         image_data = False
         if image_url:
             try:
@@ -87,12 +91,21 @@ class ServiceApiController(http.Controller):
             vals['image_1920'] = image_data
 
         user = request.env['res.users'].sudo().create(vals)
-        return {
-            'id': user.id,
-            'name': user.name,
-            'can_login': False,
-            'image_1920': bool(image_data),
-        }
+        return Response(
+            json.dumps({
+                'id': user.id,
+                'name': user.name,
+                'can_login': False,
+                'image_1920': bool(image_data),
+            }),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
 
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
@@ -149,9 +162,12 @@ class ServiceApiController(http.Controller):
         )
 
     # Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
-    @http.route('/api/service/request/user', type='json', auth='public', methods=['GET'], csrf=False)
-    def list_requests_by_user(self, user_id=None):
+    @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
+    def list_requests_by_user(self):
         domain = []
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        user_id = params.get('user_id')
+        print("GET API /api/service/request/user:", user_id)
         if user_id:
             domain.append(('request_user_id', '=', user_id))
         requests = request.env['student.service.request'].sudo().search(domain)
@@ -182,7 +198,16 @@ class ServiceApiController(http.Controller):
                 'final_state': req.final_state,
                 'step_history': histories,
             })
-        return data
+        return Response(
+            json.dumps(data),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
 
     @http.route('/api/service/request/list', type='json', auth='public', methods=['GET'], csrf=False)
     def list_service_requests(self, **post):
