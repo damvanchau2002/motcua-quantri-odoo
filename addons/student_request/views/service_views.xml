@@ -188,10 +188,8 @@
                     <group>
                         <field name="service_id"/>
                         <field name="request_user_id"/>
-                        <field name="request_date"/>
-                        <field name="file_ids" widget="many2many_tags"/>
+                        <field name="image_attachment_ids" widget="many2many_binary"/>
                         <field name="note"/>
-                        
                     </group>
                 </sheet>
             </form>
@@ -199,14 +197,13 @@
     </record>
     <!-- View form popup duyệt -->
     <record id="popup_service_request_approve_form" model="ir.ui.view">
-        <field name="model">student.service.request</field>
+        <field name="model">student.service.request.step.history</field>
         <field name="arch" type="xml">
             <form string="Duyệt yêu cầu dịch vụ">
                 <sheet>
                     <group>
-                        <field name="step_id" options="{'no_create': True}" required="1"/>
+                        <field name="state" />
                         <field name="approve_content"/>
-                        <field name="final_state"/>
                     </group>
                     <footer>
                         <button name="action_confirm_approve" string="Xác nhận duyệt" type="object" class="btn-primary"/>
@@ -231,7 +228,7 @@
                 <field name="note"/>
                 <button name="action_open_approve"
                             string="Duyệt"
-                            type="object"
+                            type="object" context="{'default_service_id': service_id, 'default_request_id': id}"
                             icon="fa-check" invisible="final_state!='pending'" />
             </list>
         </field>
