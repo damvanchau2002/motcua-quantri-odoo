@@ -108,13 +108,7 @@
                 <field name="nextstep"/>
                 <field name="user_ids" widget="many2many_tags"/>
                 <field name="state"/>
-                <button name="unlink"
-                        type="object"
-                        icon="fa-trash"
-                        string="Xóa"
-                        title="Xóa bước"
-                        confirm="Bạn có chắc chắn muốn xóa bước này?"
-                        invisible="state == 0"/>
+                <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa bước" confirm="Bạn có chắc chắn muốn xóa bước này?" invisible="state == 0"/>
             </list>
         </field>
     </record>
@@ -186,10 +180,14 @@
                         <!-- Có thể thêm nút duyệt ở đây nếu cần -->
                     </header>
                     <group>
-                        <field name="service_id"/>
-                        <field name="request_user_id"/>
-                        <field name="image_attachment_ids" widget="many2many_binary"/>
-                        <field name="note"/>
+                        <group>
+                            <field name="service_id"/>
+                            <field name="request_user_id"/>
+                            <field name="note"/>
+                        </group>
+                        <group>
+                            <field name="image_attachment_ids" widget="many2many_binary"/>
+                        </group>
                     </group>
                 </sheet>
             </form>
@@ -224,12 +222,23 @@
                 <field name="request_user_name"/>
                 <field name="request_user_avatar" widget="image" options="{'size': [32, 32]}"/>
                 <field name="request_date"/>
-                <field name="file_ids" widget="many2many_tags"/>
+                <field name="image_attachment_ids" widget="many2many_kanban">
+                    <kanban>
+                        <templates>
+                            <t t-name="kanban-box">
+                                <img t-att-src="'data:image/png;base64,' + record.datas.value"/>
+                                <div><field name="name"/></div>
+                            </t>
+                        </templates>
+                    </kanban>
+                </field>
+
                 <field name="note"/>
                 <button name="action_open_approve"
-                            string="Duyệt"
-                            type="object" context="{'default_service_id': service_id, 'default_request_id': id}"
-                            icon="fa-check" invisible="final_state!='pending'" />
+                    string="Duyệt"
+                    type="object" context="{'default_service_id': service_id, 'default_request_id': id}"
+                    icon="fa-check" invisible="final_state!='pending'" />
+                <field name="final_state" widget="badge"/>
             </list>
         </field>
     </record>

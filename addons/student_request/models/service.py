@@ -112,7 +112,9 @@ class ServiceRequest(models.Model):
     file_ids = fields.Many2many('student.service.file', string='Files đính kèm')
     image_attachment_ids = fields.Many2many(
         'ir.attachment',
-        string='Ảnh đính kèm'
+        string='Ảnh đính kèm',
+        domain=[('mimetype', 'ilike', 'image')],
+        help='Ảnh đính kèm cho yêu cầu dịch vụ'
     )
 
     step_history_ids = fields.One2many('student.service.request.step.history', 'request_id', string='Lịch sử các bước duyệt')
