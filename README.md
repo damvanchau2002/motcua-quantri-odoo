@@ -66,19 +66,30 @@ GET /api/service/groups
 ```
 Trả về danh sách nhóm dịch vụ và các dịch vụ thuộc từng nhóm.
 
-### Tạo yêu cầu dịch vụ
+### Tạo yêu cầu dịch vụ (có upload nhiều ảnh)
+
 ```
 POST /api/service/request/create
-Content-Type: application/json
+Content-Type: multipart/form-data
 
-{
-  "service_id": <id dịch vụ>,
-  "request_user_id": <id user>,
-  "note": "ghi chú",
-  "file_ids": [<id file 1>, <id file 2>, ...]
-}
+Form data:
+  service_id: <id dịch vụ>
+  request_user_id: <id user>
+  note: <ghi chú>
+  files: <chọn nhiều file ảnh> (có thể gửi nhiều file, mỗi file là một ảnh đính kèm)
 ```
-Trả về thông tin yêu cầu vừa tạo.
+
+**Ví dụ dùng curl:**
+```bash
+curl --location 'http://localhost:8069/api/service/request/create' \
+--form 'service_id="1"' \
+--form 'request_user_id="2"' \
+--form 'note="ghi chú"' \
+--form 'files=@"/path/to/image1.jpg"' \
+--form 'files=@"/path/to/image2.png"'
+```
+
+Trả về thông tin yêu cầu vừa tạo, bao gồm danh sách id ảnh đính kèm.
 
 ### Danh sách các yêu cầu dịch vụ
 ```
