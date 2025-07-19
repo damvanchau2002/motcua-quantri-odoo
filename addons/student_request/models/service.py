@@ -128,7 +128,8 @@ class ServiceRequest(models.Model):
     approve_date = fields.Datetime('Ngày duyệt cuối')
 
     step_id = fields.Many2one('student.service.step', string='Bước duyệt hiện tại', required=False)
-
+    # Người duyệt dịch vụ này
+    users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
 
     def action_open_approve(self):
         print("Self open approve data:", self)

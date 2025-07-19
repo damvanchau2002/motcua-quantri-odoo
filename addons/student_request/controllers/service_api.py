@@ -217,6 +217,25 @@ class ServiceApiController(http.Controller):
             domain.append(('service_id', '=', post['service_id']))
         if post.get('request_user_id'):
             domain.append(('request_user_id', '=', post['request_user_id']))
+        # Lọc theo user đang đăng nhập có trong service.users
+        user = request.env.user
+        service_ids = request.env['student.service'].sudo().search([
+            ('users', 'in', user.id)
+        ]).ids
+        if service_ids:
+            domain.append(('service_id', 'in', service_ids))
+        else:
+            # Nếu user không có quyền duyệt dịch vụ nào thì trả về rỗng
+            return Response(
+                json.dumps([]),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
         requests = request.env['student.service.request'].sudo().search(domain)
         data = []
         for req in requests:

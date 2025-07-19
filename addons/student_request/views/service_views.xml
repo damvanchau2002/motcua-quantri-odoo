@@ -175,7 +175,7 @@
         <field name="name">student.service.request.form</field>
         <field name="model">student.service.request</field> 
         <field name="arch" type="xml">
-            <form>
+            <form delete="false" edit="false">
                 <sheet>
                     <header>
                         <!-- Có thể thêm nút duyệt ở đây nếu cần -->
@@ -198,7 +198,7 @@
     <record id="popup_service_request_approve_form" model="ir.ui.view">
         <field name="model">student.service.request.step.history</field>
         <field name="arch" type="xml">
-            <form string="Duyệt yêu cầu dịch vụ">
+            <form string="Duyệt yêu cầu dịch vụ" delete="false">
                 <sheet>
                     <group>
                         <field name="state" />
@@ -250,6 +250,7 @@
         <field name="view_mode">list,form</field>
         <field name="view_id" ref="view_service_request"/>
         <field name="views" eval="[(ref('view_service_request'), 'list'), (ref('view_service_request_form'), 'form')]"/>
+        <field name="domain">[("service_id.users", "in", [uid])]</field>
     </record>
     
 </odoo>
