@@ -170,6 +170,25 @@
     </record>
 
     <!-- === REQUEST === -->
+    <!-- View form chỉnh sửa dòng duyệt từng bước -->
+    <record id="view_student_service_request_step_form" model="ir.ui.view">
+        <field name="name">student.service.request.step.form</field>
+        <field name="model">student.service.request.step</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="request_id"/>
+                        <field name="step_id"/>
+                        <field name="user_id"/>
+                        <field name="state"/>
+                        <field name="approve_content"/>
+                        <field name="hardcopies" widget="many2many_checkboxes"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
     <!-- View form tạo yêu cầu dịch vụ -->           
     <record id="view_service_request_form" model="ir.ui.view">
         <field name="name">student.service.request.form</field>
@@ -189,22 +208,27 @@
                         <group>
                             <field name="image_attachment_ids" widget="many2many_binary"/>
                         </group>
+                        
                     </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-    <!-- View form popup duyệt -->
-    <record id="popup_service_request_approve_form" model="ir.ui.view">
-        <field name="model">student.service.request.step.history</field>
-        <field name="arch" type="xml">
-            <form string="Duyệt yêu cầu dịch vụ" delete="false">
-                <sheet>
-                    <group>
-                        <field name="state" />
-                        <field name="approve_content"/>
+                    <group invisible="id == 0">
+                        <h3>Kiểm duyệt nội dung</h3>
+                        <hr/>
+                        <field name="step_history_ids" widget="kanban">
+                            <kanban>
+                                <templates>
+                                    <t t-name="kanban-box">
+                                        <div>
+                                            <strong><field name="step_id"/></strong>
+                                            <field name="state"/>
+                                            <field name="approve_content"/>
+                                            <field name="hardcopies" widget="many2many_checkboxes"/>
+                                        </div>
+                                    </t>
+                                </templates>
+                            </kanban>
+                        </field>
                     </group>
-                    <footer>
+                    <footer >
                         <button name="action_confirm_approve" string="Xác nhận duyệt" type="object" class="btn-primary"/>
                         <button string="Đóng" class="btn-secondary" special="cancel"/>
                     </footer>

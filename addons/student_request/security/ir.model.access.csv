@@ -5,4 +5,4 @@ access_student_service_step,student.service.step,model_student_service_step,,1,1
 access_student_service_group_user,student.service.group,model_student_service_group,,1,1,1,1
 access_student_service_group_public,student.service.group,model_student_service_group,,1,0,0,0
 access_student_service_request,student.service.request,model_student_service_request,,1,1,1,1
-access_student_service_request_step_history_user,student.service.request.step.history,model_student_service_request_step_history,base.group_user,1,1,1,1
+access_student_service_request_step_user,student.service.request.step,model_student_service_request_step,,1,1,1,1
