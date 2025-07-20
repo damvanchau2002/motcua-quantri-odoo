@@ -205,19 +205,22 @@
                                             </div>
                                             <div>Trạng thái: <field name="state"/></div>
                                             <div>Nội dung duyệt: <field name="approve_content"/></div>
-                                            <div>
-                                                <t t-if="record.file_checkbox_ids">
-                                                    <ul style="padding-left: 18px;">
-                                                        <t t-foreach="record.file_checkbox_ids.raw_value" t-as="file">
-                                                            <li>
-                                                                <input type="checkbox" t-att-checked="file.checked ? 'checked' : false" />
-                                                                
-                                                                <span t-esc="file.file_id ? file.file_id[1] : ''"/>
-                                                                
-                                                                <span t-if="file.file_id"> (<t t-esc="file.description"/>)</span>
-                                                            </li>
-                                                        </t>
-                                                    </ul>
+                                             <div>
+                                                <t t-if="record.base_step_id and record.base_step_id.sequence == 1 and record.request_id and record.request_id.service_id and record.request_id.service_id.files">
+                                                    <div>
+                                                        <strong>Files của dịch vụ:</strong>
+                                                        <ul style="padding-left: 18px;">
+                                                            <t t-foreach="record.request_id.service_id.files.raw_value" t-as="file">
+                                                                <li>
+                                                                    <span t-esc="file.name"/>
+                                                                    <span t-if="file.description"> (<t t-esc="file.description"/>)</span>
+                                                                </li>
+                                                            </t>
+                                                        </ul>
+                                                    </div>
+                                                    <div>
+                                                        <field name="file_checkbox_ids" widget="many2many_tags"/>
+                                                    </div>
                                                 </t>
                                             </div>
                                             <div class="oe_kanban_footer">
@@ -243,7 +246,7 @@
         <field name="name">student.service.request.kanban</field>
         <field name="model">student.service.request</field>
         <field name="arch" type="xml">
-            <kanban class="o_kanban_view">
+            <kanban class="o_kanban_view" default_order="id desc">
                 <templates>
                     <t t-name="kanban-box">
                         <div class="oe_kanban_card" t-att-class="'state-' + record.final_state.value">
@@ -298,14 +301,15 @@
                 <sheet>
                     <group>
                         <group>
-                            <field name="request_id"/>
-                            <field name="base_step_id"/>
+                            <field name="request_id" readonly="1"/>
+                            <field name="base_step_id"  readonly="1"/>
                             <field name="user_id"/>
                             <field name="state"/>
                             <field name="approve_content"/>
                         </group>
                         <group>
-                            <field name="file_checkbox_ids" widget="many2many_checkboxes" options="{'checkbox_field': 'checked', 'text_field': 'file_id.name'}"/>
+                            <field name="file_ids" widget="many2many_tags" readonly="1" options="{'no_create': True, 'no_create_edit': True}"/>
+                            <field name="file_checkbox_ids" widget="many2many_checkboxes" invisible="base_step_id != 1"/>
                         </group>
                     </group>
                 </sheet>

@@ -65,7 +65,7 @@
         <field name="description">Dịch vụ sửa chữa điện trong ký túc xá.</field>
         <field name="group_id" ref="student_service_group_repair"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>
-        <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_2')), (4, ref('student_service_step_99'))]"/>
+        <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_99'))]"/>
         <field name="users" eval="[(4, 1)]"/>
     </record>
 
@@ -75,7 +75,7 @@
         <field name="description">Dịch vụ xin cấp giấy chứng nhận cho sinh viên.</field>
         <field name="group_id" ref="student_service_group_admin"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>
-        <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_2')), (4, ref('student_service_step_99'))]"/>
+        <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_99'))]"/>
         <field name="users" eval="[(4, 1)]"/>
     </record>
 </odoo>

@@ -91,14 +91,28 @@ class ServiceRequestStep(models.Model):
     ], string='Trạng thái', default='pending')
     approve_content = fields.Text('Nội dung duyệt')
     # Các giấy tờ cần nộp trong bước này
-    # Nếu là bước đầu tiên, sẽ có các file từ service.files
-    file_checkbox_ids = fields.One2many('student.service.file.checkbox', 'step_id', string='Files checkbox')
-
+    file_ids = fields.Many2many(
+        'student.service.file',
+        'student_service_step_file_rel',  # bảng quan hệ riêng cho file_ids
+        'step_id', 'file_id',
+        string='Giấy tờ cần nộp',
+        help='Các giấy tờ cần nộp trong bước này'
+    )
+    # Nếu là bước đầu tiên, các giấy tờ đã nộp
+    file_checkbox_ids = fields.Many2many(
+        'student.service.file',
+        'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
+        'step_id', 'file_id',
+        string='Hồ sơ đã nộp',
+        help='Các giấy tờ đã nộp trong bước này'
+    )
 
 # Model yêu cầu dịch vụ của sinh viên
 class ServiceRequest(models.Model):
     _name = 'student.service.request'
     _description = 'Yêu cầu dịch vụ của sinh viên'
+
+    name = fields.Char('Tên yêu cầu', required=True, help='Tên mô tả ngắn gọn cho yêu cầu dịch vụ')
 
     service_id = fields.Many2one('student.service', string='Dịch vụ', required=True)
     request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user)
@@ -107,7 +121,7 @@ class ServiceRequest(models.Model):
 
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now)
     note = fields.Text('Ghi chú')
-    file_ids = fields.Many2many('student.service.file', string='Files đính kèm')
+    
     # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
     image_attachment_ids = fields.Many2many(
         'ir.attachment',
@@ -141,6 +155,13 @@ class ServiceRequest(models.Model):
     def create(self, vals):
         # Xử lý dữ liệu trước khi tạo mới
         service = self.env['student.service'].browse(vals.get('service_id'))
+        # Get user name from vals or fetch from user record
+        user_id = vals.get('request_user_id')
+        user_name = 'Yêu cầu dịch vụ: '
+        if user_id:
+            user = self.env['res.users'].browse(user_id)
+            user_name = user.name or ''
+        vals['name'] = user_name + ': ' + service.name
         # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
         step_ids = service.step_ids.sorted('sequence')
         step_history_ids = []
@@ -154,15 +175,9 @@ class ServiceRequest(models.Model):
             # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
             if step == step_ids[0]:
                 vals['step_id'] = step.id
-                file_checkbox_ids = []
-                for file in service.files:
-                    file_checkbox = self.env['student.service.file.checkbox'].create({
-                        'step_id': step_request.id,
-                        'file_id': file.id,
-                        'checked': False,
-                    })
-                    file_checkbox_ids.append(file_checkbox.id)
-                step_request.file_checkbox_ids = [(6, 0, file_checkbox_ids)]
+                # Thêm các files cần của Dịch vụ vào file_ids
+                if service.files:
+                    step_request.file_ids = [(6, 0, service.files.ids)]
             step_history_ids.append(step_request.id)
         if step_history_ids:
             vals['step_history_ids'] = [(6, 0, step_history_ids)]
