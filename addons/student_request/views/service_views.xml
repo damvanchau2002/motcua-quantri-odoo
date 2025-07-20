@@ -170,31 +170,13 @@
     </record>
 
     <!-- === REQUEST === -->
-    <!-- View form chỉnh sửa dòng duyệt từng bước -->
-    <record id="view_student_service_request_step_form" model="ir.ui.view">
-        <field name="name">student.service.request.step.form</field>
-        <field name="model">student.service.request.step</field>
-        <field name="arch" type="xml">
-            <form>
-                <sheet>
-                    <group>
-                        <field name="request_id"/>
-                        <field name="step_id"/>
-                        <field name="user_id"/>
-                        <field name="state"/>
-                        <field name="approve_content"/>
-                        <field name="hardcopies" widget="many2many_checkboxes"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
+
     <!-- View form tạo yêu cầu dịch vụ -->           
     <record id="view_service_request_form" model="ir.ui.view">
         <field name="name">student.service.request.form</field>
         <field name="model">student.service.request</field> 
         <field name="arch" type="xml">
-            <form delete="false" edit="false">
+            <form delete="false">
                 <sheet>
                     <header>
                         <!-- Có thể thêm nút duyệt ở đây nếu cần -->
@@ -210,71 +192,129 @@
                         </group>
                         
                     </group>
+                    <h3>Kiểm duyệt nội dung</h3>
+                    <hr/>
                     <group invisible="id == 0">
-                        <h3>Kiểm duyệt nội dung</h3>
-                        <hr/>
-                        <field name="step_history_ids" widget="kanban">
+                        <field name="step_history_ids" widget="kanban" nolabel="1" editable="true" create="false" options="{'no_create': true, 'no_open': true}">
                             <kanban>
                                 <templates>
                                     <t t-name="kanban-box">
-                                        <div>
-                                            <strong><field name="step_id"/></strong>
-                                            <field name="state"/>
-                                            <field name="approve_content"/>
-                                            <field name="hardcopies" widget="many2many_checkboxes"/>
+                                        <div class="oe_kanban_card">
+                                            <div class="oe_kanban_header">
+                                                <strong><field name="base_step_id"/></strong>
+                                            </div>
+                                            <div>Trạng thái: <field name="state"/></div>
+                                            <div>Nội dung duyệt: <field name="approve_content"/></div>
+                                            <div>
+                                                <t t-if="record.file_checkbox_ids">
+                                                    <ul style="padding-left: 18px;">
+                                                        <t t-foreach="record.file_checkbox_ids.raw_value" t-as="file">
+                                                            <li>
+                                                                <input type="checkbox" t-att-checked="file.checked ? 'checked' : false" />
+                                                                
+                                                                <span t-esc="file.file_id ? file.file_id[1] : ''"/>
+                                                                
+                                                                <span t-if="file.file_id"> (<t t-esc="file.description"/>)</span>
+                                                            </li>
+                                                        </t>
+                                                    </ul>
+                                                </t>
+                                            </div>
+                                            <div class="oe_kanban_footer">
+                                                <field name="user_id"/>
+                                            </div>
                                         </div>
                                     </t>
                                 </templates>
                             </kanban>
                         </field>
                     </group>
-                    <footer >
+                    <!-- <footer >
                         <button name="action_confirm_approve" string="Xác nhận duyệt" type="object" class="btn-primary"/>
                         <button string="Đóng" class="btn-secondary" special="cancel"/>
-                    </footer>
+                    </footer> -->
                 </sheet>
             </form>
         </field>
     </record>
 
     <!-- View danh sách yêu cầu dịch vụ -->
-    <record id="view_service_request" model="ir.ui.view">
-        <field name="name">student.service.request.list</field>
+    <record id="view_service_request_kanban" model="ir.ui.view">
+        <field name="name">student.service.request.kanban</field>
         <field name="model">student.service.request</field>
         <field name="arch" type="xml">
-            <list string="Yêu cầu dịch vụ" delete="false" edit="false">
-                <field name="service_id"/>
-                <field name="request_user_name"/>
-                <field name="request_user_avatar" widget="image" options="{'size': [24, 24]}"/>
-                <field name="request_date"/>
-                <field name="image_attachment_ids" widget="many2many_kanban">
-                    <kanban>
-                        <templates>
-                            <t t-name="kanban-box">
-                                <img t-att-src="'data:image/png;base64,' + record.datas.value"/>
-                                <div><field name="name"/></div>
-                            </t>
-                        </templates>
-                    </kanban>
-                </field>
-
-                <field name="note"/>
-                <button name="action_open_approve"
-                    string="Duyệt"
-                    type="object" context="{'default_service_id': service_id, 'default_request_id': id}"
-                    icon="fa-check" invisible="final_state!='pending'" />
-                <field name="final_state" widget="badge"/>
-            </list>
+            <kanban class="o_kanban_view">
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card" t-att-class="'state-' + record.final_state.value">
+                            <div class="oe_kanban_details">
+                                <div class="oe_kanban_title">
+                                    <strong>
+                                        <field name="service_id"/>
+                                    </strong>
+                                    <span class="badge"
+                                        t-att-class="record.final_state.value == 'approved' ? 'bg-success' : (record.final_state.value == 'rejected' ? 'bg-danger' : 'bg-warning')">
+                                        <field name="final_state"/>
+                                    </span>
+                                </div>
+                                <div class="oe_kanban_user">
+                                    <field name="request_user_avatar" widget="image" options="{'size': [32, 32]}"/>
+                                    <span t-esc="record.request_user_name ? record.request_user_name : ''"/>
+                                </div>
+                                <div class="oe_kanban_date">
+                                    <i class="fa fa-calendar"></i>
+                                    <field name="request_date"/>
+                                </div>
+                                <div class="oe_kanban_note">
+                                    <i class="fa fa-sticky-note"></i>
+                                    <field name="note"/>
+                                </div>
+                                <div class="oe_kanban_images" t-if="record.image_attachment_ids and record.image_attachment_ids.raw_value">
+                                    <t t-foreach="record.image_attachment_ids.raw_value" t-as="img">
+                                        <img t-if="img.datas" t-att-src="'data:image/png;base64,' + img.datas" style="max-height:40px;max-width:40px;margin:2px;border-radius:4px;"/>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
         </field>
     </record>
     <!-- Action mở form tạo yêu cầu dịch vụ -->
     <record id="action_service_request" model="ir.actions.act_window">
         <field name="name">Yêu cầu dịch vụ</field>
         <field name="res_model">student.service.request</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_service_request"/>
-        <field name="views" eval="[(ref('view_service_request'), 'list'), (ref('view_service_request_form'), 'form')]"/>
+        <field name="view_mode">kanban,form</field>
         <field name="domain">[("service_id.users", "in", [uid])]</field>
     </record>
     
+    <!-- Duyệt yêu cầu dịch vụ -->
+    <record id="view_student_service_request_step_form" model="ir.ui.view">
+        <field name="name">student.service.request.step.form</field>
+        <field name="model">student.service.request.step</field>
+        <field name="arch" type="xml">
+            <form string="Bước duyệt yêu cầu dịch vụ">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="request_id"/>
+                            <field name="base_step_id"/>
+                            <field name="user_id"/>
+                            <field name="state"/>
+                            <field name="approve_content"/>
+                        </group>
+                        <group>
+                            <field name="file_checkbox_ids" widget="many2many_checkboxes" options="{'checkbox_field': 'checked', 'text_field': 'file_id.name'}"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_student_service_request_step" model="ir.actions.act_window">
+        <field name="name">Bước duyệt yêu cầu dịch vụ</field>
+        <field name="res_model">student.service.request.step</field>
+        <field name="view_mode">list,form</field>
+    </record>
 </odoo>
