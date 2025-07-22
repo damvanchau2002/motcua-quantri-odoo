@@ -72,6 +72,44 @@ class ServiceApiController(http.Controller):
             ]
         )
 
+    # Lấy thông tin chi tiết của 1 dịch vụ
+    @http.route('/student_service/api/service/<int:service_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_service_detail(self, service_id, **kwargs):
+        service = request.env['student.service'].sudo().browse(service_id)
+        if not service.exists():
+            return Response(
+                json.dumps({'error': 'Service not found'}),
+                content_type='application/json',
+                status=404,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        data = {
+            'id': service.id,
+            'name': service.name,
+            'description': service.description,
+            'state': service.state,
+            'group_id': service.group_id.id if service.group_id else None,
+            'group_name': service.group_id.name if service.group_id else '',
+            # Add more fields if needed
+            'step_ids': [{'id': step.id, 'name': step.name, 'description': step.description} for step in service.step_ids],
+            'users': [{'id': user.id, 'name': user.name} for user in service.users],
+            'files': [{'id': f.id, 'name': f.name, 'description': f.description } for f in service.files],
+        }
+        return Response(
+            json.dumps(data),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
+
     # Create public user without password
     @http.route('/api/public_user/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_public_user(self):
