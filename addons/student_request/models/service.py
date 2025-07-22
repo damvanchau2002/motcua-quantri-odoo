@@ -226,3 +226,5 @@ class StudentUserProfile(models.Model):
     dormitory_house_name = fields.Char('Tên nhà ký túc xá')
     dormitory_cluster_id = fields.Integer('ID cụm ký túc xá')
     dormitory_room_type_name = fields.Char('Loại phòng ký túc xá')
+    fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
+    device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')

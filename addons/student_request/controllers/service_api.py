@@ -163,7 +163,9 @@ class ServiceApiController(http.Controller):
         params = request.httprequest.get_json(force=True, silent=True) or {}
         username = params.get('username')
         password = params.get('password')
-    
+        fcm_token = params.get('fcm_device_token')
+        device_id = params.get('device_id')
+
         # Kiểm tra nếu không có username thì trả về lỗi
         if not username:
             return Response(
@@ -274,6 +276,8 @@ class ServiceApiController(http.Controller):
                         'dormitory_room_type_name': dormitory_room_type_name,
                         'dormitory_room_id': dormitory_room_id,
                         'rent_id': rent_id,
+                        'fcm_token': fcm_token,
+                        'device_id': device_id,
                     })
             else:
                 #có user rồi trả về thông tin user
@@ -304,6 +308,8 @@ class ServiceApiController(http.Controller):
                         'dormitory_room_type_name': dormitory_room_type_name,
                         'dormitory_room_id': dormitory_room_id,
                         'rent_id': rent_id,
+                        'fcm_token': fcm_token,
+                        'device_id': device_id,
                     })
                 else:
                     request.env['student.user.profile'].sudo().create({
@@ -325,6 +331,8 @@ class ServiceApiController(http.Controller):
                         'dormitory_room_type_name': dormitory_room_type_name,
                         'dormitory_room_id': dormitory_room_id,
                         'rent_id': rent_id,
+                        'fcm_token': fcm_token,
+                        'device_id': device_id,
                     })
 
             return Response(
