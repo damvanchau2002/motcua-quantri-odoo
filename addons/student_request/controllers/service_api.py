@@ -420,27 +420,79 @@ class ServiceApiController(http.Controller):
         request_user_id = httprequest.form.get('request_user_id')
         note = httprequest.form.get('note', '')
 
+        service = request.env['student.service'].sudo().browse(int(service_id)) if service_id else None
+        if not service or not service.exists():
+            return Response(
+                json.dumps({'error': 'Service not found'}),
+                content_type='application/json',
+                status=404,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        # Get user name from vals or fetch from user record
+        user_name = 'Yêu cầu dịch vụ: '
+        if request_user_id:
+            user = request.env['res.users'].sudo().search([('id', '=', int(request_user_id))], limit=1)
+            user_name = user.name or ''
+        
         vals = {
-            'service_id': service_id,
-            'request_user_id': request_user_id,
+            'name': f'{user_name}: {service.name}',
+            'service_id': service.id,
+            'request_user_id': user.id if user else False,
             'note': note,
             'image_attachment_ids': [(6, 0, attachment_ids)],
             'request_date': Datetime.now(),
         }
-        req = request.env['student.service.request'].sudo().create(vals)
+        # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
+        step_ids = service.step_ids.sorted('sequence')
+        step_history_ids = []
+        for step in step_ids:
+            step_request = request.env['student.service.request.step'].sudo().create({
+                'request_id': 0,  # sẽ cập nhật lại sau khi tạo request chính
+                'base_step_id': step.id,
+                'state': 'pending',
+            })
+            # Tạo file_checkbox_ids cho từng file của step
+            # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
+            if step == step_ids[0]:
+                vals['step_id'] = step.id
+                # Thêm các files cần của Dịch vụ vào file_ids
+                if service.files:
+                    step_request.file_ids = [(6, 0, service.files.ids)]
+            step_history_ids.append(step_request.id)
+        if step_history_ids:
+            vals['step_history_ids'] = [(6, 0, step_history_ids)]
 
-        # Cập nhật res_id cho attachment
-        request.env['ir.attachment'].sudo().browse(attachment_ids).write({'res_id': req.id})
+        # Thêm các Users trong Service.users vào Request
+        if service.users:
+            vals['users'] = [(6, 0, service.users.ids)]
+
+        
+        try:
+            req = request.env['student.service.request'].sudo().create(vals)
+            # Cập nhật res_id cho attachment
+            request.env['ir.attachment'].sudo().browse(attachment_ids).write({'res_id': req.id})
+        except Exception as e:
+            return Response(
+                json.dumps({'error': 'Failed to create service request', 'detail': str(e)}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
 
         return Response(
             json.dumps({
                 'id': req.id,
                 'service_id': req.service_id.id,
-                'request_user_id': req.request_user_id.id,
-                'note': req.note,
-                'image_attachment_ids': attachment_ids,
-                'file_ids': [f.id for f in req.file_ids],
-                'request_date': Datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'service_name': req.service_id.name,
             }),
             content_type='application/json',
             status=200,
