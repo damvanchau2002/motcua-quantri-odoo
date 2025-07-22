@@ -199,3 +199,30 @@ class ServiceRequest(models.Model):
 # - Lịch sử duyệt từng bước của Request (`student.service.request.step`)
 # - Quản lý yêu cầu dịch vụ của sinh viên (`student.service.request`)
 # - Lịch sử duyệt từng bước của Request (`student.service.request.step`)
+
+
+class StudentUserProfile(models.Model):
+    _name = 'student.user.profile'
+    _description = 'Thông tin sinh viên KTX'
+
+    user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
+    
+    avatar_url = fields.Char('Avatar URL')
+    birthday = fields.Date('Ngày sinh')
+    dormitory_full_name = fields.Char('Tên ký túc xá')
+    dormitory_room_id = fields.Char('Phòng ký túc xá')
+    rent_id = fields.Char('Mã hợp đồng thuê')
+    university_name = fields.Char('Tên trường đại học')
+    student_code = fields.Char('Mã sinh viên')
+    id_card_number = fields.Char('Số CMND/CCCD')
+    id_card_date = fields.Char('Ngày cấp CMND/CCCD')
+    id_card_issued_name = fields.Char('Nơi cấp CMND/CCCD')
+    address = fields.Char('Địa chỉ')
+    district_name = fields.Char('Tên quận/huyện')
+    province_name = fields.Char('Tên tỉnh/thành phố')
+    phone = fields.Char('Số điện thoại')
+    email = fields.Char('Email')
+    dormitory_area_id = fields.Integer('ID khu ký túc xá')
+    dormitory_house_name = fields.Char('Tên nhà ký túc xá')
+    dormitory_cluster_id = fields.Integer('ID cụm ký túc xá')
+    dormitory_room_type_name = fields.Char('Loại phòng ký túc xá')

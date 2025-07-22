@@ -1,4 +1,4 @@
-from odoo import http
+from odoo import http, models, fields
 from odoo.http import request, Response
 from odoo.fields import Datetime
 import requests as py_requests
@@ -6,7 +6,19 @@ import requests as py_requests
 import json
 import base64
 
+from datetime import datetime
+def convert_date(date_str):
+    if not date_str:
+        return False
+    try:
+        # Nếu đúng định dạng dd/MM/yyyy thì chuyển sang yyyy-MM-dd
+        return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
+    except Exception:
+        return date_str  # Nếu đã đúng định dạng thì giữ nguyên
+        
 class ServiceApiController(http.Controller):
+    
+
     # Lấy danh sách các nhóm dịch vụ và các dịch vụ trong nhóm
     @http.route('/api/service/groups', type='http', auth='public', methods=['GET'], csrf=False)
     def get_groups_and_services(self):
@@ -107,6 +119,237 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
+
+    @http.route('/api/public_user/login', type='http', auth='public', methods=['POST'], csrf=False)
+    def public_user_login(self):
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        username = params.get('username')
+        password = params.get('password')
+    
+        # Kiểm tra nếu không có username thì trả về lỗi
+        if not username:
+            return Response(
+                json.dumps({'error': 'Missing loginname'}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        # Gọi API đăng nhập bên ngoài
+        external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/Login"
+        try:
+            external_resp = py_requests.post(
+                external_api_url,
+                json={"username": username, "password": password},
+                timeout=10,
+                verify=False,  # Bỏ qua xác thực SSL
+                headers={
+                    "x-api-key": "motcua_ktx_maia_apikey"
+                }
+            )
+
+            # Nếu API trả về lỗi HTTP khác
+            if external_resp.status_code != 200:
+                return Response(
+                    json.dumps({'error': 'External login failed', 'detail': external_resp.text}),
+                    content_type='application/json',
+                    status=401,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Xử lý dữ liệu trả về từ API
+            external_data = external_resp.json()
+            data = external_data.get('Data', {})
+
+            student_code = data.get('StudentCode')
+            full_name = data.get('FullName')
+            email = data.get('Email')
+            phone = data.get('Phone')
+            gender = data.get('Gender')
+            birthday = convert_date(data.get('Birthday'))
+            university_name = data.get('UniversityName')
+            id_card_number = data.get('IdCardNumber')
+            id_card_date = convert_date(data.get('IdCardDate'))
+            id_card_issued_name = data.get('IdCardIssuedName')
+            address = data.get('Address')
+            district_name = data.get('DistrictName')
+            province_name = data.get('ProvinceName')
+            dormitory_full_name = data.get('DormitoryFullName')
+            dormitory_area_id = data.get('DormitoryAreaId')
+            dormitory_house_name = data.get('DormitoryHouseName')
+            dormitory_cluster_id = data.get('DormitoryClusterId')
+            dormitory_room_type_name = data.get('DormitoryRoomTypeName')
+            dormitory_room_id = data.get('DormitoryRoomId')
+            rent_id = data.get('RentId')
+            avatar_url = data.get('Avatar')
+
+            # Nếu có avatar_url, tải ảnh về và encode base64
+            image_data = False
+            if avatar_url:
+                try:
+                    resp = py_requests.get(avatar_url)
+                    if resp.status_code == 200:
+                        image_data = base64.b64encode(resp.content).decode('utf-8')
+                except Exception:
+                    image_data = False
+
+            user = request.env['res.users'].sudo().search([('login', '=', student_code)], limit=1)
+            if not user:
+                vals = {
+                    'name': full_name or student_code,
+                    'login': student_code,
+                    'active': True,
+                    'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],
+                    'email': email,
+                    'phone': phone,
+                    'gender': gender,
+                    'image_1920': image_data
+                }
+
+                user = request.env['res.users'].sudo().create(vals)
+                if user:
+                    # Tạo StudentUserProfile kèm theo user
+                    request.env['student.user.profile'].sudo().create({
+                        'user_id': user.id,
+                        'student_code': student_code,
+                        'avatar_url': avatar_url,
+                        'birthday': birthday,
+                        'university_name': university_name,
+                        'id_card_number': id_card_number,
+                        'id_card_date': id_card_date,
+                        'id_card_issued_name': id_card_issued_name,
+                        'address': address,
+                        'district_name': district_name,
+                        'province_name': province_name,
+                        'dormitory_full_name': dormitory_full_name,
+                        'dormitory_area_id': dormitory_area_id,
+                        'dormitory_house_name': dormitory_house_name,
+                        'dormitory_cluster_id': dormitory_cluster_id,
+                        'dormitory_room_type_name': dormitory_room_type_name,
+                        'dormitory_room_id': dormitory_room_id,
+                        'rent_id': rent_id,
+                    })
+            else:
+                #có user rồi trả về thông tin user
+                # Cập nhật thông tin User
+                user.sudo().write({
+                    'email': email,
+                    'phone': phone,
+                    'image_1920': image_data,
+                })
+                # Cập nhật hoặc tạo StudentUserProfile
+                profile = request.env['student.user.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
+                if profile:
+                    profile.sudo().write({
+                        'student_code': student_code,
+                        'avatar_url': avatar_url,
+                        'birthday': birthday,
+                        'university_name': university_name,
+                        'id_card_number': id_card_number,
+                        'id_card_date': id_card_date,
+                        'id_card_issued_name': id_card_issued_name,
+                        'address': address,
+                        'district_name': district_name,
+                        'province_name': province_name,
+                        'dormitory_full_name': dormitory_full_name,
+                        'dormitory_area_id': dormitory_area_id,
+                        'dormitory_house_name': dormitory_house_name,
+                        'dormitory_cluster_id': dormitory_cluster_id,
+                        'dormitory_room_type_name': dormitory_room_type_name,
+                        'dormitory_room_id': dormitory_room_id,
+                        'rent_id': rent_id,
+                    })
+                else:
+                    request.env['student.user.profile'].sudo().create({
+                        'user_id': user.id,
+                        'student_code': student_code,
+                        'avatar_url': avatar_url,
+                        'birthday': birthday,
+                        'university_name': university_name,
+                        'id_card_number': id_card_number,
+                        'id_card_date': id_card_date,
+                        'id_card_issued_name': id_card_issued_name,
+                        'address': address,
+                        'district_name': district_name,
+                        'province_name': province_name,
+                        'dormitory_full_name': dormitory_full_name,
+                        'dormitory_area_id': dormitory_area_id,
+                        'dormitory_house_name': dormitory_house_name,
+                        'dormitory_cluster_id': dormitory_cluster_id,
+                        'dormitory_room_type_name': dormitory_room_type_name,
+                        'dormitory_room_id': dormitory_room_id,
+                        'rent_id': rent_id,
+                    })
+
+            return Response(
+                json.dumps({
+                    'id': user.id,
+                    'name': user.name,
+                    'email': email,
+                    'phone': phone,
+                    'gender': gender,
+                    'birthday': birthday,
+                    'can_login': False,
+                    'image_1920': bool(user.image_1920),
+
+                    'student_code': student_code,
+                    'avatar_url': avatar_url,
+                    'university_name': university_name,
+                    'id_card_number': id_card_number,
+                    'id_card_date': id_card_date,
+                    'id_card_issued_name': id_card_issued_name,
+                    'address': address,
+                    'district_name': district_name,
+                    'province_name': province_name,
+                    'dormitory_full_name': dormitory_full_name,
+                    'dormitory_area_id': dormitory_area_id,
+                    'dormitory_house_name': dormitory_house_name,
+                    'dormitory_cluster_id': dormitory_cluster_id,
+                    'dormitory_room_type_name': dormitory_room_type_name,
+                    'dormitory_room_id': dormitory_room_id,
+                    'rent_id': rent_id,
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+            # Nếu API trả về lỗi hoặc không có dữ liệu mong muốn
+            if not external_data.get('success', False):
+                return Response(
+                    json.dumps({'error': 'External login unsuccessful', 'detail': external_data}),
+                    content_type='application/json',
+                    status=401,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+        except Exception as e:
+            return Response(
+                json.dumps({'error': 'External login exception', 'detail': str(e)}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
 
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
