@@ -209,6 +209,7 @@ class StudentUserProfile(models.Model):
     
     avatar_url = fields.Char('Avatar URL')
     birthday = fields.Date('Ngày sinh')
+    gender = fields.Boolean(string='Giới tính')
     dormitory_full_name = fields.Char('Tên ký túc xá')
     dormitory_room_id = fields.Char('Phòng ký túc xá')
     rent_id = fields.Char('Mã hợp đồng thuê')

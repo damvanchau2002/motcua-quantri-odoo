@@ -250,7 +250,7 @@ class ServiceApiController(http.Controller):
                     'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],
                     'email': email,
                     'phone': phone,
-                    'gender': gender,
+                    #'gender': gender,
                     'image_1920': image_data
                 }
 
@@ -262,6 +262,7 @@ class ServiceApiController(http.Controller):
                         'student_code': student_code,
                         'avatar_url': avatar_url,
                         'birthday': birthday,
+                        'gender': gender,
                         'university_name': university_name,
                         'id_card_number': id_card_number,
                         'id_card_date': id_card_date,
@@ -294,6 +295,7 @@ class ServiceApiController(http.Controller):
                         'student_code': student_code,
                         'avatar_url': avatar_url,
                         'birthday': birthday,
+                        'gender': gender,
                         'university_name': university_name,
                         'id_card_number': id_card_number,
                         'id_card_date': id_card_date,
@@ -317,6 +319,7 @@ class ServiceApiController(http.Controller):
                         'student_code': student_code,
                         'avatar_url': avatar_url,
                         'birthday': birthday,
+                        'gender': gender,
                         'university_name': university_name,
                         'id_card_number': id_card_number,
                         'id_card_date': id_card_date,
