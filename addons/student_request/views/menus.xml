@@ -5,6 +5,7 @@
     <menuitem id="menu_service_request" name="Yêu cầu" parent="student_request_root" action="action_service_request"/>
     <menuitem id="student_request_config" name="Cấu hình" parent="student_request_root"/>
 
+    <menuitem id="menu_service_user_config" name="Tài khoản quản lý" parent="student_request_config" action="action_hr_manager_user"/>
     <menuitem id="menu_service_group_root" name="Nhóm dịch vụ" parent="student_request_config" action="action_service_group"/>
     <menuitem id="student_service_menu" name="Các dịch vụ" parent="student_request_config" action="action_student_service"/>
     <menuitem id="student_step_menu" name="Các bước duyệt" parent="student_request_config" action="action_student_service_step"/>

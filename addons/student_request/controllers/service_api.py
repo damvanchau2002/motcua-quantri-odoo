@@ -91,6 +91,7 @@ class ServiceApiController(http.Controller):
             'id': service.id,
             'name': service.name,
             'description': service.description,
+            'titlenote': service.titlenote,
             'state': service.state,
             'group_id': service.group_id.id if service.group_id else None,
             'group_name': service.group_id.name if service.group_id else '',
@@ -516,35 +517,41 @@ class ServiceApiController(http.Controller):
         if user_id:
             domain.append(('request_user_id', '=', user_id))
         requests = request.env['student.service.request'].sudo().search(domain)
-        data = []
+
+        result = []
         for req in requests:
-            histories = []
-            for h in req.step_history_ids:
-                histories.append({
-                    'id': h.id,
-                    'step_id': h.step_id.id if h.step_id else None,
-                    'step_name': h.step_id.name if h.step_id else '',
-                    'user_id': h.user_id.id if h.user_id else None,
-                    'user_name': h.user_id.name if h.user_id else '',
-                    'state': h.state,
-                    'approve_content': h.approve_content,
-                    'approve_date': h.approve_date.strftime('%Y-%m-%d %H:%M:%S') if h.approve_date else '',
+            steps = []
+            for step in req.step_history_ids:
+                steps.append({
+                    'id': step.id,
+                    'name': step.base_step_id.name if step.base_step_id else '',
+                    'state': step.state,
+                    'sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                    'files': [
+                        {
+                            'id': f.id,
+                            'name': f.name,
+                            'description': f.description,
+                        } for f in step.file_ids
+                    ],
                 })
-            data.append({
+            # Sắp xếp các bước theo sequence tăng dần
+            steps = sorted(steps, key=lambda x: x['sequence'])
+            result.append({
                 'id': req.id,
-                'service_id': req.service_id.id,
-                'service_name': req.service_id.name,
-                'request_user_id': req.request_user_id.id,
-                'request_user_name': req.request_user_id.name,
+                'name': req.name,
                 'note': req.note,
-                'file_ids': [f.id for f in req.file_ids],
-                'image_attachment_ids': [a.id for a in req.image_attachment_ids],
-                'request_date': req.request_date.strftime('%Y-%m-%d %H:%M:%S') if req.request_date else '',
-                'final_state': req.final_state,
-                'step_history': histories,
+                'request_date': req.request_date and req.request_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                'service': {
+                    'id': req.service_id.id,
+                    'name': req.service_id.name,
+                    'description': req.service_id.description,
+                } if req.service_id else {},
+                'steps': steps,
             })
+        # Trả về danh sách yêu cầu dịch vụ của user
         return Response(
-            json.dumps(data),
+            json.dumps(result),
             content_type='application/json',
             status=200,
             headers=[
@@ -554,49 +561,65 @@ class ServiceApiController(http.Controller):
             ]
         )
 
+    # Lấy danh sách các yêu cầu dịch vụ theo: Quyền duyệt của user_id
     @http.route('/api/service/request/list', type='json', auth='public', methods=['GET'], csrf=False)
     def list_service_requests(self, **post):
         domain = []
-        if post.get('service_id'):
-            domain.append(('service_id', '=', post['service_id']))
-        if post.get('request_user_id'):
-            domain.append(('request_user_id', '=', post['request_user_id']))
-        # Lọc theo user đang đăng nhập có trong service.users
-        user = request.env.user
-        service_ids = request.env['student.service'].sudo().search([
-            ('users', 'in', user.id)
-        ]).ids
-        if service_ids:
-            domain.append(('service_id', 'in', service_ids))
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        user_id = params.get('user_id')
+        print("GET API /api/service/request/list:", user_id)
+        # Nếu có user_id thì lấy các request mà user này có quyền duyệt
+        if user_id:
+            domain.append(('users', 'in', [user_id]))
         else:
-            # Nếu user không có quyền duyệt dịch vụ nào thì trả về rỗng
+            # Nếu không có request nào thì trả về rỗng
             return Response(
                 json.dumps([]),
                 content_type='application/json',
                 status=200,
                 headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
-        requests = request.env['student.service.request'].sudo().search(domain)
-        data = []
-        for req in requests:
-            data.append({
-                'id': req.id,
-                'service_id': req.service_id.id,
-                'service_name': req.service_id.name,
-                'request_user_id': req.request_user_id.id,
-                'request_user_name': req.request_user_id.name,
-                'note': req.note,
-                'file_ids': [f.id for f in req.file_ids],
-                'request_date': req.request_date,
-                'final_state': req.final_state,
-            })
 
+        requests = request.env['student.service.request'].sudo().search(domain)
+
+        result = []
+        for req in requests:
+            steps = []
+            for step in req.step_history_ids:
+                steps.append({
+                    'id': step.id,
+                    'name': step.base_step_id.name if step.base_step_id else '',
+                    'state': step.state,
+                    'sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                    'files': [
+                        {
+                            'id': f.id,
+                            'name': f.name,
+                            'description': f.description,
+                        } for f in step.file_ids
+                    ],
+                })
+            # Sắp xếp các bước theo sequence tăng dần
+            steps = sorted(steps, key=lambda x: x['sequence'])
+            result.append({
+                'id': req.id,
+                'name': req.name,
+                'note': req.note,
+                'request_date': req.request_date and req.request_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                'service': {
+                    'id': req.service_id.id,
+                    'name': req.service_id.name,
+                    'description': req.service_id.description,
+                } if req.service_id else {},
+                'steps': steps,
+            })
+        # Trả về danh sách yêu cầu dịch vụ của user
         return Response(
-            json.dumps(data),
+            json.dumps(result),
             content_type='application/json',
             status=200,
             headers=[

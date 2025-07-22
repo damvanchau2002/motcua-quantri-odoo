@@ -74,6 +74,7 @@
                         <group class="col-md-6 col-sm-12">
                             <field name="name" title=""/>
                             <field name="description"/>
+                            <field name="titlenote" help="Ghi chú cho SV thông tin cần nhập như thế nào"/>
                             <field name="state"/>
                             <field name="group_id" />
                             <field name="users" widget="many2many_tags"/>
@@ -319,6 +320,25 @@
     <record id="action_student_service_request_step" model="ir.actions.act_window">
         <field name="name">Bước duyệt yêu cầu dịch vụ</field>
         <field name="res_model">student.service.request.step</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Cấu hình tài khoản duyệt -->
+    <record id="view_hr_manager_user_list" model="ir.ui.view">
+        <field name="name">hr.manager.user.list</field>
+        <field name="model">res.users</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="login"/>
+                <field name="email"/>
+                <field name="groups_id" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_hr_manager_user" model="ir.actions.act_window">
+        <field name="name">HR Manager Users</field>
+        <field name="res_model">res.users</field>
         <field name="view_mode">list,form</field>
     </record>
 </odoo>

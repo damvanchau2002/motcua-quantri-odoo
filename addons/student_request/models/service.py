@@ -29,6 +29,8 @@ class Service(models.Model):
 
     name = fields.Char('Tên dịch vụ', required=True)
     description = fields.Text('Mô tả chi tiết')
+    titlenote = fields.Char('Tiêu đề gửi nội dung yêu cầu', help='Ghi chú cho SV thông tin cần nhập như thế nào')
+
     files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
     state = fields.Selection([
         ('enabled', 'Enabled'),
