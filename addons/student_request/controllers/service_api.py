@@ -1005,10 +1005,21 @@ class ServiceApiController(http.Controller):
                 'id': n.id,
                 'title': n.title,
                 'body': n.body,
-                'is_read': n.read_user_ids and profile.user_id.id in n.read_user_ids.ids,
+                'is_read': profile.user_id.id in n.read_user_ids.ids if n.read_user_ids else False,
                 'create_date': n.create_date.strftime('%Y-%m-%d %H:%M:%S') if n.create_date else '',
                 'data': n.data or {},
             } for n in notifications]
+
+            return Response(
+                json.dumps({'success': True, 'message': 'Danh sách thông báo', 'data': data}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
@@ -1021,13 +1032,4 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
-        return Response(
-            json.dumps({'success': True, 'message': 'Danh sách thông báo', 'data': data}),
-            content_type='application/json',
-            status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-            ]
-        )
+        
