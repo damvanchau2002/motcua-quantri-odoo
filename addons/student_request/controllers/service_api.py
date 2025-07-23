@@ -80,7 +80,7 @@ def send_fcm_admin(env, user_ids, title, body, data):
         }
     except Exception as e:
         return { 'success_count': 0, 'failure_count': 0, 'responses': [], 'error': str(e) }
-        
+
 # Thêm người dùng vào topic Firebase
 def add_user_to_firebase_topic(env, user_id, topic_area, topic_cluster):
     profile = env['student.user.profile'].sudo().search([('user_id', '=', user_id)], limit=1)
@@ -355,6 +355,32 @@ class ServiceApiController(http.Controller):
             rent_id = data.get('RentId')
             avatar_url = data.get('Avatar')
 
+            try:
+                # Tạo hoặc lấy student.dormitory.area
+                dormitory_area = None
+                if dormitory_area_id:
+                    dormitory_area = request.env['student.dormitory.area'].sudo().search([('area_id', '=', dormitory_area_id)], limit=1)
+                    if not dormitory_area:
+                        dormitory_area = request.env['student.dormitory.area'].sudo().create({
+                            'name': f'Area {dormitory_area_id}',
+                            'area_id': dormitory_area_id,
+                        })
+
+                    # Tạo hoặc lấy student.dormitory.cluster
+                    dormitory_cluster = None
+                    if dormitory_cluster_id:
+                        dormitory_cluster = request.env['student.dormitory.cluster'].sudo().search([('qlsv_cluster_id', '=', dormitory_cluster_id)], limit=1)
+                        if not dormitory_cluster:
+                            dormitory_cluster = request.env['student.dormitory.cluster'].sudo().create({
+                                'name': f'{dormitory_area.name} Cluster {dormitory_cluster_id}',
+                                'qlsv_cluster_id': dormitory_cluster_id,
+                                'qlsv_area_id': dormitory_area.area_id,
+                                'area_id': dormitory_area.id,
+                            })
+            except Exception as e:
+                print(f"Error processing user data: {e}")
+                pass  # Bỏ qua lỗi nếu không tìm thấy hoặc tạo được area/cluster
+
             # Nếu có avatar_url, tải ảnh về và encode base64
             image_data = False
             if avatar_url:
@@ -536,6 +562,173 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': str(e), 'data': ''}),
                 content_type='application/json',
                 status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    # Đăng nhập Oauth (Odoo)
+    @http.route('/api/public_user/oauth', type='http', auth='public', methods=['POST'], csrf=False)
+    def oauth_login(self):
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        user_id = params.get('user_id')
+
+        email = params.get('email')
+        gender = params.get('gender')
+        phone = params.get('phone')
+        fullname = params.get('fullname')
+        avatar = params.get('avatar')
+        fcm_device_token = params.get('fcm_device_token')
+        device_id = params.get('device_id')
+        
+        provider = params.get('provider')
+        token = params.get('token')
+   
+        if not provider or not token:
+            return Response(
+                json.dumps({'success': False, 'message': 'Missing provider or token'}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        try:
+            image_data = False
+            if avatar:
+                try:
+                    resp = py_requests.get(avatar)
+                    if resp.status_code == 200:
+                        image_data = base64.b64encode(resp.content).decode('utf-8')
+                except Exception:
+                    image_data = False
+            # Kiểm tra xem user_id có được cung cấp không
+            user = request.env['res.users'].sudo().browse(user_id) if user_id else request.env['res.users'].sudo().search([('login', '=', email)], limit=1)
+            if not user.exists():
+                # Nếu không có user_id, tạo mới user
+                vals = {
+                    'name': fullname or 'Oauth User',
+                    'login': email or f'{provider}_user',
+                    'active': True,
+                    'email': email,
+                    'groups_id': [(6, 0, [request.env.ref('base.group_system').id])],
+                    'image_1920': image_data,
+                }
+                user = request.env['res.users'].sudo().create(vals)
+                # Tạo Thông tin cá nhân:
+                profile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
+                if not profile:
+                    profile = request.env['student.admin.profile'].sudo().create({
+                        'user_id': user.id,
+                        'fcm_token': fcm_device_token,
+                        'device_id': device_id,
+                        'phone': phone,
+                        'gender': gender,
+                        'email': email,
+                        #các thông tin khác chờ duyệt
+                    })
+                else:
+                    profile.sudo().write({
+                        'fcm_token': fcm_device_token,
+                        'device_id': device_id,
+                        'phone': phone,
+                        'gender': gender,
+                        'email': email,
+                        #các thông tin khác chờ duyệt
+                    })
+  
+                # Tạo student.admin.oauth record
+                oauth = request.env['student.admin.oauth'].sudo().search([('user_id', '=', user.id), ('provider', '=', provider)], limit=1)
+                if not oauth:
+                    oauth = request.env['student.admin.oauth'].sudo().create({
+                        'profile_id': profile.id,
+                        'user_id': user.id,
+                        'provider': provider,
+                        'token': token,
+                        'avatar_url': avatar,
+                    })
+                else:
+                    oauth.sudo().write({
+                        'token': token,
+                        'avatar_url': avatar,
+                    })
+            else:
+                # Nếu đã có user, cập nhật thông tin
+                user.sudo().write({
+                    'image_1920': image_data,
+                })
+                # Cập nhật hoặc tạo AdminProfile
+                # Tạo Thông tin cá nhân:
+                profile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
+                if not profile:
+                    profile = request.env['student.admin.profile'].sudo().create({
+                        'user_id': user.id,
+                        'fcm_token': fcm_device_token,
+                        'device_id': device_id,
+                        'phone': phone,
+                        'gender': gender,
+                        'email': email,
+                        #các thông tin khác chờ duyệt
+                    })
+                else:
+                    profile.sudo().write({
+                        'fcm_token': fcm_device_token,
+                        'device_id': device_id,
+                        'phone': phone,
+                        'gender': gender,
+                        'email': email,
+                        #các thông tin khác chờ duyệt
+                    })
+
+                # Tạo student.admin.oauth record
+                oauth = request.env['student.admin.oauth'].sudo().search([('user_id', '=', user.id), ('provider', '=', provider)], limit=1)
+                if not oauth:
+                    oauth = request.env['student.admin.oauth'].sudo().create({
+                        'profile_id': profile.id,
+                        'user_id': user.id,
+                        'provider': provider,
+                        'token': token,
+                        'avatar_url': avatar,
+                    })
+                else:
+                    oauth.sudo().write({
+                        'token': token,
+                        'avatar_url': avatar,
+                    })
+            oauths = request.env['student.admin.oauth'].sudo().search([('user_id', '=', user.id)])
+            # Trả về thông tin Đăng nhập thành công        
+            return Response(
+                json.dumps({'success': True if profile.activated else False, 'message':  'Thành công' if profile.activated else 'Tài khoản chưa được kích hoạt', 'data': {
+                    'id': user.id,
+                    'email': email,
+                    'fullname': fullname,
+                    'avatar_url': avatar,
+                    'activated': profile.activated if profile else False,
+                    'title_name': profile.title_name if profile else '',
+                    'dormitory_area_id': profile.dormitory_area_id if profile and profile.dormitory_area_id else 0,
+                    'dormitory_cluster_id': profile.dormitory_cluster_id if profile and profile.dormitory_cluster_id else 0,
+                    'oauth': oauth.provider if oauth else '',
+                    'providers': oauths.mapped('provider'),
+                }}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e)}),
+                content_type='application/json',
+                status=200,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),

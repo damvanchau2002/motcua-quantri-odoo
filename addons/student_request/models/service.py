@@ -91,6 +91,7 @@ class ServiceRequestStep(models.Model):
     user_id = fields.Many2one('res.users', string='Người duyệt')
     state = fields.Selection([
         ('pending', 'Chờ duyệt'),
+        ('assigned', 'Đã phân công'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối')
     ], string='Trạng thái', default='pending')
@@ -138,6 +139,7 @@ class ServiceRequest(models.Model):
     step_history_ids = fields.One2many('student.service.request.step', 'request_id', string='Lịch sử các bước duyệt')
     final_state = fields.Selection([
         ('pending', 'Chờ duyệt'),
+        ('assigned', 'Đã phân công'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối')
       ], string='Trạng thái duyệt cuối', default='pending')
@@ -241,22 +243,21 @@ class StudentAdminProfile(models.Model):
     _description = 'Thông tin quản trị viên sinh viên KTX'
 
     user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
-    oauth_ids = fields.One2many('student.admin.oauth', 'user_id', string='OAuth Providers')
+    oauth_ids = fields.One2many('student.admin.oauth', 'profile_id', string='Các provider đăng nhập')
 
-    activated = fields.Boolean('Đã kích hoạt', default=False, help='Trạng thái kích hoạt tài khoản quản trị viên sinh viên')
-    
-    avatar_url = fields.Char('Avatar URL')
+    # Thông tin cá nhân:
     birthday = fields.Date('Ngày sinh')
     gender = fields.Boolean(string='Giới tính')
     phone = fields.Char('Số điện thoại')
     email = fields.Char('Email')
-    title_name = fields.Char('Chức danh', help='Chức danh của quản trị viên sinh viên')
-
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
 
-    dormitory_area_id = fields.Integer('ID khu ký túc xá')
-    dormitory_cluster_id = fields.Integer('ID cụm ký túc xá')
+    # Thông tin chờ duyệt:
+    title_name = fields.Char('Chức danh', help='Chức danh, khu vực quản lý của quản trị viên sinh viên')
+    activated = fields.Boolean('Đã kích hoạt', default=False, help='Trạng thái kích hoạt tài khoản quản trị viên sinh viên')
+    dormitory_area_id = fields.Many2one('student.dormitory.area', string='Khu ký túc xá')
+    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm ký túc xá')
 
 # Model quản lý thông tin OAuth của quản trị viên
 class StudentAdminOauth(models.Model):
@@ -264,9 +265,10 @@ class StudentAdminOauth(models.Model):
     _description = 'Thông tin provider OAuth của quản trị viên sinh viên KTX'
 
     user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
+    profile_id = fields.Many2one('student.admin.profile', string='Admin Profile', required=True, ondelete='cascade')
+
     provider = fields.Char('Provider', help='Tên nhà cung cấp dịch vụ OAuth')
     avatar_url = fields.Char('Avatar URL')
-
     token = fields.Char('OAuth Token', help='OAuth Token cho quản trị viên sinh viên')
 
 # Model quản lý thông báo cho sinh viên và quản trị viên
@@ -318,3 +320,25 @@ class StudentNotify(models.Model):
             })
             pass
         return notify
+
+# Model quản lý khu ký túc xá
+class StudentDormitoryArea(models.Model):
+    _name = 'student.dormitory.area'
+    _description = 'Khu ký túc xá'
+
+    area_id = fields.Integer('ID khu ký túc xá', required=True)
+    name = fields.Char('Tên khu', required=True)
+    description = fields.Text('Mô tả khu')
+    cluster_ids = fields.One2many('student.dormitory.cluster', 'area_id', string='Các cụm thuộc khu')
+
+# Model quản lý cụm ký túc xá
+class StudentDormitoryCluster(models.Model):
+    _name = 'student.dormitory.cluster'
+    _description = 'Cụm ký túc xá'
+
+    qlsv_cluster_id = fields.Integer('ID cụm ký túc xá', required=True)
+    qlsv_area_id = fields.Integer('ID khu ký túc xá', required=True)
+    area_id = fields.Many2one('student.dormitory.area', string='Khu ký túc xá', required=True)
+    name = fields.Char('Tên cụm', required=True)
+    description = fields.Text('Mô tả cụm')
+
