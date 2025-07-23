@@ -7,6 +7,7 @@ import json
 import base64
 
 from datetime import datetime
+# Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyy-MM-dd
 def convert_date(date_str):
     if not date_str:
         return False
@@ -16,9 +17,118 @@ def convert_date(date_str):
     except Exception:
         return date_str  # Nếu đã đúng định dạng thì giữ nguyên
         
-class ServiceApiController(http.Controller):
-    
+import os
+from firebase_admin import messaging, credentials, initialize_app
+# Gửi thông báo FCM đến người dùng
+def send_fcm_user(env, user_ids, title, body, data):
+    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
+    if not hasattr(send_fcm_user, 'firebase_app'):
+        cred = credentials.Certificate(json_path)
+        send_fcm_user.firebase_app = initialize_app(cred)
+    tokens = []
+    profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
+    for profile in profiles:
+        if profile.fcm_token:
+            tokens.append(profile.fcm_token)
 
+    message = messaging.MulticastMessage(
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        tokens=tokens,
+        data=data if data else None,
+    )
+
+    try:
+        response = messaging.send_each_for_multicast(message, app=send_fcm_admin.firebase_app)
+        return {
+            'success_count': response.success_count,
+            'failure_count': response.failure_count,
+            'responses': [r.__dict__ for r in response.responses],
+        }
+    except Exception as e:
+        return { 'success_count': 0, 'failure_count': 0, 'responses': [], 'error': str(e) }
+
+# Gửi thông báo FCM đến quản trị viên
+def send_fcm_admin(env, user_ids, title, body, data):
+    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
+    if not hasattr(send_fcm_admin, 'firebase_app'):
+        cred = credentials.Certificate(json_path)
+        send_fcm_admin.firebase_app = initialize_app(cred)
+    tokens = []
+    admin_profiles = env['student.admin.profile'].sudo().search([('user_id', 'in', user_ids)])
+    for profile in admin_profiles:
+        if profile.fcm_token:
+            tokens.append(profile.fcm_token)
+
+    message = messaging.MulticastMessage(
+        notification=messaging.Notification(
+            title=title,
+            body=body,
+        ),
+        tokens=tokens,
+        data=data if data else None,
+    )
+
+    try:
+        response = messaging.send_each_for_multicast(message, app=send_fcm_admin.firebase_app)
+        return {
+            'success_count': response.success_count,
+            'failure_count': response.failure_count,
+            'responses': [r.__dict__ for r in response.responses],
+        }
+    except Exception as e:
+        return { 'success_count': 0, 'failure_count': 0, 'responses': [], 'error': str(e) }
+        
+# Thêm người dùng vào topic Firebase
+def add_user_to_firebase_topic(env, user_id, topic_area, topic_cluster):
+    profile = env['student.user.profile'].sudo().search([('user_id', '=', user_id)], limit=1)
+    if not profile or not profile.fcm_token:
+        return {'success': False, 'message': 'User FCM token not found'}
+    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
+    if not hasattr(add_user_to_firebase_topic, 'firebase_app'):
+        cred = credentials.Certificate(json_path)
+        add_user_to_firebase_topic.firebase_app = initialize_app(cred)
+    try:
+        response = messaging.subscribe_to_topic([profile.fcm_token], topic_area, app=add_user_to_firebase_topic.firebase_app)
+        response = messaging.subscribe_to_topic([profile.fcm_token], topic_area + '/' + topic_cluster, app=add_user_to_firebase_topic.firebase_app)
+        return {
+            'success': True,
+            'message': f'User subscribed to topic {topic_area + "/" + topic_cluster}',
+            'response': response.__dict__
+        }
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+# Gỡ người dùng khỏi tất cả các topic Firebase
+def remove_user_from_all_firebase_topics(env, user_id):
+    profile = env['student.user.profile'].sudo().search([('user_id', '=', user_id)], limit=1)
+    if not profile or not profile.fcm_token:
+        return {'success': False, 'message': 'User FCM token not found'}
+    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
+    if not hasattr(remove_user_from_all_firebase_topics, 'firebase_app'):
+        cred = credentials.Certificate(json_path)
+        remove_user_from_all_firebase_topics.firebase_app = initialize_app(cred)
+    try:
+        # Lấy tất cả các topic mà user đã đăng ký (giả sử lưu trong profile, hoặc định nghĩa cứng)
+        topics = []
+        if profile.dormitory_area_id:
+            topics.append(str(profile.dormitory_area_id))
+        if profile.dormitory_cluster_id:
+            topics.append(str(profile.dormitory_area_id) + '/' + str(profile.dormitory_cluster_id))
+        # Có thể thêm các topic khác nếu cần
+        for topic in topics:
+            messaging.unsubscribe_from_topic([profile.fcm_token], topic, app=remove_user_from_all_firebase_topics.firebase_app)
+        return {
+            'success': True,
+            'message': f'User unsubscribed from topics: {topics}',
+        }
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+# Controller cho API dịch vụ
+class ServiceApiController(http.Controller):
     # Lấy danh sách các nhóm dịch vụ và các dịch vụ trong nhóm
     @http.route('/api/service/groups', type='http', auth='public', methods=['GET'], csrf=False)
     def get_groups_and_services(self):
@@ -171,6 +281,7 @@ class ServiceApiController(http.Controller):
             ]
         )
 
+    # Đăng nhập public user 
     @http.route('/api/public_user/login', type='http', auth='public', methods=['POST'], csrf=False)
     def public_user_login(self):
         params = request.httprequest.get_json(force=True, silent=True) or {}
@@ -293,6 +404,12 @@ class ServiceApiController(http.Controller):
                         'fcm_token': fcm_token,
                         'device_id': device_id,
                     })
+
+                    try:
+                        remove_user_from_all_firebase_topics(request.env, user.id)
+                        add_user_to_firebase_topic(request.env, user.id, dormitory_area_id, dormitory_cluster_id)
+                    except Exception as e:
+                        print(f"Error subscribing user to Firebase topic: {e}")
             else:
                 #có user rồi trả về thông tin user
                 # Cập nhật thông tin User
@@ -350,6 +467,12 @@ class ServiceApiController(http.Controller):
                         'fcm_token': fcm_token,
                         'device_id': device_id,
                     })
+
+                try:
+                    remove_user_from_all_firebase_topics(request.env, user.id)
+                    add_user_to_firebase_topic(request.env, user.id, dormitory_area_id, dormitory_cluster_id)
+                except Exception as e:
+                    print(f"Error subscribing user to Firebase topic: {e}")
 
             return Response(
                 json.dumps({
@@ -420,7 +543,8 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
-
+    # Tạo yêu cầu dịch vụ mới
+    # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
         httprequest = request.httprequest

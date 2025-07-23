@@ -1,4 +1,7 @@
+import os
 from odoo import models, fields, api
+from odoo.addons.student_request.controllers.service_api import send_fcm_user, send_fcm_admin
+import json
 
 # Model quản lý nhóm dịch vụ (có thể lồng nhiều cấp)
 class ServiceGroup(models.Model):
@@ -202,7 +205,7 @@ class ServiceRequest(models.Model):
 # - Quản lý yêu cầu dịch vụ của sinh viên (`student.service.request`)
 # - Lịch sử duyệt từng bước của Request (`student.service.request.step`)
 
-
+# Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):
     _name = 'student.user.profile'
     _description = 'Thông tin sinh viên KTX'
@@ -231,3 +234,87 @@ class StudentUserProfile(models.Model):
     dormitory_room_type_name = fields.Char('Loại phòng ký túc xá')
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
+
+# Model quản lý thông tin quản trị viên
+class StudentAdminProfile(models.Model):
+    _name = 'student.admin.profile'
+    _description = 'Thông tin quản trị viên sinh viên KTX'
+
+    user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
+    oauth_ids = fields.One2many('student.admin.oauth', 'user_id', string='OAuth Providers')
+
+    activated = fields.Boolean('Đã kích hoạt', default=False, help='Trạng thái kích hoạt tài khoản quản trị viên sinh viên')
+    
+    avatar_url = fields.Char('Avatar URL')
+    birthday = fields.Date('Ngày sinh')
+    gender = fields.Boolean(string='Giới tính')
+    phone = fields.Char('Số điện thoại')
+    email = fields.Char('Email')
+    title_name = fields.Char('Chức danh', help='Chức danh của quản trị viên sinh viên')
+
+    fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
+    device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
+
+    dormitory_area_id = fields.Integer('ID khu ký túc xá')
+    dormitory_cluster_id = fields.Integer('ID cụm ký túc xá')
+
+# Model quản lý thông tin OAuth của quản trị viên
+class StudentAdminOauth(models.Model):
+    _name = 'student.admin.oauth'
+    _description = 'Thông tin provider OAuth của quản trị viên sinh viên KTX'
+
+    user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
+    provider = fields.Char('Provider', help='Tên nhà cung cấp dịch vụ OAuth')
+    avatar_url = fields.Char('Avatar URL')
+
+    token = fields.Char('OAuth Token', help='OAuth Token cho quản trị viên sinh viên')
+
+# Model quản lý thông báo cho sinh viên và quản trị viên
+class StudentNotify(models.Model):
+    _name = 'student.notify'
+    _description = 'Thông báo cho sinh viên và quản trị viên'
+
+    title = fields.Char('Tiêu đề', required=True)
+    body = fields.Text('Nội dung thông báo', required=True)
+    user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id',  string='Danh sách người nhận', help='Danh sách người dùng nhận thông báo')
+    user_id = fields.Many2one('res.users', string='Người gửi', help='Người gửi thông báo')
+    notify_type = fields.Selection([
+        ('user', 'Sinh viên'),
+        ('admin', 'Quản trị viên')
+    ], string='Loại thông báo', default='user')
+    read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
+    created_date = fields.Datetime('Ngày tạo', default=fields.Datetime.now)
+    data = fields.Text('Dữ liệu bổ sung', help='Dữ liệu JSON hoặc thông tin bổ sung cho thông báo')
+
+    fcm_success_count = fields.Integer('Số lượng gửi thành công', default=0)
+    fcm_failure_count = fields.Integer('Số lượng gửi thất bại', default=0)
+    fcm_responses = fields.Text('Kết quả gửi FCM', help='Lưu JSON kết quả gửi FCM')
+
+    @api.model
+    def create(self, vals):
+        # Tạo thông báo mới
+        notify = super().create(vals)
+        try:
+            result = None
+            # Gửi FCM nếu có token
+            if notify.notify_type == 'user':
+                result = send_fcm_user(self.env, notify.user_ids.ids, notify.title, notify.body, {})
+            elif notify.notify_type == 'admin':
+                result = send_fcm_admin(self.env, notify.user_ids.ids, notify.title, notify.body, {})
+            
+            # Cập nhật kết quả gửi FCM
+            if result:
+                notify.sudo().write({
+                    'fcm_success_count': result.get('success_count', 0),
+                    'fcm_failure_count': result.get('failure_count', 0),
+                    'fcm_responses': json.dumps(result.get('responses', []), ensure_ascii=False)
+                })
+        except Exception as e:
+            # Log lỗi hoặc xử lý theo ý muốn
+            notify.sudo().write({
+                'fcm_success_count': 0,
+                'fcm_failure_count': 0,
+                'fcm_responses': error.args[0] if isinstance(error, Exception) else str(error)
+            })
+            pass
+        return notify

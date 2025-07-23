@@ -78,4 +78,11 @@
         <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_99'))]"/>
         <field name="users" eval="[(4, 1)]"/>
     </record>
+
+    <record id="student_admin_profile_user_1" model="student.admin.profile">
+        <field name="user_id" eval="2"/>
+
+        <field name="title_name">Quản trị hệ thống</field>
+        <field name="activated">True</field>
+    </record>
 </odoo>

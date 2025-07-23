@@ -324,21 +324,102 @@
     </record>
 
     <!-- Cấu hình tài khoản duyệt -->
-    <record id="view_hr_manager_user_list" model="ir.ui.view">
-        <field name="name">hr.manager.user.list</field>
-        <field name="model">res.users</field>
+    <record id="view_student_admin_profile_list" model="ir.ui.view">
+        <field name="name">student.admin.profile.list</field>
+        <field name="model">student.admin.profile</field>
         <field name="arch" type="xml">
             <list>
-                <field name="name"/>
-                <field name="login"/>
+                <field name="user_id"/>
+                <field name="title_name"/>
+                <field name="activated"/>
+                <field name="phone"/>
                 <field name="email"/>
-                <field name="groups_id" widget="many2many_tags"/>
+                <field name="dormitory_area_id"/>
+                <field name="dormitory_cluster_id"/>
+
+                <field name="oauth_ids">
+                    <list>
+                        <field name="provider"/>
+                        <field name="avatar_url"/>
+                        <field name="token"/>
+                    </list>
+                </field>
             </list>
         </field>
     </record>
-    <record id="action_hr_manager_user" model="ir.actions.act_window">
-        <field name="name">HR Manager Users</field>
-        <field name="res_model">res.users</field>
+    <record id="view_student_admin_profile_form" model="ir.ui.view">
+        <field name="name">student.admin.profile.form</field>
+        <field name="model">student.admin.profile</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group string="Thông tin">
+                        <field name="user_id" readonly="1"/>
+                        <field name="title_name"  readonly="1"/>
+                    </group>
+                    <group string="Thông tin người dùng">
+                        <field name="activated"/>
+                        <field name="phone"/>
+                        <field name="email"/>
+                    </group>
+                    <group string="Các provider đăng nhập">
+                        <field name="oauth_ids">
+                            <list editable="bottom">
+                                <field name="provider"/>
+                                <field name="avatar_url"/>
+                                <field name="token"/>
+                            </list>
+                        </field>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_admin_manager_user" model="ir.actions.act_window">
+        <field name="name">Admin Manager Users</field>
+        <field name="res_model">student.admin.profile</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Gửi thông báo  -->
+    <record id="view_student_notify_list" model="ir.ui.view">
+        <field name="name">student.notify.list</field>
+        <field name="model">student.notify</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="title"/>
+                <field name="body"/>
+                <field name="user_id"/>
+                <field name="create_date"/>
+                <field name="fcm_success_count"/>
+                <field name="fcm_failure_count"/>
+                <field name="fcm_responses"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_student_notify_form" model="ir.ui.view">
+        <field name="name">student.notify.form</field>
+        <field name="model">student.notify</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="title"/>
+                        <field name="body"/>
+                        <field name="user_ids" />
+                        <field name="notify_type"/>
+                        <field name="user_id" />
+                    </group>
+                    <footer>
+                        <button name="create" string="Gửi FCM" type="object" class="btn-primary" confirm="Bạn có chắc chắn muốn gửi thông báo này không?"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_student_notify" model="ir.actions.act_window">
+        <field name="name">Thông báo</field>
+        <field name="res_model">student.notify</field>
         <field name="view_mode">list,form</field>
     </record>
 </odoo>
