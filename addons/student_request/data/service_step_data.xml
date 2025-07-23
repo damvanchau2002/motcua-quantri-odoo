@@ -52,6 +52,7 @@
      <!-- Dịch vụ: Xin trọ (Nhóm Cơ bản) -->
     <record id="student_service_xintro" model="student.service">
         <field name="name">Xin trọ</field>
+        <field name="titlenote">Điền thông tin phòng muốn thuê:</field>
         <field name="description">Dịch vụ xin thuê trọ ký túc xá cho sinh viên.</field>
         <field name="group_id" ref="student_service_group_basic"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard')), (4, ref('student_service_file_contract'))]"/>
@@ -62,6 +63,7 @@
     <!-- Dịch vụ: Sửa điện (Nhóm Dịch vụ sửa chữa) -->
     <record id="student_service_suadien" model="student.service">
         <field name="name">Sửa điện</field>
+        <field name="titlenote">Mô tả thiết bị hỏng và chụp ảnh:</field>
         <field name="description">Dịch vụ sửa chữa điện trong ký túc xá.</field>
         <field name="group_id" ref="student_service_group_repair"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>
@@ -72,6 +74,7 @@
     <!-- Dịch vụ: Xin cấp giấy chứng nhận (Nhóm Hành chính) -->
     <record id="student_service_xincapgiay" model="student.service">
         <field name="name">Xin cấp giấy chứng nhận</field>
+        <field name="titlenote">Điền thông tin giấy chứng nhận cần cấp:</field>
         <field name="description">Dịch vụ xin cấp giấy chứng nhận cho sinh viên.</field>
         <field name="group_id" ref="student_service_group_admin"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>

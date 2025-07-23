@@ -278,15 +278,18 @@ class StudentNotify(models.Model):
 
     title = fields.Char('Tiêu đề', required=True)
     body = fields.Text('Nội dung thông báo', required=True)
+    read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
+    created_date = fields.Datetime('Ngày tạo', default=fields.Datetime.now)
+    data = fields.Text('Dữ liệu bổ sung', help='Dữ liệu JSON hoặc thông tin bổ sung cho thông báo')
+    
     user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id',  string='Danh sách người nhận', help='Danh sách người dùng nhận thông báo')
+    dormitory_cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm ký túc xá', help='Cụm ký túc xá liên quan đến thông báo')
+
     user_id = fields.Many2one('res.users', string='Người gửi', help='Người gửi thông báo')
     notify_type = fields.Selection([
         ('user', 'Sinh viên'),
         ('admin', 'Quản trị viên')
     ], string='Loại thông báo', default='user')
-    read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
-    created_date = fields.Datetime('Ngày tạo', default=fields.Datetime.now)
-    data = fields.Text('Dữ liệu bổ sung', help='Dữ liệu JSON hoặc thông tin bổ sung cho thông báo')
 
     fcm_success_count = fields.Integer('Số lượng gửi thành công', default=0)
     fcm_failure_count = fields.Integer('Số lượng gửi thất bại', default=0)

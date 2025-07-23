@@ -710,8 +710,8 @@ class ServiceApiController(http.Controller):
                     'avatar_url': avatar,
                     'activated': profile.activated if profile else False,
                     'title_name': profile.title_name if profile else '',
-                    'dormitory_area_id': profile.dormitory_area_id if profile and profile.dormitory_area_id else 0,
-                    'dormitory_cluster_id': profile.dormitory_cluster_id if profile and profile.dormitory_cluster_id else 0,
+                    'dormitory_area_id': profile.dormitory_area_id.id if profile and profile.dormitory_area_id else 0,
+                    'dormitory_cluster_id': profile.dormitory_cluster_id.id if profile and profile.dormitory_cluster_id else 0,
                     'oauth': oauth.provider if oauth else '',
                     'providers': oauths.mapped('provider'),
                 }}),
@@ -979,3 +979,55 @@ class ServiceApiController(http.Controller):
         )
 
 
+    # Lấy danh sách thông báo của user
+    @http.route('/api/notifications/my', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_my_notifications(self):
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        user_id = params.get('user_id')
+        if not user_id:
+            return Response(
+                json.dumps({'success': False, 'message': 'Missing user_id', 'data': []}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        try:
+            profile = request.env['student.user.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
+            domain = ['|', ('user_ids', 'in', [profile.user_id.id]), ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])] if profile and profile.dormitory_cluster_id else [('user_ids', 'in', [profile.user_id.id])]
+            notifications = request.env['student.notify'].sudo().search(domain, order='create_date desc')
+            
+            data = [{
+                'id': n.id,
+                'title': n.title,
+                'body': n.body,
+                'is_read': n.read_user_ids and profile.user_id.id in n.read_user_ids.ids,
+                'create_date': n.create_date.strftime('%Y-%m-%d %H:%M:%S') if n.create_date else '',
+                'data': n.data or {},
+            } for n in notifications]
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e), 'data': []}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        return Response(
+            json.dumps({'success': True, 'message': 'Danh sách thông báo', 'data': data}),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
