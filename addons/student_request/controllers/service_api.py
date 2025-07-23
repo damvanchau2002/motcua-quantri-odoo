@@ -39,7 +39,11 @@ class ServiceApiController(http.Controller):
                 'services': services,
             })
         return Response(
-            json.dumps(result),
+            json.dumps({
+                'success': True,
+                'message': 'Danh sách nhóm dịch vụ và dịch vụ',
+                'data': result
+            }),
             content_type='application/json',
             status=200,
             headers=[
@@ -62,7 +66,11 @@ class ServiceApiController(http.Controller):
             for s in services
         ]
         return Response(
-            json.dumps(data),
+            json.dumps({
+                'success': True,
+                'message': 'Danh sách dịch vụ',
+                'data': data
+            }),
             content_type='application/json',
             status=200,
             headers=[
@@ -101,7 +109,11 @@ class ServiceApiController(http.Controller):
             'files': [{'id': f.id, 'name': f.name, 'description': f.description } for f in service.files],
         }
         return Response(
-            json.dumps(data),
+            json.dumps({
+                'success': True,
+                'message': 'Thành công',
+                'data': data
+            }),
             content_type='application/json',
             status=200,
             headers=[
@@ -341,31 +353,35 @@ class ServiceApiController(http.Controller):
 
             return Response(
                 json.dumps({
-                    'id': user.id,
-                    'name': user.name,
-                    'email': email,
-                    'phone': phone,
-                    'gender': gender,
-                    'birthday': birthday,
-                    'can_login': False,
-                    'image_1920': bool(user.image_1920),
+                    'success': True,
+                    'message': 'Đăng nhập thành công',
+                    'data': {
+                        'id': user.id,
+                        'name': user.name,
+                        'email': email,
+                        'phone': phone,
+                        'gender': gender,
+                        'birthday': birthday,
+                        'can_login': False,
+                        'image_1920': bool(user.image_1920),
 
-                    'student_code': student_code,
-                    'avatar_url': avatar_url,
-                    'university_name': university_name,
-                    'id_card_number': id_card_number,
-                    'id_card_date': id_card_date,
-                    'id_card_issued_name': id_card_issued_name,
-                    'address': address,
-                    'district_name': district_name,
-                    'province_name': province_name,
-                    'dormitory_full_name': dormitory_full_name,
-                    'dormitory_area_id': dormitory_area_id,
-                    'dormitory_house_name': dormitory_house_name,
-                    'dormitory_cluster_id': dormitory_cluster_id,
-                    'dormitory_room_type_name': dormitory_room_type_name,
-                    'dormitory_room_id': dormitory_room_id,
-                    'rent_id': rent_id,
+                        'student_code': student_code,
+                        'avatar_url': avatar_url,
+                        'university_name': university_name,
+                        'id_card_number': id_card_number,
+                        'id_card_date': id_card_date,
+                        'id_card_issued_name': id_card_issued_name,
+                        'address': address,
+                        'district_name': district_name,
+                        'province_name': province_name,
+                        'dormitory_full_name': dormitory_full_name,
+                        'dormitory_area_id': dormitory_area_id,
+                        'dormitory_house_name': dormitory_house_name,
+                        'dormitory_cluster_id': dormitory_cluster_id,
+                        'dormitory_room_type_name': dormitory_room_type_name,
+                        'dormitory_room_id': dormitory_room_id,
+                        'rent_id': rent_id,
+                    }
                 }),
                 content_type='application/json',
                 status=200,
@@ -379,7 +395,11 @@ class ServiceApiController(http.Controller):
             # Nếu API trả về lỗi hoặc không có dữ liệu mong muốn
             if not external_data.get('success', False):
                 return Response(
-                    json.dumps({'error': 'External login unsuccessful', 'detail': external_data}),
+                    json.dumps({
+                        'success': False,
+                        'message': external_data,
+                        'data': '' 
+                    }),
                     content_type='application/json',
                     status=401,
                     headers=[
@@ -390,7 +410,7 @@ class ServiceApiController(http.Controller):
                 )
         except Exception as e:
             return Response(
-                json.dumps({'error': 'External login exception', 'detail': str(e)}),
+                json.dumps({'success': False, 'message': str(e), 'data': ''}),
                 content_type='application/json',
                 status=500,
                 headers=[
@@ -494,9 +514,13 @@ class ServiceApiController(http.Controller):
 
         return Response(
             json.dumps({
-                'id': req.id,
-                'service_id': req.service_id.id,
-                'service_name': req.service_id.name,
+                'success': True,
+                'message': 'Tạo yêu cầu dịch vụ thành công',
+                'data': {
+                    'id': req.id,
+                    'service_id': req.service_id.id,
+                    'service_name': req.service_id.name
+                }
             }),
             content_type='application/json',
             status=200,
@@ -551,7 +575,11 @@ class ServiceApiController(http.Controller):
             })
         # Trả về danh sách yêu cầu dịch vụ của user
         return Response(
-            json.dumps(result),
+            json.dumps({
+                'success': True,
+                'message': 'Thành công',
+                'data': result
+            }),
             content_type='application/json',
             status=200,
             headers=[
@@ -619,7 +647,11 @@ class ServiceApiController(http.Controller):
             })
         # Trả về danh sách yêu cầu dịch vụ của user
         return Response(
-            json.dumps(result),
+            json.dumps({
+                'success': True,
+                'message': 'Thành công',
+                'data': result
+            }),
             content_type='application/json',
             status=200,
             headers=[
