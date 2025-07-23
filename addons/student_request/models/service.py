@@ -2,6 +2,52 @@ import os
 from odoo import models, fields, api
 from odoo.addons.student_request.controllers.service_api import send_fcm_user, send_fcm_admin
 import json
+import requests
+
+def action_sync_area_cluster(self):
+        url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/GetDormitoryCatalog"
+        headers = {"X-Api-Key": "motcua_ktx_maia_apikey"}
+        try:
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            clusters = data.get("Data", {}).get("Clusters", [])
+            area_obj = self.env['student.dormitory.area']
+            cluster_obj = self.env['student.dormitory.cluster']
+            # Sync areas
+            areas = data.get("Data", {}).get("Areas", [])
+            for area in areas:
+                vals = {
+                    'area_id': area.get("Id"),
+                    'name': area.get("Name"),
+                    'description': area.get("Description", ''),
+                }
+                area_rec = area_obj.search([('area_id', '=', area.get("Id"))], limit=1)
+                if area_rec:
+                    area_rec.write(vals)
+                else:
+                    area_obj.create(vals)
+
+            # Sync clusters
+            for cluster in clusters:
+                area_id = cluster.get("DormitoryAreaId")
+                area_rec = area_obj.search([('area_id', '=', area_id)], limit=1)
+                vals = {
+                    'qlsv_cluster_id': cluster.get("Id"),
+                    'qlsv_area_id': area_id,
+                    'area_id': area_rec.id if area_rec else False,
+                    'name': cluster.get("Name"),
+                    'description': '',
+                }
+                cluster_rec = cluster_obj.search([('qlsv_cluster_id', '=', cluster.get("Id"))], limit=1)
+                if cluster_rec:
+                    cluster_rec.write(vals)
+                else:
+                    cluster_obj.create(vals)
+                    
+        except Exception as e:
+            raise models.ValidationError("Lỗi đồng bộ cụm KTX: %s" % str(e))
+        return {'type': 'ir.actions.client', 'tag': 'reload'}
 
 # Model quản lý nhóm dịch vụ (có thể lồng nhiều cấp)
 class ServiceGroup(models.Model):
@@ -333,6 +379,10 @@ class StudentDormitoryArea(models.Model):
     name = fields.Char('Tên khu', required=True)
     description = fields.Text('Mô tả khu')
     cluster_ids = fields.One2many('student.dormitory.cluster', 'area_id', string='Các cụm thuộc khu')
+    
+    @api.model
+    def action_sync_cluster(self):
+        return action_sync_area_cluster(self)
 
 # Model quản lý cụm ký túc xá
 class StudentDormitoryCluster(models.Model):
@@ -345,3 +395,6 @@ class StudentDormitoryCluster(models.Model):
     name = fields.Char('Tên cụm', required=True)
     description = fields.Text('Mô tả cụm')
 
+    @api.model
+    def action_sync_cluster(self):
+        return action_sync_area_cluster(self)
