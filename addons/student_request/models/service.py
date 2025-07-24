@@ -88,9 +88,10 @@ class Service(models.Model):
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
     group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
 
 
-# Model quản lý các bước duyệt dịch vụ
+# Định nghĩa bước duyệt dịch vụ
 class ServiceStep(models.Model):
     _name = 'student.service.step'
     _description = 'Bước duyệt dịch vụ'
@@ -99,9 +100,11 @@ class ServiceStep(models.Model):
     name = fields.Char('Tên bước', required=True, help='Tên bước duyệt dịch vụ')
     sequence = fields.Integer('Thứ tự', default=1)
     description = fields.Text('Mô tả bước')
-    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Người thực hiện bước này')
     nextstep = fields.Integer('Thứ tự', default=99)
     state = fields.Integer('Trạng thái', default=1)  # Trạng thái bước, mặc định là 1 (có thể chỉnh sửa)
+
+    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định nhận được thông báo để thực hiện bước này')
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò', help='Các vai trò nhận được thông báo để thực hiện bước này')
 
     def unlink(self):
         for step in self:
@@ -133,15 +136,21 @@ class ServiceRequestStep(models.Model):
 
     request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ')
     base_step_id = fields.Many2one('student.service.step', string='Bước duyệt')
-    # người duyệt bước này
+    # Người đã duyệt bước này
     user_id = fields.Many2one('res.users', string='Người duyệt')
+
     state = fields.Selection([
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
+        ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối')
     ], string='Trạng thái', default='pending')
     approve_content = fields.Text('Nội dung duyệt')
+    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
+    approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
+    assign_history = fields.Text('Lịch sử phân công', help='Lịch sử phân công cho bước này')
+
     # Các giấy tờ cần nộp trong bước này
     file_ids = fields.Many2many(
         'student.service.file',
@@ -196,6 +205,8 @@ class ServiceRequest(models.Model):
     step_id = fields.Many2one('student.service.step', string='Bước duyệt hiện tại', required=False)
     # Người duyệt dịch vụ này
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
+    # Vai trò được duyệt dựa trên khu vực người gửi yêu cầu
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
 
     def write(self, vals):
         # Xử lý dữ liệu trước khi ghi
@@ -241,17 +252,6 @@ class ServiceRequest(models.Model):
         # Lưu
         return super().create(vals)
 
-
-
-# Các chức năng đã có trong module Student_Request:
-# - Quản lý danh mục file cần gửi kèm dịch vụ (`student.service.file`)
-# - Quản lý các bước duyệt dịch vụ, phân công người thực hiện từng bước (`student.service.step`)
-# - Quản lý dịch vụ: tên, mô tả, trạng thái hoạt động, người duyệt, các file cần gửi kèm, các bước duyệt (`student.service`)
-# - Quản lý nhóm dịch vụ (`student.service.group`)
-# - Quản lý yêu cầu dịch vụ của sinh viên (`student.service.request`)
-# - Lịch sử duyệt từng bước của Request (`student.service.request.step`)
-# - Quản lý yêu cầu dịch vụ của sinh viên (`student.service.request`)
-# - Lịch sử duyệt từng bước của Request (`student.service.request.step`)
 
 # Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):
@@ -304,6 +304,8 @@ class StudentAdminProfile(models.Model):
     activated = fields.Boolean('Đã kích hoạt', default=False, help='Trạng thái kích hoạt tài khoản quản trị viên sinh viên')
     dormitory_area_id = fields.Many2one('student.dormitory.area', string='Khu ký túc xá')
     dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm ký túc xá')
+    # Thông tin vai trò:
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò')
 
 # Model quản lý thông tin OAuth của quản trị viên
 class StudentAdminOauth(models.Model):
@@ -398,3 +400,11 @@ class StudentDormitoryCluster(models.Model):
     @api.model
     def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)
+
+# Model quản lý vai trò hoạt động trong KTX
+class ActivityRole(models.Model):
+    _name = 'student.activity.role'
+    _description = 'Vai trò hoạt động KTX'
+
+    name = fields.Char('Tên vai trò', required=True)
+    description = fields.Text('Mô tả vai trò')

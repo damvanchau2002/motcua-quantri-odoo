@@ -77,7 +77,6 @@
                             <field name="titlenote" help="Ghi chú cho SV thông tin cần nhập như thế nào"/>
                             <field name="state"/>
                             <field name="group_id" />
-                            <field name="users" widget="many2many_tags"/>
                         </group>
                         <group class="col-md-6 col-sm-12">
                             <field name="files" widget="many2many_tags"/>
@@ -86,6 +85,8 @@
                                 context="{'default_sequence': 1, 'default_nextstep': 99}"
                                 options="{'no_create': true, 'no_create_edit': true}"
                             />
+                            <field name="users" widget="many2many_tags"/>
+                            <field name="role_ids" widget="many2many_tags"/>
                         </group>
                     </group>
                 </sheet>
