@@ -1,12 +1,15 @@
 from odoo import http, models, fields
 from odoo.http import request, Response
 from odoo.fields import Datetime
+from firebase_admin import messaging, credentials, initialize_app
 import requests as py_requests
-
 import json
 import base64
+import os
+import jwt
 
 from datetime import datetime
+from datetime import timedelta
 # Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyy-MM-dd
 def convert_date(date_str):
     if not date_str:
@@ -16,9 +19,60 @@ def convert_date(date_str):
         return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
     except Exception:
         return date_str  # Nếu đã đúng định dạng thì giữ nguyên
-        
-import os
-from firebase_admin import messaging, credentials, initialize_app
+
+# Khai báo constant secretKey random
+SECRET_KEY = 'motcua_student_service_maiatech'
+
+def generate_jwt_token(uid, secretkey):
+    payload = {
+        'uid': uid,
+        'exp': Datetime.now() + timedelta(days=30),
+        'app': 'student_service_maiatech',
+    }
+    token = jwt.encode(payload, secretkey, algorithm='HS256')
+    return token
+
+def decode_jwt_token(token, secretkey):
+    try:
+        payload = jwt.decode(token, secretkey, algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {'error': 'Token expired'}
+    except jwt.InvalidTokenError:
+        return {'error': 'Invalid token'}
+
+def check_jwt_token(request, secretkey):
+    try:
+        token = request.httprequest.headers.get('token')
+        payload = jwt.decode(token, secretkey, algorithms=['HS256'])
+        # Nếu decode thành công, kiểm tra thời hạn token
+        exp = payload.get('exp')
+        if exp and datetime.utcnow().timestamp() > exp:
+            raise jwt.ExpiredSignatureError
+        return True
+    except jwt.ExpiredSignatureError:
+        return Response(
+            json.dumps({'error': 'Token expired'}),
+            content_type='application/json',
+            status=401,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
+    return Response(
+        json.dumps({'error': 'Token invalid'}),
+        content_type='application/json',
+        status=402,
+        headers=[
+            ('Access-Control-Allow-Origin', '*'),
+            ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+        ]
+    )
+
+
 # Gửi thông báo FCM đến người dùng
 def send_fcm_user(env, user_ids, title, body, data):
     json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
@@ -233,45 +287,49 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # Create public user without password
-    @http.route('/api/public_user/create', type='http', auth='public', methods=['POST'], csrf=False)
-    def create_public_user(self):
+    # API làm mới JWT token
+    @http.route('/api/public_user/refresh_token', type='http', auth='public', methods=['POST'], csrf=False)
+    def refresh_token(self):
         params = request.httprequest.get_json(force=True, silent=True) or {}
-        username = params.get('username')
-        loginname = params.get('loginname')
-        image_url = params.get('image_url')
-        print("POST API /api/public_user/create:", params, username, image_url)
-        
-        if not username:
-            username = "Test User"
-        # Nếu có image_url, tải ảnh về và encode base64
-        image_data = False
-        if image_url:
-            try:
-                resp = py_requests.get(image_url)
-                if resp.status_code == 200:
-                    image_data = base64.b64encode(resp.content).decode('utf-8')
-            except Exception:
-                image_data = False
-
-        vals = {
-            'name': username,
-            'login': loginname or username.lower().replace(' ', '_'),
-            'active': True,
-            'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],  # chỉ gán group public
-            # Không set password
-        }
-        if image_data:
-            vals['image_1920'] = image_data
-
-        user = request.env['res.users'].sudo().create(vals)
+        token = request.httprequest.headers.get('token')
+        if not token:
+            return Response(
+                json.dumps({'success': False, 'message': 'Missing token_auth'}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        payload = decode_jwt_token(token, SECRET_KEY)
+        if 'error' in payload:
+            return Response(
+                json.dumps({'success': False, 'message': payload['error']}),
+                content_type='application/json',
+                status=401,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        uid = payload.get('uid')
+        if not uid:
+            return Response(
+                json.dumps({'success': False, 'message': 'Invalid token payload'}),
+                content_type='application/json',
+                status=401,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        new_token = generate_jwt_token(uid, SECRET_KEY)
         return Response(
-            json.dumps({
-                'id': user.id,
-                'name': user.name,
-                'can_login': False,
-                'image_1920': bool(image_data),
-            }),
+            json.dumps({'success': True, 'message': 'Token refreshed', 'token_auth': new_token}),
             content_type='application/json',
             status=200,
             headers=[
@@ -500,6 +558,8 @@ class ServiceApiController(http.Controller):
                 except Exception as e:
                     print(f"Error subscribing user to Firebase topic: {e}")
 
+            jwt_token = generate_jwt_token(student_code, SECRET_KEY)
+
             return Response(
                 json.dumps({
                     'success': True,
@@ -530,6 +590,8 @@ class ServiceApiController(http.Controller):
                         'dormitory_room_type_name': dormitory_room_type_name,
                         'dormitory_room_id': dormitory_room_id,
                         'rent_id': rent_id,
+
+                        'token_auth': jwt_token,
                     }
                 }),
                 content_type='application/json',
@@ -701,6 +763,8 @@ class ServiceApiController(http.Controller):
                         'avatar_url': avatar,
                     })
             oauths = request.env['student.admin.oauth'].sudo().search([('user_id', '=', user.id)])
+            
+            jwt_token = generate_jwt_token(student_code, SECRET_KEY)
             # Trả về thông tin Đăng nhập thành công        
             return Response(
                 json.dumps({'success': True if profile.activated else False, 'message':  'Thành công' if profile.activated else 'Tài khoản chưa được kích hoạt', 'data': {
@@ -714,6 +778,7 @@ class ServiceApiController(http.Controller):
                     'dormitory_cluster_id': profile.dormitory_cluster_id.id if profile and profile.dormitory_cluster_id else 0,
                     'oauth': oauth.provider if oauth else '',
                     'providers': oauths.mapped('provider'),
+                    'token_auth': jwt_token,
                 }}),
                 content_type='application/json',
                 status=200,
@@ -740,6 +805,9 @@ class ServiceApiController(http.Controller):
     # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
+        checklogin = check_jwt_token(request)  # Kiểm tra JWT token
+        if not checklogin: return checklogin
+
         httprequest = request.httprequest
         files = httprequest.files.getlist('')  # lấy tất cả file upload (không có tên field cụ thể)
         attachment_ids = []
