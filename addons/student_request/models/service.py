@@ -8,7 +8,7 @@ def action_sync_area_cluster(self):
         url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/GetDormitoryCatalog"
         headers = {"X-Api-Key": "motcua_ktx_maia_apikey"}
         try:
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers, verify=False, timeout=30)
             response.raise_for_status()
             data = response.json()
             clusters = data.get("Data", {}).get("Clusters", [])
@@ -381,7 +381,7 @@ class StudentDormitoryArea(models.Model):
     cluster_ids = fields.One2many('student.dormitory.cluster', 'area_id', string='Các cụm thuộc khu')
     
     @api.model
-    def action_sync_cluster(self):
+    def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)
 
 # Model quản lý cụm ký túc xá
@@ -396,5 +396,5 @@ class StudentDormitoryCluster(models.Model):
     description = fields.Text('Mô tả cụm')
 
     @api.model
-    def action_sync_cluster(self):
+    def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)

@@ -15,6 +15,7 @@
     'application': True,
     'assets': {
         'web.assets_backend': [
+            'student_request/static/src/js/student.js',
             'student_request/static/src/css/kanban.css',
         ],
     },
