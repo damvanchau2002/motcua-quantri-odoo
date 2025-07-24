@@ -950,7 +950,7 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
+    # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
     def list_requests_by_user(self):
         domain = []
@@ -1008,7 +1008,7 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # Lấy danh sách các yêu cầu dịch vụ theo: Quyền duyệt của user_id
+    # TODO Lấy danh sách các yêu cầu dịch vụ theo: Quyền duyệt của user_id
     @http.route('/api/service/request/list', type='json', auth='public', methods=['GET'], csrf=False)
     def list_service_requests(self, **post):
         domain = []
@@ -1080,7 +1080,7 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # Lấy chi tiết 1 yêu cầu dịch vụ
+    # TODO Lấy chi tiết 1 yêu cầu dịch vụ
     @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_service_request_detail(self, request_id):
         req = request.env['student.service.request'].sudo().browse(request_id)
@@ -1155,7 +1155,7 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # Lấy danh sách thông báo của user
+    # TODO: Lấy danh sách thông báo của user 
     @http.route('/api/notifications/my', type='http', auth='public', methods=['GET'], csrf=False)
     def get_my_notifications(self):
         params = request.httprequest.get_json(force=True, silent=True) or {}
@@ -1209,7 +1209,7 @@ class ServiceApiController(http.Controller):
             )
 
 
-    # API duyệt yêu cầu dịch vụ
+    # TODO API duyệt yêu cầu dịch vụ ()
     @http.route('/api/service/request/approve', type='json', auth='public', methods=['POST'], csrf=False)
     def approve_service_request(self, **post):
         params = request.httprequest.get_json(force=True, silent=True) or {}

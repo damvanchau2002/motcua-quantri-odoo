@@ -93,11 +93,11 @@ class Service(models.Model):
         ('enabled', 'Enabled'),
         ('disabled', 'Disabled')
     ], string='Hoạt động', default='enabled', help='Trạng thái hoạt động của dịch vụ: Đang hoạt động hay Tạm ngừng gửi yêu cầu')
+    group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
 
     files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
-    group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
     role_ids = fields.Many2many('student.activity.role', string='Vai trò duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
 
 
@@ -253,7 +253,7 @@ class ServiceRequestStep(models.Model):
 
     # Phân công
     assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
-    assign_history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
+    #history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
 
     # Các giấy tờ cần nộp trong bước này (chỉ bước 1 mới có)
     file_ids = fields.Many2many(
@@ -323,9 +323,8 @@ class StudentAdminProfile(models.Model):
     dormitory_area_id = fields.Many2one('student.dormitory.area', string='Khu ký túc xá')
     dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm ký túc xá')
     # Thông tin vai trò:
-    #specialization = fields.Text('Chuyên môn', help='Ghi chú thêm về chuyên môn hoặc khu vực quản lý của quản trị của người này')
-    role_ids = fields.Many2many('student.activity.role', string='Vai trò')
-    
+    specialization = fields.Text('Chuyên môn', default='Chưa xác định', required=False, help='Ghi chú thêm về chuyên môn hoặc khu vực quản lý của quản trị của người này')
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò', help='Các vai trò hoạt động của quản trị viên')
 
 # Model quản lý thông tin OAuth của quản trị viên
 class StudentAdminOauth(models.Model):

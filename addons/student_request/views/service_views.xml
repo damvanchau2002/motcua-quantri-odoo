@@ -24,18 +24,13 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <group>
+                    <group string="Thông tin nhóm">
                         <field name="name"/>
                         <field name="parent_id"/>
                         <field name="description"/>
                     </group>
-                    <group>
-                        <field name="child_ids">
-                            <list>
-                                <field name="name"/>
-                                <field name="description"/>
-                            </list>
-                        </field>
+                    <group string="Nhóm con" class="o_group_child_ids">
+                        <field name="child_ids" />
                     </group>
                 </sheet>
             </form>
@@ -71,21 +66,21 @@
             <form>
                 <sheet>
                     <group>
-                        <group class="col-md-6 col-sm-12">
-                            <field name="name" title=""/>
-                            <field name="description"/>
+                        <group string="Thông tin dịch vụ">
+                            <field name="name" />
+                            <field name="description" help="Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên"/>
                             <field name="titlenote" help="Ghi chú cho SV thông tin cần nhập như thế nào"/>
                             <field name="state"/>
                             <field name="group_id" />
                         </group>
-                        <group class="col-md-6 col-sm-12">
+                        <group string="Thông tin duyệt dịch vụ">
                             <field name="files" widget="many2many_tags"/>
                             <field name="step_ids" widget="many2many_tags"
                                 domain="[]"
                                 context="{'default_sequence': 1, 'default_nextstep': 99}"
                                 options="{'no_create': true, 'no_create_edit': true}"
                             />
-                            <field name="users" widget="many2many_tags"/>
+                            <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Administration / Settings')]" />
                             <field name="role_ids" widget="many2many_tags"/>
                         </group>
                     </group>
@@ -108,8 +103,9 @@
                 <field name="name"/>
                 <field name="sequence"/>
                 <field name="nextstep"/>
-                <field name="user_ids" widget="many2many_tags"/>
                 <field name="state"/>
+                <field name="user_ids" widget="many2many_tags" />
+                <field name="role_ids" widget="many2many_tags"/>
                 <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa bước" confirm="Bạn có chắc chắn muốn xóa bước này?" invisible="state == 0"/>
             </list>
         </field>
@@ -124,8 +120,11 @@
                         <field name="name"/>
                         <field name="sequence"/>
                         <field name="nextstep"/>
-                        <field name="user_ids" widget="many2many_tags"/>
                         <field name="description"/>
+                        <field name="state"/>
+
+                        <field name="user_ids" widget="many2many_tags"/>
+                        <field name="role_ids" widget="many2many_tags"/>
                     </group>
                 </sheet>
             </form>
@@ -184,15 +183,28 @@
                         <!-- Có thể thêm nút duyệt ở đây nếu cần -->
                     </header>
                     <group>
-                        <group>
+                        <group string="Thông tin yêu cầu dịch vụ">
+                            <field name="name" readonly="1"/>
                             <field name="service_id"/>
                             <field name="request_user_id"/>
+                            <field name="request_user_name"/>
+                            <field name="request_user_avatar"/>
+                            <field name="request_date"/>
+                            
+                        </group>
+                        <group string="Thông tin đính kèm">
+                            <field name="image_attachment_ids" widget="many2many_binary"/>
                             <field name="note"/>
                         </group>
                         <group>
-                            <field name="image_attachment_ids" widget="many2many_binary"/>
+                            <field name="final_state" />
+                            <field name="approve_content"/>
+                            <field name="approve_date"/>
                         </group>
-                        
+                         <group>
+                            <field name="users" widget="many2many_tags"/>
+                            <field name="role_ids" widget="many2many_tags"/>
+                        </group>
                     </group>
                     <h3>Kiểm duyệt nội dung</h3>
                     <hr/>
@@ -302,16 +314,21 @@
             <form string="Bước duyệt yêu cầu dịch vụ">
                 <sheet>
                     <group>
-                        <group>
+                        <group string="Thông tin yêu cầu dịch vụ">
                             <field name="request_id" readonly="1"/>
                             <field name="base_step_id"  readonly="1"/>
-                            <field name="user_id"/>
+                        </group>
+                        <group string="Thông tin duyệt">
                             <field name="state"/>
                             <field name="approve_content"/>
+                            <field name="assign_user_id" domain="[('groups_id.name', '=', 'Administration / Settings')]" />
                         </group>
-                        <group>
+                        <group string="Thông tin đính kèm">
                             <field name="file_ids" widget="many2many_tags" readonly="1" options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="file_checkbox_ids" widget="many2many_checkboxes" invisible="base_step_id != 1"/>
+                        </group>
+                        <group string="Lịch sử duyệt">
+                            <!-- <field name="history_ids" readonly="1"/> -->
                         </group>
                     </group>
                 </sheet>
@@ -352,7 +369,7 @@
                         <field name="title_name"  />
                         <field name="dormitory_area_id"  />
                         <field name="dormitory_cluster_id"  />
-                        <field name="role_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
+                        <field name="role_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}" />
                         <!-- <field name="specialization" /> -->
                         <field name="activated"/>
                     </group>
@@ -398,16 +415,19 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <group>
+                    <group string="Thông tin thông báo">
                         <field name="title"/>
                         <field name="body"/>
-                        <field name="user_ids" />
                         <field name="notify_type"/>
                         <field name="user_id" />
                     </group>
-                    <footer>
+                    <group string="Thông tin người nhận">
+                        <field name="user_ids" />
+                        <field name="dormitory_cluster_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
+                    </group>
+                    <group>
                         <button name="create" string="Gửi FCM" type="object" class="btn-primary" confirm="Bạn có chắc chắn muốn gửi thông báo này không?"/>
-                    </footer>
+                    </group>
                 </sheet>
             </form>
         </field>
