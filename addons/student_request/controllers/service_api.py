@@ -21,7 +21,8 @@ def convert_date(date_str):
         return date_str  # Nếu đã đúng định dạng thì giữ nguyên
 
 # Khai báo constant secretKey random
-SECRET_KEY = 'motcua_student_service_maiatech'
+SECRET_KEY = 'access-motcua-student-service-maiatech'
+REFRESH_KEY = 'refresh-motcua-student-service-maiatech'
 
 def generate_jwt_token(uid, secretkey):
     payload = {
@@ -43,7 +44,13 @@ def decode_jwt_token(token, secretkey):
 
 def check_jwt_token(request, secretkey):
     try:
-        token = request.httprequest.headers.get('token')
+        auth_header = request.httprequest.headers.get('Authorization')
+        token = None
+        if auth_header and auth_header.lower().startswith('bearer '):
+            token = auth_header[7:]
+        else:
+            token = request.httprequest.headers.get('token')
+
         payload = jwt.decode(token, secretkey, algorithms=['HS256'])
         # Nếu decode thành công, kiểm tra thời hạn token
         exp = payload.get('exp')
@@ -52,7 +59,7 @@ def check_jwt_token(request, secretkey):
         return True
     except jwt.ExpiredSignatureError:
         return Response(
-            json.dumps({'error': 'Token expired'}),
+            json.dumps({'success': False, 'message': 'Token expired or Invalid', 'data': ''}),
             content_type='application/json',
             status=401,
             headers=[
@@ -61,16 +68,18 @@ def check_jwt_token(request, secretkey):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
-    return Response(
-        json.dumps({'error': 'Token invalid'}),
-        content_type='application/json',
-        status=402,
-        headers=[
-            ('Access-Control-Allow-Origin', '*'),
-            ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-        ]
-    )
+
+    except Exception as e:
+        return Response(
+            json.dumps({'success': False, 'message': str(e), 'data': ''}),
+            content_type='application/json',
+            status=401,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
 
 
 # Gửi thông báo FCM đến người dùng
@@ -291,10 +300,15 @@ class ServiceApiController(http.Controller):
     @http.route('/api/public_user/refresh_token', type='http', auth='public', methods=['POST'], csrf=False)
     def refresh_token(self):
         params = request.httprequest.get_json(force=True, silent=True) or {}
-        token = request.httprequest.headers.get('token')
+        auth_header = request.httprequest.headers.get('Authorization')
+        token = None
+        if auth_header and auth_header.lower().startswith('bearer '):
+            token = auth_header[7:]
+        else:
+            token = request.httprequest.headers.get('token')
         if not token:
             return Response(
-                json.dumps({'success': False, 'message': 'Missing token_auth'}),
+                json.dumps({'success': False, 'message': 'Missing authorization token'}),
                 content_type='application/json',
                 status=400,
                 headers=[
@@ -386,6 +400,21 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                     ]
                 )
+
+            # Nếu API trả về Json
+            if external_resp.headers.get('Content-Type') == 'application/json':
+                external_data = external_resp.json()
+                if not external_data.get('Success'):
+                    return Response(
+                        json.dumps({'success': False, 'message': external_data.get('Message', 'Lỗi kết nối với hệ thống QLSV!'), 'data': ''}),
+                        content_type='application/json',
+                        status=500,
+                        headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ]
+                    )
 
             # Xử lý dữ liệu trả về từ API
             external_data = external_resp.json()
@@ -558,7 +587,8 @@ class ServiceApiController(http.Controller):
                 except Exception as e:
                     print(f"Error subscribing user to Firebase topic: {e}")
 
-            jwt_token = generate_jwt_token(student_code, SECRET_KEY)
+            jwt_token = generate_jwt_token(user.id, SECRET_KEY)
+            refresh_token = generate_jwt_token(user.id, REFRESH_KEY)
 
             return Response(
                 json.dumps({
@@ -591,7 +621,8 @@ class ServiceApiController(http.Controller):
                         'dormitory_room_id': dormitory_room_id,
                         'rent_id': rent_id,
 
-                        'token_auth': jwt_token,
+                        'access_token': jwt_token,
+                        'refresh_token': refresh_token,
                     }
                 }),
                 content_type='application/json',
@@ -764,7 +795,8 @@ class ServiceApiController(http.Controller):
                     })
             oauths = request.env['student.admin.oauth'].sudo().search([('user_id', '=', user.id)])
             
-            jwt_token = generate_jwt_token(student_code, SECRET_KEY)
+            jwt_token = generate_jwt_token(user.id, SECRET_KEY)
+            refresh_token = generate_jwt_token(user.id, REFRESH_KEY)
             # Trả về thông tin Đăng nhập thành công        
             return Response(
                 json.dumps({'success': True if profile.activated else False, 'message':  'Thành công' if profile.activated else 'Tài khoản chưa được kích hoạt', 'data': {
@@ -778,7 +810,8 @@ class ServiceApiController(http.Controller):
                     'dormitory_cluster_id': profile.dormitory_cluster_id.id if profile and profile.dormitory_cluster_id else 0,
                     'oauth': oauth.provider if oauth else '',
                     'providers': oauths.mapped('provider'),
-                    'token_auth': jwt_token,
+                    'access_token': jwt_token,
+                    'refresh_token': refresh_token,
                 }}),
                 content_type='application/json',
                 status=200,
@@ -805,8 +838,9 @@ class ServiceApiController(http.Controller):
     # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
-        checklogin = check_jwt_token(request)  # Kiểm tra JWT token
-        if not checklogin: return checklogin
+        # Kiểm tra JWT token
+        checklogin = check_jwt_token(request, SECRET_KEY)
+        if checklogin != True: return checklogin #Response lỗi nếu không hợp lệ
 
         httprequest = request.httprequest
         files = httprequest.files.getlist('')  # lấy tất cả file upload (không có tên field cụ thể)
