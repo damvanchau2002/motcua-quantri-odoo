@@ -4,6 +4,7 @@ from odoo.addons.student_request.controllers.service_api import send_fcm_user, s
 import json
 import requests
 
+# Đồng bộ khu vực và cụm KTX
 def action_sync_area_cluster(self):
         url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/GetDormitoryCatalog"
         headers = {"X-Api-Key": "motcua_ktx_maia_apikey"}
@@ -71,27 +72,36 @@ class ServiceGroup(models.Model):
         # Xóa chính nó
         self.unlink()
 
-# Model quản lý dịch vụ
+# Model quản lý file cần gửi kèm dịch vụ
+class ServiceFile(models.Model):
+    _name = 'student.service.file'
+    _description = 'File cần gửi kèm dịch vụ'
+
+    name = fields.Char('Tên file', required=True)
+    attachment = fields.Char('File Attachment', required=False)
+    description = fields.Text('Mô tả file')
+
+# Định nghĩa dịch vụ
 class Service(models.Model):
     _name = 'student.service'
     _description = 'Dịch vụ'
 
     name = fields.Char('Tên dịch vụ', required=True)
-    description = fields.Text('Mô tả chi tiết')
+    description = fields.Text('Mô tả chi tiết', help='Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên')
     titlenote = fields.Char('Tiêu đề gửi nội dung yêu cầu', help='Ghi chú cho SV thông tin cần nhập như thế nào')
-
-    files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
     state = fields.Selection([
         ('enabled', 'Enabled'),
         ('disabled', 'Disabled')
-    ], string='Hoạt động', default='enabled')
+    ], string='Hoạt động', default='enabled', help='Trạng thái hoạt động của dịch vụ: Đang hoạt động hay Tạm ngừng gửi yêu cầu')
+
+    files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
     group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
     role_ids = fields.Many2many('student.activity.role', string='Vai trò duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
 
 
-# Định nghĩa bước duyệt dịch vụ
+# Định nghĩa bước duyệt của 1 dịch vụ
 class ServiceStep(models.Model):
     _name = 'student.service.step'
     _description = 'Bước duyệt dịch vụ'
@@ -112,15 +122,8 @@ class ServiceStep(models.Model):
                 raise models.ValidationError("Không thể xóa bước mặc định!")
         return super().unlink()
 
-# Model quản lý file cần gửi kèm dịch vụ
-class ServiceFile(models.Model):
-    _name = 'student.service.file'
-    _description = 'File cần gửi kèm dịch vụ'
 
-    name = fields.Char('Tên file', required=True)
-    attachment = fields.Char('File Attachment', required=False)
-    description = fields.Text('Mô tả file')
-
+# Bước duyệt đầu đánh dấu các giấy tờ cần nộp
 class ServiceFileCheckbox(models.Model):
     _name = 'student.service.file.checkbox'
     _description = 'File checkbox cho từng bước duyệt'
@@ -129,83 +132,60 @@ class ServiceFileCheckbox(models.Model):
     file_id = fields.Many2one('student.service.file', string='File cần nộp')
     checked = fields.Boolean('Đã chọn', default=False)
 
-# Model quản lý lịch sử duyệt từng bước của yêu cầu dịch vụ
-class ServiceRequestStep(models.Model):
-    _name = 'student.service.request.step'
-    _description = 'Dòng duyệt từng bước'
-
+# Lịch sử duyệt
+class ServiceRequestStepHistory(models.Model):
+    _name = 'student.service.request.step.history'
+    _description = 'Lịch sử thao tác duyệt'
+    
     request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ')
-    base_step_id = fields.Many2one('student.service.step', string='Bước duyệt')
-    # Người đã duyệt bước này
+    step_id = fields.Many2one('student.service.request.step', string='Bước duyệt')
     user_id = fields.Many2one('res.users', string='Người duyệt')
-
     state = fields.Selection([
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối')
-    ], string='Trạng thái', default='pending')
-    approve_content = fields.Text('Nội dung duyệt')
-    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
-    approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
-    assign_history = fields.Text('Lịch sử phân công', help='Lịch sử phân công cho bước này')
-
-    # Các giấy tờ cần nộp trong bước này
-    file_ids = fields.Many2many(
-        'student.service.file',
-        'student_service_step_file_rel',  # bảng quan hệ riêng cho file_ids
-        'step_id', 'file_id',
-        string='Giấy tờ cần nộp',
-        help='Các giấy tờ cần nộp trong bước này'
-    )
-    # Nếu là bước đầu tiên, các giấy tờ đã nộp
-    file_checkbox_ids = fields.Many2many(
-        'student.service.file',
-        'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
-        'step_id', 'file_id',
-        string='Hồ sơ đã nộp',
-        help='Các giấy tờ đã nộp trong bước này'
-    )
+    ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
+    date = fields.Datetime('Ngày thực hiện', default=fields.Datetime.now)
+    note = fields.Text('Ghi chú', help='Ghi chú cho lịch sử thao tác duyệt này')
 
 # Model yêu cầu dịch vụ của sinh viên
 class ServiceRequest(models.Model):
     _name = 'student.service.request'
     _description = 'Yêu cầu dịch vụ của sinh viên'
 
-    name = fields.Char('Tên yêu cầu', required=True, help='Tên mô tả ngắn gọn cho yêu cầu dịch vụ')
-
-    service_id = fields.Many2one('student.service', string='Dịch vụ', required=True)
-    request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user)
-    request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name')
-    request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920')
-
-    request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now)
-    note = fields.Text('Ghi chú')
-    
-    # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
+    # tên yêu cầu: Tên sv + Tên dịch vụ
+    name = fields.Char('Tên yêu cầu', required=True, help='Tên yêu cầu tạo bởi: Tên sv + Tên dịch vụ')
+    service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, help='Dịch vụ mà sinh viên yêu cầu')
+    request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ')
+    request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
+    request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
+    request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
+    note = fields.Text('Ghi chú', help='Ghi chú bổ sung cho yêu cầu dịch vụ do SV nhập')
     image_attachment_ids = fields.Many2many(
         'ir.attachment',
         string='Ảnh đính kèm',
         domain=[('mimetype', 'ilike', 'image')],
-        help='Ảnh đính kèm cho yêu cầu dịch vụ'
+        help='Ảnh đính kèm khi gửi yêu cầu dịch vụ'
+        # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
     )
 
-    step_history_ids = fields.One2many('student.service.request.step', 'request_id', string='Lịch sử các bước duyệt')
+    # Bước nào Đã duyệt | Từ chối | Bỏ qua thì mờ
+    step_history_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
+
     final_state = fields.Selection([
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
+        ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối')
-      ], string='Trạng thái duyệt cuối', default='pending')
-    approve_content = fields.Text('Nội dung duyệt cuối')
-    approve_date = fields.Datetime('Ngày duyệt cuối')
+      ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
+    approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt hiện tại cho yêu cầu dịch vụ này')
+    approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now, help='Ngày và giờ thao tác cập nhật duyệt yêu cầu dịch vụ này')
 
-    # Bước duyệt hiện tại (bước đầu tiên sẽ là bước đầu tiên trong danh sách step_ids của service)
-    step_id = fields.Many2one('student.service.step', string='Bước duyệt hiện tại', required=False)
     # Người duyệt dịch vụ này
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
-    # Vai trò được duyệt dựa trên khu vực người gửi yêu cầu
     role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
 
     def write(self, vals):
@@ -217,6 +197,7 @@ class ServiceRequest(models.Model):
 
     @api.model
     def create(self, vals):
+        if isinstance(vals, dict): vals = vals[0] # Chỉ lấy bản ghi đầu tiên nếu là dict
         # Xử lý dữ liệu trước khi tạo mới
         service = self.env['student.service'].browse(vals.get('service_id')).exists()
         # Get user name from vals or fetch from user record
@@ -251,6 +232,45 @@ class ServiceRequest(models.Model):
             vals['users'] = [(6, 0, service.users.ids)]
         # Lưu
         return super().create(vals)
+
+
+# Bước duyệt đang được thực hiện
+class ServiceRequestStep(models.Model):
+    _name = 'student.service.request.step'
+    _description = 'Dòng duyệt từng bước'
+
+    request_id = fields.Many2one('student.service.request', string='Dịch vụ')
+    base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt')
+    state = fields.Selection([
+        ('pending', 'Chờ duyệt'),
+        ('assigned', 'Đã phân công'),
+        ('ignored', 'Đã bỏ qua'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối')
+    ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
+    approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
+    approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
+
+    # Phân công
+    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
+    assign_history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
+
+    # Các giấy tờ cần nộp trong bước này (chỉ bước 1 mới có)
+    file_ids = fields.Many2many(
+        'student.service.file',
+        'student_service_step_file_rel',  # bảng quan hệ riêng cho file_ids
+        'step_id', 'file_id',
+        string='Giấy tờ cần nộp',
+        help='Các giấy tờ cần nộp trong bước này'
+    )
+    # Đánh dấu các giấy tờ đã nộp  (chỉ bước 1 mới có)
+    file_checkbox_ids = fields.Many2many(
+        'student.service.file',
+        'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
+        'step_id', 'file_id',
+        string='Hồ sơ đã nộp',
+        help='Các giấy tờ đã nộp trong bước này'
+    )
 
 
 # Model quản lý thông tin sinh viên KTX
@@ -290,7 +310,6 @@ class StudentAdminProfile(models.Model):
 
     user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
     oauth_ids = fields.One2many('student.admin.oauth', 'profile_id', string='Các provider đăng nhập')
-
     # Thông tin cá nhân:
     birthday = fields.Date('Ngày sinh')
     gender = fields.Boolean(string='Giới tính')
@@ -298,14 +317,15 @@ class StudentAdminProfile(models.Model):
     email = fields.Char('Email')
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
-
     # Thông tin chờ duyệt:
     title_name = fields.Char('Chức danh', help='Chức danh, khu vực quản lý của quản trị viên sinh viên')
     activated = fields.Boolean('Đã kích hoạt', default=False, help='Trạng thái kích hoạt tài khoản quản trị viên sinh viên')
     dormitory_area_id = fields.Many2one('student.dormitory.area', string='Khu ký túc xá')
     dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm ký túc xá')
     # Thông tin vai trò:
+    #specialization = fields.Text('Chuyên môn', help='Ghi chú thêm về chuyên môn hoặc khu vực quản lý của quản trị của người này')
     role_ids = fields.Many2many('student.activity.role', string='Vai trò')
+    
 
 # Model quản lý thông tin OAuth của quản trị viên
 class StudentAdminOauth(models.Model):
@@ -345,6 +365,7 @@ class StudentNotify(models.Model):
 
     @api.model
     def create(self, vals):
+        if isinstance(vals, dict): vals = vals[0] # Chỉ lấy bản ghi đầu tiên nếu là dict
         # Tạo thông báo mới
         notify = super().create(vals)
         try:

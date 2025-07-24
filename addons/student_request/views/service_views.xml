@@ -352,6 +352,8 @@
                         <field name="title_name"  />
                         <field name="dormitory_area_id"  />
                         <field name="dormitory_cluster_id"  />
+                        <field name="role_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
+                        <!-- <field name="specialization" /> -->
                         <field name="activated"/>
                     </group>
                     <group string="Thông tin người dùng">

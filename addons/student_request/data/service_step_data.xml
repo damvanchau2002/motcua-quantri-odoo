@@ -14,7 +14,7 @@
     </record>
     <!-- Steps -->
     <record id="student_service_step_1" model="student.service.step">
-        <field name="name">Bước 1: Tiếp nhận hồ sơ</field>
+        <field name="name">Tiếp nhận hồ sơ</field>
         <field name="sequence">1</field>
         <field name="nextstep">99</field>
         <field name="state">0</field>
@@ -28,7 +28,7 @@
         <field name="description">Chuyển hồ sơ yêu cầu dịch vụ lên phòng CTSV.</field>
     </record>
     <record id="student_service_step_99" model="student.service.step">
-        <field name="name">Bước 99: Hoàn tất</field>
+        <field name="name">Hoàn tất</field>
         <field name="sequence">99</field>
         <field name="nextstep">0</field>
         <field name="state">0</field>

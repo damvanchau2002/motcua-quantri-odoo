@@ -1080,6 +1080,80 @@ class ServiceApiController(http.Controller):
             ]
         )
 
+    # Lấy chi tiết 1 yêu cầu dịch vụ
+    @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_service_request_detail(self, request_id):
+        req = request.env['student.service.request'].sudo().browse(request_id)
+        if not req.exists():
+            return Response(
+                json.dumps({'success': False, 'message': 'Service request not found', 'data': {}}),
+                content_type='application/json',
+                status=404,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        steps = []
+        for step in req.step_history_ids:
+            steps.append({
+                'id': step.id,
+                'name': step.base_step_id.name if step.base_step_id else '',
+                'state': step.state,
+                'sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                'approved_by': step.approved_by.name if step.approved_by else '',
+                'approve_note': step.approve_note,
+                'approve_date': step.approve_date.strftime('%Y-%m-%d %H:%M:%S') if step.approve_date else '',
+                'files': [
+                    {
+                        'id': f.id,
+                        'name': f.name,
+                        'description': f.description,
+                    } for f in step.file_ids
+                ],
+            })
+        steps = sorted(steps, key=lambda x: x['sequence'])
+        data = {
+            'id': req.id,
+            'name': req.name,
+            'note': req.note,
+            'request_date': req.request_date.strftime('%Y-%m-%d %H:%M:%S') if req.request_date else '',
+            'state': req.state,
+            'service': {
+                'id': req.service_id.id,
+                'name': req.service_id.name,
+                'description': req.service_id.description,
+            } if req.service_id else {},
+            'request_user': {
+                'id': req.request_user_id.id if req.request_user_id else 0,
+                'name': req.request_user_id.name if req.request_user_id else '',
+            },
+            'steps': steps,
+            'image_attachments': [
+                {
+                    'id': att.id,
+                    'name': att.name,
+                    'mimetype': att.mimetype,
+                } for att in req.image_attachment_ids
+            ],
+            'users': [
+                {
+                    'id': u.id,
+                    'name': u.name,
+                } for u in req.users
+            ],
+        }
+        return Response(
+            json.dumps({'success': True, 'message': 'Thành công', 'data': data}),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
 
     # Lấy danh sách thông báo của user
     @http.route('/api/notifications/my', type='http', auth='public', methods=['GET'], csrf=False)
@@ -1134,4 +1208,100 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
+
+    # API duyệt yêu cầu dịch vụ
+    @http.route('/api/service/request/approve', type='json', auth='public', methods=['POST'], csrf=False)
+    def approve_service_request(self, **post):
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        request_id = params.get('request_id')
+        user_id = params.get('user_id')
+        step_id = params.get('step_id')
+        note = params.get('note', '')
+
+        if not request_id or not user_id or not step_id:
+            return Response(
+                json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        req = request.env['student.service.request'].sudo().browse(int(request_id))
+        user = request.env['res.users'].sudo().browse(int(user_id))
+        step = request.env['student.service.request.step'].sudo().browse(int(step_id))
+
+        if not req.exists() or not user.exists() or not step.exists():
+            return Response(
+                json.dumps({'success': False, 'message': 'Request, user, or step not found'}),
+                content_type='application/json',
+                status=404,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        # Kiểm tra quyền duyệt
+        if user not in req.users:
+            return Response(
+                json.dumps({'success': False, 'message': 'User does not have approval rights'}),
+                content_type='application/json',
+                status=403,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        # Chỉ duyệt bước đang ở trạng thái pending
+        if step.state != 'pending':
+            return Response(
+                json.dumps({'success': False, 'message': 'Step is not pending'}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        try:
+            step.sudo().write({
+                'state': 'approved',
+                'approved_by': user.id,
+                'approve_note': note,
+                'approve_date': Datetime.now(),
+            })
+            # Nếu là bước cuối cùng thì cập nhật trạng thái request
+            all_steps = req.step_history_ids.sorted('sequence')
+            if step == all_steps[-1]:
+                req.sudo().write({'state': 'approved'})
+            return Response(
+                json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id}}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e)}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
         
