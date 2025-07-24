@@ -215,10 +215,9 @@ class ServiceRequest(models.Model):
             vals['approve_date'] = fields.Datetime.now()
         return super().write(vals)
 
-    @api.model
-    def create(self, vals):
+    def create2(self, vals):
         # Xử lý dữ liệu trước khi tạo mới
-        service = self.env['student.service'].browse(vals.get('service_id'))
+        service = self.env['student.service'].browse(vals.get('service_id')).exists()
         # Get user name from vals or fetch from user record
         user_id = vals.get('request_user_id')
         user_name = 'Yêu cầu dịch vụ: '
