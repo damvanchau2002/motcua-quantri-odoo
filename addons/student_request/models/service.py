@@ -215,41 +215,42 @@ class ServiceRequest(models.Model):
             vals['approve_date'] = fields.Datetime.now()
         return super().write(vals)
 
-    # def create2(self, vals):
-    #     # Xử lý dữ liệu trước khi tạo mới
-    #     service = self.env['student.service'].browse(vals.get('service_id')).exists()
-    #     # Get user name from vals or fetch from user record
-    #     user_id = vals.get('request_user_id')
-    #     user_name = 'Yêu cầu dịch vụ: '
-    #     if user_id:
-    #         user = self.env['res.users'].browse(user_id)
-    #         user_name = user.name or ''
-    #     vals['name'] = user_name + ': ' + service.name
-    #     # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
-    #     step_ids = service.step_ids.sorted('sequence')
-    #     step_history_ids = []
-    #     for step in step_ids:
-    #         step_request = self.env['student.service.request.step'].create({
-    #             'request_id': self.id if self.id else False,
-    #             'base_step_id': step.id,
-    #             'state': 'pending',
-    #         })
-    #         # Tạo file_checkbox_ids cho từng file của step
-    #         # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
-    #         if step == step_ids[0]:
-    #             vals['step_id'] = step.id
-    #             # Thêm các files cần của Dịch vụ vào file_ids
-    #             if service.files:
-    #                 step_request.file_ids = [(6, 0, service.files.ids)]
-    #         step_history_ids.append(step_request.id)
-    #     if step_history_ids:
-    #         vals['step_history_ids'] = [(6, 0, step_history_ids)]
+    @api.model
+    def create(self, vals):
+        # Xử lý dữ liệu trước khi tạo mới
+        service = self.env['student.service'].browse(vals.get('service_id')).exists()
+        # Get user name from vals or fetch from user record
+        user_id = vals.get('request_user_id')
+        user_name = 'Yêu cầu dịch vụ: '
+        if user_id:
+            user = self.env['res.users'].browse(user_id)
+            user_name = user.name or ''
+        vals['name'] = user_name + ': ' + service.name
+        # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
+        step_ids = service.step_ids.sorted('sequence')
+        step_history_ids = []
+        for step in step_ids:
+            step_request = self.env['student.service.request.step'].create({
+                'request_id': self.id if self.id else False,
+                'base_step_id': step.id,
+                'state': 'pending',
+            })
+            # Tạo file_checkbox_ids cho từng file của step
+            # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
+            if step == step_ids[0]:
+                vals['step_id'] = step.id
+                # Thêm các files cần của Dịch vụ vào file_ids
+                if service.files:
+                    step_request.file_ids = [(6, 0, service.files.ids)]
+            step_history_ids.append(step_request.id)
+        if step_history_ids:
+            vals['step_history_ids'] = [(6, 0, step_history_ids)]
 
-    #     # Thêm các Users trong Service.users vào Request
-    #     if service.users:
-    #         vals['users'] = [(6, 0, service.users.ids)]
-    #     # Lưu
-    #     return super().create(vals)
+        # Thêm các Users trong Service.users vào Request
+        if service.users:
+            vals['users'] = [(6, 0, service.users.ids)]
+        # Lưu
+        return super().create(vals)
 
 
 # Model quản lý thông tin sinh viên KTX
@@ -342,34 +343,34 @@ class StudentNotify(models.Model):
     fcm_failure_count = fields.Integer('Số lượng gửi thất bại', default=0)
     fcm_responses = fields.Text('Kết quả gửi FCM', help='Lưu JSON kết quả gửi FCM')
 
-    # @api.model
-    # def create2(self, vals):
-    #     # Tạo thông báo mới
-    #     notify = super().create(vals)
-    #     try:
-    #         result = None
-    #         # Gửi FCM nếu có token
-    #         if notify.notify_type == 'user':
-    #             result = send_fcm_user(self.env, notify.user_ids.ids, notify.title, notify.body, {})
-    #         elif notify.notify_type == 'admin':
-    #             result = send_fcm_admin(self.env, notify.user_ids.ids, notify.title, notify.body, {})
+    @api.model
+    def create(self, vals):
+        # Tạo thông báo mới
+        notify = super().create(vals)
+        try:
+            result = None
+            # Gửi FCM nếu có token
+            if notify.notify_type == 'user':
+                result = send_fcm_user(self.env, notify.user_ids.ids, notify.title, notify.body, {})
+            elif notify.notify_type == 'admin':
+                result = send_fcm_admin(self.env, notify.user_ids.ids, notify.title, notify.body, {})
             
-    #         # Cập nhật kết quả gửi FCM
-    #         if result:
-    #             notify.sudo().write({
-    #                 'fcm_success_count': result.get('success_count', 0),
-    #                 'fcm_failure_count': result.get('failure_count', 0),
-    #                 'fcm_responses': json.dumps(result.get('responses', []), ensure_ascii=False)
-    #             })
-    #     except Exception as e:
-    #         # Log lỗi hoặc xử lý theo ý muốn
-    #         notify.sudo().write({
-    #             'fcm_success_count': 0,
-    #             'fcm_failure_count': 0,
-    #             'fcm_responses': error.args[0] if isinstance(error, Exception) else str(error)
-    #         })
-    #         pass
-    #     return notify
+            # Cập nhật kết quả gửi FCM
+            if result:
+                notify.sudo().write({
+                    'fcm_success_count': result.get('success_count', 0),
+                    'fcm_failure_count': result.get('failure_count', 0),
+                    'fcm_responses': json.dumps(result.get('responses', []), ensure_ascii=False)
+                })
+        except Exception as e:
+            # Log lỗi hoặc xử lý theo ý muốn
+            notify.sudo().write({
+                'fcm_success_count': 0,
+                'fcm_failure_count': 0,
+                'fcm_responses': error.args[0] if isinstance(error, Exception) else str(error)
+            })
+            pass
+        return notify
 
 # Model quản lý khu ký túc xá
 class StudentDormitoryArea(models.Model):
