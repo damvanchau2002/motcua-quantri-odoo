@@ -13,6 +13,7 @@ access_res_users_user,res.users,base.model_res_users,,1,1,1,1
 access_student_admin_profile,student.admin.profile,model_student_admin_profile,,1,1,1,1
 access_student_admin_oauth,student.admin.oauth,model_student_admin_oauth,,1,1,1,1
 access_student_notify,student.notify,model_student_notify,,1,1,1,1
-access_student_dormitory_area,access_student_dormitory_area,model_student_dormitory_area,base.group_user,1,1,1,1
-access_student_dormitory_cluster,access_student_dormitory_cluster,model_student_dormitory_cluster,base.group_user,1,1,1,1
+access_student_dormitory_area,access_student_dormitory_area,model_student_dormitory_area,,1,1,1,1
+access_student_dormitory_cluster,access_student_dormitory_cluster,model_student_dormitory_cluster,,1,1,1,1
 access_student_activity_role_readonly,student.activity.role readonly,model_student_activity_role,,1,0,0,0
+access_service_request_step_history_user,access.service.request.step.history.user,model_student_service_request_step_history,,1,0,0,0

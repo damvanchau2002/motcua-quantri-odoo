@@ -209,7 +209,7 @@
                     <h3>Kiểm duyệt nội dung</h3>
                     <hr/>
                     <group invisible="id == 0">
-                        <field name="step_history_ids" widget="kanban" nolabel="1" editable="true" create="false" options="{'no_create': true, 'no_open': true}">
+                        <field name="step_ids" widget="kanban" nolabel="1" editable="true" create="false" options="{'no_create': true, 'no_open': true}">
                             <kanban>
                                 <templates>
                                     <t t-name="kanban-box">
@@ -238,7 +238,9 @@
                                                 </t>
                                             </div>
                                             <div class="oe_kanban_footer">
-                                                <field name="user_id"/>
+                                                <field name="assign_user_id" widget="many2one" options="{'no_create': True}"/>
+                                                <hr/>
+                                                <field name="history_ids" />
                                             </div>
                                         </div>
                                     </t>
@@ -321,14 +323,14 @@
                         <group string="Thông tin duyệt">
                             <field name="state"/>
                             <field name="approve_content"/>
-                            <field name="assign_user_id" domain="[('groups_id.name', '=', 'Administration / Settings')]" />
+                            <field name="assign_user_id" domain="[('groups_id.name', '=', 'Settings')]" />
                         </group>
                         <group string="Thông tin đính kèm">
                             <field name="file_ids" widget="many2many_tags" readonly="1" options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="file_checkbox_ids" widget="many2many_checkboxes" invisible="base_step_id != 1"/>
                         </group>
                         <group string="Lịch sử duyệt">
-                            <!-- <field name="history_ids" readonly="1"/> -->
+                            <field name="history_ids" readonly="1" nolabel="1"/>
                         </group>
                     </group>
                 </sheet>
@@ -370,7 +372,7 @@
                         <field name="dormitory_area_id"  />
                         <field name="dormitory_cluster_id"  />
                         <field name="role_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}" />
-                        <!-- <field name="specialization" /> -->
+                        <field name="specialization" />
                         <field name="activated"/>
                     </group>
                     <group string="Thông tin người dùng">
@@ -402,6 +404,7 @@
                 <field name="title"/>
                 <field name="body"/>
                 <field name="user_id"/>
+                <field name="dormitory_cluster_ids"/>
                 <field name="create_date"/>
                 <field name="fcm_success_count"/>
                 <field name="fcm_failure_count"/>
@@ -418,8 +421,10 @@
                     <group string="Thông tin thông báo">
                         <field name="title"/>
                         <field name="body"/>
-                        <field name="notify_type"/>
-                        <field name="user_id" />
+                        <field name="article" widget="textarea"/>
+                        <field name="image"/>
+                        <hr/>
+                        <field name="user_id" domain="[('groups_id.name', '=', 'Settings')]" />
                     </group>
                     <group string="Thông tin người nhận">
                         <field name="user_ids" />

@@ -172,7 +172,7 @@ class ServiceRequest(models.Model):
     )
 
     # Bước nào Đã duyệt | Từ chối | Bỏ qua thì mờ
-    step_history_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
+    step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
 
     final_state = fields.Selection([
         ('pending', 'Chờ duyệt'),
@@ -208,9 +208,9 @@ class ServiceRequest(models.Model):
             user_name = user.name or ''
         vals['name'] = user_name + ': ' + service.name
         # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
-        step_ids = service.step_ids.sorted('sequence')
-        step_history_ids = []
-        for step in step_ids:
+        _steps = service.step_ids.sorted('sequence')
+        step_ids = []
+        for step in _steps:
             step_request = self.env['student.service.request.step'].create({
                 'request_id': self.id if self.id else False,
                 'base_step_id': step.id,
@@ -223,9 +223,9 @@ class ServiceRequest(models.Model):
                 # Thêm các files cần của Dịch vụ vào file_ids
                 if service.files:
                     step_request.file_ids = [(6, 0, service.files.ids)]
-            step_history_ids.append(step_request.id)
-        if step_history_ids:
-            vals['step_history_ids'] = [(6, 0, step_history_ids)]
+            step_ids.append(step_request.id)
+        if step_ids:
+            vals['step_ids'] = [(6, 0, step_ids)]
 
         # Thêm các Users trong Service.users vào Request
         if service.users:
@@ -253,7 +253,7 @@ class ServiceRequestStep(models.Model):
 
     # Phân công
     assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
-    #history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
+    history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
 
     # Các giấy tờ cần nộp trong bước này (chỉ bước 1 mới có)
     file_ids = fields.Many2many(
@@ -344,20 +344,21 @@ class StudentNotify(models.Model):
     _description = 'Thông báo cho sinh viên và quản trị viên'
 
     title = fields.Char('Tiêu đề', required=True)
-    body = fields.Text('Nội dung thông báo', required=True)
-    read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
+    body = fields.Text('Nội dung tóm tắt', required=True)
+    image = fields.Char('URL hình ảnh', required=False, help='URL hình ảnh đại diện cho thông báo, có thể là link đến ảnh trên internet')
+    article = fields.Text('Nội dung chi tiết', required=False, help='Nội dung chi tiết của thông báo, có thể chứa HTML hoặc Markdown')
     created_date = fields.Datetime('Ngày tạo', default=fields.Datetime.now)
     data = fields.Text('Dữ liệu bổ sung', help='Dữ liệu JSON hoặc thông tin bổ sung cho thông báo')
+    # Đánh dấu đã xem:
+    read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
     
-    user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id',  string='Danh sách người nhận', help='Danh sách người dùng nhận thông báo')
-    dormitory_cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm ký túc xá', help='Cụm ký túc xá liên quan đến thông báo')
+    #Nhận notify theo loại
+    user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id',  string='Danh sách người nhận notify', help='Danh sách người sẽ nhận thông báo')
+    dormitory_cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm nhận notify', help='Gửi thông báo đến các SV trong các cụm KTX này')
 
     user_id = fields.Many2one('res.users', string='Người gửi', help='Người gửi thông báo')
-    notify_type = fields.Selection([
-        ('user', 'Sinh viên'),
-        ('admin', 'Quản trị viên')
-    ], string='Loại thông báo', default='user')
 
+    # Thống kê kết quả gửi FCM
     fcm_success_count = fields.Integer('Số lượng gửi thành công', default=0)
     fcm_failure_count = fields.Integer('Số lượng gửi thất bại', default=0)
     fcm_responses = fields.Text('Kết quả gửi FCM', help='Lưu JSON kết quả gửi FCM')
