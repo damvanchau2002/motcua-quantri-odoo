@@ -1,6 +1,6 @@
 import os
 from odoo import models, fields, api
-from odoo.addons.student_request.controllers.service_api import send_fcm_user, send_fcm_admin
+from odoo.addons.student_request.controllers.service_api import send_fcm_user, send_fcm_admin, create_request, update_request_step
 import json
 import requests
 
@@ -49,6 +49,7 @@ def action_sync_area_cluster(self):
         except Exception as e:
             raise models.ValidationError("Lỗi đồng bộ cụm KTX: %s" % str(e))
         return {'type': 'ir.actions.client', 'tag': 'reload'}
+
 
 # Model quản lý nhóm dịch vụ (có thể lồng nhiều cấp)
 class ServiceGroup(models.Model):
@@ -155,13 +156,9 @@ class ServiceRequest(models.Model):
     _name = 'student.service.request'
     _description = 'Yêu cầu dịch vụ của sinh viên'
 
-    # tên yêu cầu: Tên sv + Tên dịch vụ
-    name = fields.Char('Tên yêu cầu', required=True, help='Tên yêu cầu tạo bởi: Tên sv + Tên dịch vụ')
+    # Đầu vào của yêu cầu dịch vụ:
     service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, help='Dịch vụ mà sinh viên yêu cầu')
-    request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ')
-    request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
-    request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
-    request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
+    name = fields.Char('Tên yêu cầu', required=False, help='Tên yêu cầu tạo bởi: Tên sv + Tên dịch vụ')
     note = fields.Text('Ghi chú', help='Ghi chú bổ sung cho yêu cầu dịch vụ do SV nhập')
     image_attachment_ids = fields.Many2many(
         'ir.attachment',
@@ -170,9 +167,16 @@ class ServiceRequest(models.Model):
         help='Ảnh đính kèm khi gửi yêu cầu dịch vụ'
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
     )
+    request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ')
 
-    # Bước nào Đã duyệt | Từ chối | Bỏ qua thì mờ
+    request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
+    request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
+    request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
+
+    # Tạo tự động theo setup Service:
     step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
+    users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
 
     final_state = fields.Selection([
         ('pending', 'Chờ duyệt'),
@@ -184,53 +188,12 @@ class ServiceRequest(models.Model):
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt hiện tại cho yêu cầu dịch vụ này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now, help='Ngày và giờ thao tác cập nhật duyệt yêu cầu dịch vụ này')
 
-    # Người duyệt dịch vụ này
-    users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
-    role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
-
-    def write(self, vals):
-        # Xử lý dữ liệu trước khi ghi
-        # Ví dụ: cập nhật trạng thái cuối nếu có thay đổi
-        if 'final_state' in vals:
-            vals['approve_date'] = fields.Datetime.now()
-        return super().write(vals)
-
     @api.model
     def create(self, vals):
-        if isinstance(vals, dict): vals = vals[0] # Chỉ lấy bản ghi đầu tiên nếu là dict
         # Xử lý dữ liệu trước khi tạo mới
-        service = self.env['student.service'].browse(vals.get('service_id')).exists()
-        # Get user name from vals or fetch from user record
-        user_id = vals.get('request_user_id')
-        user_name = 'Yêu cầu dịch vụ: '
-        if user_id:
-            user = self.env['res.users'].browse(user_id)
-            user_name = user.name or ''
-        vals['name'] = user_name + ': ' + service.name
-        # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
-        _steps = service.step_ids.sorted('sequence')
-        step_ids = []
-        for step in _steps:
-            step_request = self.env['student.service.request.step'].create({
-                'request_id': self.id if self.id else False,
-                'base_step_id': step.id,
-                'state': 'pending',
-            })
-            # Tạo file_checkbox_ids cho từng file của step
-            # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
-            if step == step_ids[0]:
-                vals['step_id'] = step.id
-                # Thêm các files cần của Dịch vụ vào file_ids
-                if service.files:
-                    step_request.file_ids = [(6, 0, service.files.ids)]
-            step_ids.append(step_request.id)
-        if step_ids:
-            vals['step_ids'] = [(6, 0, step_ids)]
-
-        # Thêm các Users trong Service.users vào Request
-        if service.users:
-            vals['users'] = [(6, 0, service.users.ids)]
-        # Lưu
+        vals = create_request(self.env, vals.get('service_id'), vals.get('request_user_id'), vals.get('note', ''), vals.get('image_attachment_ids', []))
+        if not vals:
+            raise models.ValidationError("Không thể tạo yêu cầu dịch vụ, vui lòng kiểm tra thông tin dịch vụ và người dùng.")
         return super().create(vals)
 
 
@@ -271,6 +234,12 @@ class ServiceRequestStep(models.Model):
         string='Hồ sơ đã nộp',
         help='Các giấy tờ đã nộp trong bước này'
     )
+
+    def write(self, vals):
+        vals = update_request_step(self.env, vals.get('request_id', self.request_id.id), self.id, vals.get('user_id', self.env.user.id), vals.get('approve_content', self.approve_content), vals.get('state', self.state), vals.get('assign_user_id', self.assign_user_id.id if self.assign_user_id else None))
+        if not vals:
+            raise models.ValidationError("Không thể cập nhật bước duyệt, vui lòng kiểm tra thông tin.")
+        return super(ServiceRequestStep, self).write(vals)
 
 
 # Model quản lý thông tin sinh viên KTX

@@ -190,6 +190,91 @@ def remove_user_from_all_firebase_topics(env, user_id):
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
+# Tạo Request mới
+def create_request(env, serviceid, userid, note, attachments):
+    service = env['student.service'].browse(serviceid)
+    user_name = 'Yêu cầu dịch vụ: '
+    user = env['res.users'].browse(userid)
+    if not user: return False
+    
+    vals = {
+        'name': f'{user.name}: {service.name}',
+        'service_id': service.id,
+        'request_user_id': userid,
+        'note': note,
+        'image_attachment_ids': attachments,
+        'request_date': Datetime.now(),
+    }
+    # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
+    _steps = service.step_ids.sorted('sequence')
+    step_ids = []
+    for step in _steps:
+        step_request = env['student.service.request.step'].create({
+            'request_id': False,
+            'base_step_id': step.id,
+            'state': 'pending',
+        })
+        # Tạo file_checkbox_ids cho từng file của step
+        # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
+        if step == _steps[0]:
+            if service.files:
+                step_request.file_ids = [(6, 0, service.files.ids)]
+        step_ids.append(step_request.id)
+    if step_ids:
+        vals['step_ids'] = [(6, 0, step_ids)]
+
+    # Ai sẽ duyệt dịch vụ này:
+    if service.users:
+        vals['users'] = [(6, 0, service.users.ids)]
+    if service.role_ids:
+        vals['role_ids'] = [(6, 0, service.role_ids.ids)]
+    return vals
+
+#Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
+def update_request_step(env, requestid, stepid, userid, note, act, nextuserid):
+    request = env['student.service.request'].browse(requestid)
+    step = request.step_ids.browse(stepid)
+    # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
+    # step = service.step_ids.filtered(lambda s: s.state not in ('ignored', 'approved', 'rejected')).sorted('sequence')
+    # step = step[0] if step else service.step_ids.browse(stepid)
+    if not step.exists():
+        return False
+
+    # nếu act khác pending thì tìm các bước trước đó còn pending cập nhật nó thanh ignored
+    if act != 'pending':
+        prev_steps = request.step_ids.filtered(lambda s: s.id < step.id and s.state == 'pending')
+        for s in prev_steps:
+            s.state = 'ignored'
+            # Tạo bản ghi history cho các bước đã ignored
+            h = env['student.service.request.step.history'].create({
+                'step_id': s.id,
+                'state': 'ignored',
+                'user_id': userid,
+                'note': 'Đã bỏ qua bước này',
+                'date': Datetime.now(),
+            })
+            s.history_ids = [(4, h.id)]
+
+    # Tạo bản ghi history cho bước đang duyệt
+    hh = env['student.service.request.step.history'].sudo().create({
+        'step_id': step.id,
+        'state': act,
+        'user_id': userid,
+        'note': note,
+        'date': Datetime.now(),
+    })
+
+    vals = {
+        'request_id': requestid,
+        'approved_by': userid,
+        'approve_note': note,
+        'state': act,
+        'approve_date': Datetime.now(),
+        'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
+        'history_ids': [(4, hh.id)],
+    }
+    return vals
+
 # Controller cho API dịch vụ
 class ServiceApiController(http.Controller):
     # Lấy danh sách các nhóm dịch vụ và các dịch vụ trong nhóm
@@ -487,7 +572,6 @@ class ServiceApiController(http.Controller):
                     'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],
                     'email': email,
                     'phone': phone,
-                    #'gender': gender,
                     'image_1920': image_data
                 }
 
@@ -839,8 +923,8 @@ class ServiceApiController(http.Controller):
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
         # Kiểm tra JWT token
-        checklogin = check_jwt_token(request, SECRET_KEY)
-        if checklogin != True: return checklogin #Response lỗi nếu không hợp lệ
+        #checklogin = check_jwt_token(request, SECRET_KEY)
+        #if checklogin != True: return checklogin #Response lỗi nếu không hợp lệ
 
         httprequest = request.httprequest
         files = httprequest.files.getlist('')  # lấy tất cả file upload (không có tên field cụ thể)
@@ -874,47 +958,11 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
-            )
+            )       
 
-        # Get user name from vals or fetch from user record
-        user_name = 'Yêu cầu dịch vụ: '
-        if request_user_id:
-            user = request.env['res.users'].sudo().search([('id', '=', int(request_user_id))], limit=1)
-            user_name = user.name or ''
-        
-        vals = {
-            'name': f'{user_name}: {service.name}',
-            'service_id': service.id,
-            'request_user_id': user.id if user else False,
-            'note': note,
-            'image_attachment_ids': [(6, 0, attachment_ids)],
-            'request_date': Datetime.now(),
-        }
-        # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
-        step_ids = service.step_ids.sorted('sequence')
-        step_history_ids = []
-        for step in step_ids:
-            step_request = request.env['student.service.request.step'].sudo().create({
-                'request_id': 0,  # sẽ cập nhật lại sau khi tạo request chính
-                'base_step_id': step.id,
-                'state': 'pending',
-            })
-            # Tạo file_checkbox_ids cho từng file của step
-            # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
-            if step == step_ids[0]:
-                vals['step_id'] = step.id
-                # Thêm các files cần của Dịch vụ vào file_ids
-                if service.files:
-                    step_request.file_ids = [(6, 0, service.files.ids)]
-            step_history_ids.append(step_request.id)
-        if step_history_ids:
-            vals['step_history_ids'] = [(6, 0, step_history_ids)]
+        attachments = [(6, 0, attachment_ids)] if attachment_ids else []
+        vals = create_request(request.env, service_id, request_user_id, note, attachments)
 
-        # Thêm các Users trong Service.users vào Request
-        if service.users:
-            vals['users'] = [(6, 0, service.users.ids)]
-
-        
         try:
             req = request.env['student.service.request'].sudo().create(vals)
             # Cập nhật res_id cho attachment
@@ -1095,57 +1143,44 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
-        steps = []
-        for step in req.step_history_ids:
-            steps.append({
-                'id': step.id,
-                'name': step.base_step_id.name if step.base_step_id else '',
-                'state': step.state,
-                'sequence': step.base_step_id.sequence if step.base_step_id else 0,
-                'approved_by': step.approved_by.name if step.approved_by else '',
-                'approve_note': step.approve_note,
-                'approve_date': step.approve_date.strftime('%Y-%m-%d %H:%M:%S') if step.approve_date else '',
-                'files': [
-                    {
-                        'id': f.id,
-                        'name': f.name,
-                        'description': f.description,
-                    } for f in step.file_ids
-                ],
-            })
-        steps = sorted(steps, key=lambda x: x['sequence'])
-        data = {
+
+        req_data = {
             'id': req.id,
             'name': req.name,
             'note': req.note,
             'request_date': req.request_date.strftime('%Y-%m-%d %H:%M:%S') if req.request_date else '',
+            'service_id': req.service_id.id if req.service_id else None,
+            'service_name': req.service_id.name if req.service_id else '',
+            'request_user_id': req.request_user_id.id if req.request_user_id else None,
+            'request_user_name': req.request_user_id.name if req.request_user_id else '',
             'state': req.state,
-            'service': {
-                'id': req.service_id.id,
-                'name': req.service_id.name,
-                'description': req.service_id.description,
-            } if req.service_id else {},
-            'request_user': {
-                'id': req.request_user_id.id if req.request_user_id else 0,
-                'name': req.request_user_id.name if req.request_user_id else '',
-            },
-            'steps': steps,
-            'image_attachments': [
-                {
-                    'id': att.id,
-                    'name': att.name,
-                    'mimetype': att.mimetype,
-                } for att in req.image_attachment_ids
-            ],
-            'users': [
-                {
-                    'id': u.id,
-                    'name': u.name,
-                } for u in req.users
-            ],
+            'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
+            'step_ids': [{
+                'id': step.id,
+                'name': step.base_step_id.name if step.base_step_id else '',
+                'state': step.state,
+                'sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                'approved_by': step.approved_by.id if step.approved_by else None,
+                'approve_note': step.approve_note,
+                'approve_date': step.approve_date.strftime('%Y-%m-%d %H:%M:%S') if step.approve_date else '',
+                'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
+                'history_ids': [{
+                    'id': h.id,
+                    'state': h.state,
+                    'user_id': h.user_id.id if h.user_id else None,
+                    'user_name': h.user_id.name if h.user_id else '',
+                    'note': h.note,
+                    'date': h.date.strftime('%Y-%m-%d %H:%M:%S') if h.date else '',
+                } for h in step.history_ids],
+            } for step in req.step_ids],
+            'users': [{'id': u.id, 'name': u.name} for u in req.users],
+            'role_ids': [{'id': r.id, 'name': r.name} for r in req.role_ids],
+            'create_date': req.create_date.strftime('%Y-%m-%d %H:%M:%S') if req.create_date else '',
+            'write_date': req.write_date.strftime('%Y-%m-%d %H:%M:%S') if req.write_date else '',
         }
+
         return Response(
-            json.dumps({'success': True, 'message': 'Thành công', 'data': data}),
+            json.dumps({'success': True, 'message': 'Thành công', 'data': req_data}),
             content_type='application/json',
             status=200,
             headers=[

@@ -80,7 +80,7 @@
                                 context="{'default_sequence': 1, 'default_nextstep': 99}"
                                 options="{'no_create': true, 'no_create_edit': true}"
                             />
-                            <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Administration / Settings')]" />
+                            <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Settings')]" />
                             <field name="role_ids" widget="many2many_tags"/>
                         </group>
                     </group>
@@ -183,25 +183,24 @@
                         <!-- Có thể thêm nút duyệt ở đây nếu cần -->
                     </header>
                     <group>
-                        <group string="Thông tin yêu cầu dịch vụ">
-                            <field name="name" readonly="1"/>
+                        <group string="Nội dung yêu cầu">
                             <field name="service_id"/>
-                            <field name="request_user_id"/>
-                            <field name="request_user_name"/>
-                            <field name="request_user_avatar"/>
-                            <field name="request_date"/>
-                            
-                        </group>
-                        <group string="Thông tin đính kèm">
                             <field name="image_attachment_ids" widget="many2many_binary"/>
                             <field name="note"/>
+                            <field name="request_user_id" domain="[('groups_id.name', '=', 'Public')]"/>
                         </group>
-                        <group>
+                        <group string="Thông tin yêu cầu">
+                            <field name="name" readonly="1"/>
+                            <field name="request_user_name" readonly="1"/>
+                            <field name="request_user_avatar" readonly="1" widget="image" options="{'size': [48, 48]}"/>
+                            <field name="request_date" readonly="1"/>
+                        </group>
+                        <group string="Trạng thái duyệt">
                             <field name="final_state" />
                             <field name="approve_content"/>
                             <field name="approve_date"/>
                         </group>
-                         <group>
+                         <group string="Thông tin người duyệt">
                             <field name="users" widget="many2many_tags"/>
                             <field name="role_ids" widget="many2many_tags"/>
                         </group>
