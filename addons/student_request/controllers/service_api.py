@@ -266,13 +266,17 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid):
 
     vals = {
         'request_id': requestid,
-        'approved_by': userid,
-        'approve_note': note,
+        'base_step_id': step.base_step_id.id if step.base_step_id else False,
+        'approve_content': note,
         'state': act,
         'approve_date': Datetime.now(),
         'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
         'history_ids': [(4, hh.id)],
     }
+    if step.base_step_id.sequence == 1:
+        vals['file_ids'] = step.file_ids
+        vals['file_checkbox_ids'] = step.file_checkbox_ids
+
     return vals
 
 # Controller cho API dịch vụ
@@ -1146,22 +1150,23 @@ class ServiceApiController(http.Controller):
 
         req_data = {
             'id': req.id,
+            
+            'service_id': req.service_id.id if req.service_id else None,
             'name': req.name,
             'note': req.note,
+            
+            'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
             'request_date': req.request_date.strftime('%Y-%m-%d %H:%M:%S') if req.request_date else '',
-            'service_id': req.service_id.id if req.service_id else None,
-            'service_name': req.service_id.name if req.service_id else '',
+            
             'request_user_id': req.request_user_id.id if req.request_user_id else None,
             'request_user_name': req.request_user_id.name if req.request_user_id else '',
-            'state': req.state,
-            'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
+
             'step_ids': [{
                 'id': step.id,
                 'name': step.base_step_id.name if step.base_step_id else '',
                 'state': step.state,
                 'sequence': step.base_step_id.sequence if step.base_step_id else 0,
-                'approved_by': step.approved_by.id if step.approved_by else None,
-                'approve_note': step.approve_note,
+                'approve_content': step.approve_content,
                 'approve_date': step.approve_date.strftime('%Y-%m-%d %H:%M:%S') if step.approve_date else '',
                 'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
                 'history_ids': [{
@@ -1175,8 +1180,10 @@ class ServiceApiController(http.Controller):
             } for step in req.step_ids],
             'users': [{'id': u.id, 'name': u.name} for u in req.users],
             'role_ids': [{'id': r.id, 'name': r.name} for r in req.role_ids],
-            'create_date': req.create_date.strftime('%Y-%m-%d %H:%M:%S') if req.create_date else '',
-            'write_date': req.write_date.strftime('%Y-%m-%d %H:%M:%S') if req.write_date else '',
+
+            'final_state': req.final_state,
+            'approve_content': req.approve_content,
+            'approve_date': req.approve_date.strftime('%Y-%m-%d %H:%M:%S') if req.approve_date else '',
         }
 
         return Response(
