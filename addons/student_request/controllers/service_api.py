@@ -83,35 +83,67 @@ def check_jwt_token(request, secretkey):
 
 
 # Gửi thông báo FCM đến người dùng
-def send_fcm_user(env, user_ids, title, body, data):
+def send_fcm_user(notify, data):
     json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
     if not hasattr(send_fcm_user, 'firebase_app'):
         cred = credentials.Certificate(json_path)
         send_fcm_user.firebase_app = initialize_app(cred)
-    tokens = []
-    profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
-    for profile in profiles:
-        if profile.fcm_token:
-            tokens.append(profile.fcm_token)
 
-    message = messaging.MulticastMessage(
-        notification=messaging.Notification(
-            title=title,
-            body=body,
-        ),
-        tokens=tokens,
-        data=data if data else None,
-    )
+    res =  {
+        'success_count': 0,
+        'failure_count': 0,
+        'responses': '',
+    }
 
-    try:
-        response = messaging.send_each_for_multicast(message, app=send_fcm_admin.firebase_app)
-        return {
-            'success_count': response.success_count,
-            'failure_count': response.failure_count,
-            'responses': [r.__dict__ for r in response.responses],
-        }
-    except Exception as e:
-        return { 'success_count': 0, 'failure_count': 0, 'responses': [], 'error': str(e) }
+    if user_ids:  
+        try:  
+            tokens = []
+            profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
+            for profile in profiles:
+                if profile.fcm_token:
+                    tokens.append(profile.fcm_token)
+
+            message = messaging.MulticastMessage(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                tokens=tokens,
+                data=data if data else None,
+            )
+            response = messaging.send_each_for_multicast(message, app=send_fcm_admin.firebase_app)
+            res = {
+                'success_count': res.success_count + response.success_count,
+                'failure_count': response.failure_count,
+                'responses': res.responses + response.responses if response.responses else '',
+            }
+        except Exception as e:
+            res['responses'] = res.responses + str(e)
+
+    if dormitory_cluster_ids:  
+        try:  
+            cluster_names = self.dormitory_cluster_ids.mapped('name')
+            topics = ' || '.join([f"'{name}' in topics" for name in cluster_names])
+            
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                condition=topics,
+                data=data if data else None,
+            )
+            response = messaging.send(message, app=send_fcm_admin.firebase_app)
+            res = {
+                'success_count': res.success_count + response.success_count,
+                'failure_count': response.failure_count,
+                'responses': res.responses + response.responses if response.responses else '',
+            }
+        except Exception as e:
+            res['responses'] = res.responses + str(e)
+
+    return res
+
 
 # Gửi thông báo FCM đến quản trị viên
 def send_fcm_admin(env, user_ids, title, body, data):
@@ -155,7 +187,7 @@ def add_user_to_firebase_topic(env, user_id, topic_area, topic_cluster):
         add_user_to_firebase_topic.firebase_app = initialize_app(cred)
     try:
         response = messaging.subscribe_to_topic([profile.fcm_token], topic_area, app=add_user_to_firebase_topic.firebase_app)
-        response = messaging.subscribe_to_topic([profile.fcm_token], topic_area + '/' + topic_cluster, app=add_user_to_firebase_topic.firebase_app)
+        response = messaging.subscribe_to_topic([profile.fcm_token], topic_cluster, app=add_user_to_firebase_topic.firebase_app)
         return {
             'success': True,
             'message': f'User subscribed to topic {topic_area + "/" + topic_cluster}',
@@ -231,7 +263,7 @@ def create_request(env, serviceid, userid, note, attachments):
     return vals
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
-def update_request_step(env, requestid, stepid, userid, note, act, nextuserid):
+def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data):
     request = env['student.service.request'].browse(requestid)
     step = request.step_ids.browse(stepid)
     # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
@@ -239,24 +271,32 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid):
     # step = step[0] if step else service.step_ids.browse(stepid)
     if not step.exists():
         return False
-
     # nếu act khác pending thì tìm các bước trước đó còn pending cập nhật nó thanh ignored
     if act != 'pending':
-        prev_steps = request.step_ids.filtered(lambda s: s.id < step.id and s.state == 'pending')
+        prev_steps = request.step_ids.filtered(lambda s: s.base_secquence < step.base_secquence and (s.state == 'pending' or s.state != 'assigned' or s.state != 'rejected'))
         for s in prev_steps:
             s.state = 'ignored'
             # Tạo bản ghi history cho các bước đã ignored
             h = env['student.service.request.step.history'].create({
+                'request_id': requestid,
                 'step_id': s.id,
                 'state': 'ignored',
                 'user_id': userid,
                 'note': 'Đã bỏ qua bước này',
                 'date': Datetime.now(),
             })
-            s.history_ids = [(4, h.id)]
+            # Cập nhật bản ghi request
+            s.sudo().write({
+                'state': 'ignored',
+                'approve_content': 'Đã duyệt bước sau, bỏ qua bước này',
+                'approve_date': Datetime.now(),
+                'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
+                'history_ids': [(4, h.id)],
+            })
 
     # Tạo bản ghi history cho bước đang duyệt
     hh = env['student.service.request.step.history'].sudo().create({
+        'request_id': requestid,
         'step_id': step.id,
         'state': act,
         'user_id': userid,
@@ -273,9 +313,22 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid):
         'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
         'history_ids': [(4, hh.id)],
     }
-    if step.base_step_id.sequence == 1:
+    
+    if step.base_secquence == 1:
         vals['file_ids'] = step.file_ids
         vals['file_checkbox_ids'] = step.file_checkbox_ids
+    if step.base_secquence == 99:
+        vals['final_data'] = final_data
+
+    # Update database: request các field: approve_content approve_date final_state final_data
+    request.sudo().write({
+        'users': [(4, nextuserid)] if nextuserid else [],
+        'approve_content': note,
+        'approve_date': Datetime.now(),
+        'approve_user_id': nextuserid if nextuserid else False,
+        'final_state': act,
+        'final_data': final_data if step.base_step_id.sequence == 99 else '',
+    })
 
     return vals
 
@@ -1132,6 +1185,50 @@ class ServiceApiController(http.Controller):
             ]
         )
 
+    # Lấy danh sách users có group_id.name == 'Settings'
+    @http.route('/api/users/forassign', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_settings_users(self):
+        group = request.env['res.groups'].sudo().search([('name', '=', 'Settings')], limit=1)
+        if not group:
+            return Response(
+                json.dumps({'success': False, 'message': 'Group "Settings" not found', 'data': []}),
+                content_type='application/json',
+                status=404,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        users = group.users
+        data = [{'id': u.id, 'name': u.name, 'login': u.login, 'email': u.email} for u in users]
+        return Response(
+            json.dumps({'success': True, 'message': 'Danh sách users thuộc group Settings', 'data': data}),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
+
+    # Lấy danh sách các Files trong student.service.file
+    @http.route('/api/service/files', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_service_files(self):
+        files = request.env['student.service.file'].sudo().search([])
+        data = [{'id': f.id, 'name': f.name, 'description': f.description} for f in files]
+        return Response(
+            json.dumps({'success': True, 'message': 'Danh sách files', 'data': data}),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
+
     # TODO Lấy chi tiết 1 yêu cầu dịch vụ
     @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_service_request_detail(self, request_id):
@@ -1148,6 +1245,19 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
+        sumhistories = []
+        for step in req.step_ids:
+            for h in step.history_ids:
+                sumhistories.append({
+                    'id': h.id,
+                    'step_id': step.id,
+                    'step_name': step.base_step_id.name if step.base_step_id else '',
+                    'state': h.state,
+                    'user_id': h.user_id.id if h.user_id else None,
+                    'user_name': h.user_id.name if h.user_id else '',
+                    'note': h.note,
+                    'date': h.date.strftime('%Y-%m-%d %H:%M:%S') if h.date else '',
+                })
         req_data = {
             'id': req.id,
             
@@ -1169,6 +1279,7 @@ class ServiceApiController(http.Controller):
                 'approve_content': step.approve_content,
                 'approve_date': step.approve_date.strftime('%Y-%m-%d %H:%M:%S') if step.approve_date else '',
                 'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
+                'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
                 'history_ids': [{
                     'id': h.id,
                     'state': h.state,
@@ -1182,8 +1293,10 @@ class ServiceApiController(http.Controller):
             'role_ids': [{'id': r.id, 'name': r.name} for r in req.role_ids],
 
             'final_state': req.final_state,
+            'final_data': req.final_data,
             'approve_content': req.approve_content,
             'approve_date': req.approve_date.strftime('%Y-%m-%d %H:%M:%S') if req.approve_date else '',
+            'histories': sumhistories,
         }
 
         return Response(
@@ -1197,7 +1310,75 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # TODO: Lấy danh sách thông báo của user 
+    # Submit 1 bước duyệt
+    @http.route('/api/service/request/step/submit', type='json', auth='public', methods=['POST'], csrf=False)
+    def submit_service_request_step(self, **post):
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        # Đầu vao: { step_id, approve_content, user_id, action, file_checked_ids, final_data } 
+        # nếu là base_sequence = 1: file_checked_ids: [file_id1, file_id2, ...]
+        # nếu là base_sequence = 99: final_data
+        requestid = params.get('request_id')
+        stepid = params.get('step_id') 
+        userid = params.get('user_id')          # User thực hiện duyệt
+        note = params.get('note', '')           # Nột dung duyệt
+        act = params.get('act', '')             # action: 'pending', 'assigned', 'ignored', 'approved', 'rejected'
+        nextuserid = params.get('next_user_id') # User tiếp theo xử lý yêu cầu
+        docs = params.get('docs')               # Danh sách file đính kèm nếu bước = 1
+        final_data = params.get('final_data')   # Nếu duyệt bước 99 cuối
+
+        if not stepid:
+            return Response(
+                json.dumps({'success': False, 'message': 'Missing step_id', 'data': []}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        try:
+            step = request.env['student.service.request.step'].sudo().browse(step_id)
+            if not step:
+                return Response(
+                    json.dumps({'success': False, 'message': 'Step not found', 'data': []}),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Xử lý logic duyệt bước ở đây
+            step = update_request_step(request.env, requestid, stepid, userid, note, act, nextuserid, docs, final_data)
+            request.env['student.service.request.step'].sudo().write(step)
+
+            return Response(
+                json.dumps({'success': True, 'message': 'Bước duyệt thành công', 'data': step.read()}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e), 'data': []}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    # Lấy danh sách thông báo của user
     @http.route('/api/notifications/my', type='http', auth='public', methods=['GET'], csrf=False)
     def get_my_notifications(self):
         params = request.httprequest.get_json(force=True, silent=True) or {}

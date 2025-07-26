@@ -137,6 +137,7 @@ class ServiceFileCheckbox(models.Model):
 class ServiceRequestStepHistory(models.Model):
     _name = 'student.service.request.step.history'
     _description = 'Lịch sử thao tác duyệt'
+    _order = 'date desc'
     
     request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ')
     step_id = fields.Many2one('student.service.request.step', string='Bước duyệt')
@@ -150,6 +151,66 @@ class ServiceRequestStepHistory(models.Model):
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     date = fields.Datetime('Ngày thực hiện', default=fields.Datetime.now)
     note = fields.Text('Ghi chú', help='Ghi chú cho lịch sử thao tác duyệt này')
+
+# Bước duyệt đang được thực hiện
+class ServiceRequestStep(models.Model):
+    _name = 'student.service.request.step'
+    _description = 'Dòng duyệt từng bước'
+    _order = 'base_secquence'
+
+    request_id = fields.Many2one('student.service.request', string='Dịch vụ')
+    base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt')
+    base_secquence = fields.Integer('Thứ tự', related='base_step_id.sequence', help='Thứ tự của bước duyệt trong quy trình')
+    state = fields.Selection([
+        ('pending', 'Chờ duyệt'),
+        ('assigned', 'Đã phân công'),
+        ('ignored', 'Đã bỏ qua'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối')
+    ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
+    approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
+    approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
+
+    # Phân công
+    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
+    history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
+
+    # Các giấy tờ cần nộp trong bước này (chỉ bước 1 mới có)
+    file_ids = fields.Many2many(
+        'student.service.file',
+        'student_service_step_file_rel',  # bảng quan hệ riêng cho file_ids
+        'step_id', 'file_id',
+        string='Giấy tờ cần nộp',
+        help='Các giấy tờ cần nộp trong bước này'
+    )
+    # Đánh dấu các giấy tờ đã nộp  (chỉ bước 1 mới có)
+    file_checkbox_ids = fields.Many2many(
+        'student.service.file',
+        'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
+        'step_id', 'file_id',
+        string='Hồ sơ đã nộp',
+        help='Các giấy tờ đã nộp trong bước này'
+    )
+    final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
+
+    def action_confirm_approve(self):
+        # Nếu tạo mới:
+        #if vals.get('approve_content') == self.approve_content and vals.get('assign_user_id') == self.assign_user_id.id and vals.get('state') == self.state:
+        #    return super().write(vals)
+
+        vals = update_request_step(
+            self.env, 
+            self.request_id.id if self.request_id.id else 0, 
+            self.id, 
+            self.env.user.id, 
+            self.approve_content if self.approve_content else '', 
+            self.state, 
+            self.assign_user_id.id if self.assign_user_id else None, 
+            self.file_checkbox_ids.ids, 
+            self.final_data
+        )
+        super().write(vals)
+        return { 'type': 'ir.actions.client', 'tag': 'reload' }
 
 # Model yêu cầu dịch vụ của sinh viên
 class ServiceRequest(models.Model):
@@ -185,8 +246,10 @@ class ServiceRequest(models.Model):
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối')
       ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
+    final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt hiện tại cho yêu cầu dịch vụ này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now, help='Ngày và giờ thao tác cập nhật duyệt yêu cầu dịch vụ này')
+    approve_user_id = fields.Many2one('res.users', string='Người đang nhận duyệt', help='Người đang thụ lý yêu cầu dịch vụ này')
 
     @api.model
     def create(self, vals):
@@ -195,51 +258,6 @@ class ServiceRequest(models.Model):
         if not vals:
             raise models.ValidationError("Không thể tạo yêu cầu dịch vụ, vui lòng kiểm tra thông tin dịch vụ và người dùng.")
         return super().create(vals)
-
-
-# Bước duyệt đang được thực hiện
-class ServiceRequestStep(models.Model):
-    _name = 'student.service.request.step'
-    _description = 'Dòng duyệt từng bước'
-
-    request_id = fields.Many2one('student.service.request', string='Dịch vụ')
-    base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt')
-    state = fields.Selection([
-        ('pending', 'Chờ duyệt'),
-        ('assigned', 'Đã phân công'),
-        ('ignored', 'Đã bỏ qua'),
-        ('approved', 'Đã duyệt'),
-        ('rejected', 'Từ chối')
-    ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
-    approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
-    approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
-
-    # Phân công
-    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
-    history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
-
-    # Các giấy tờ cần nộp trong bước này (chỉ bước 1 mới có)
-    file_ids = fields.Many2many(
-        'student.service.file',
-        'student_service_step_file_rel',  # bảng quan hệ riêng cho file_ids
-        'step_id', 'file_id',
-        string='Giấy tờ cần nộp',
-        help='Các giấy tờ cần nộp trong bước này'
-    )
-    # Đánh dấu các giấy tờ đã nộp  (chỉ bước 1 mới có)
-    file_checkbox_ids = fields.Many2many(
-        'student.service.file',
-        'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
-        'step_id', 'file_id',
-        string='Hồ sơ đã nộp',
-        help='Các giấy tờ đã nộp trong bước này'
-    )
-
-    def write(self, vals):
-        vals = update_request_step(self.env, vals.get('request_id', self.request_id.id), self.id, vals.get('user_id', self.env.user.id), vals.get('approve_content', self.approve_content), vals.get('state', self.state), vals.get('assign_user_id', self.assign_user_id.id if self.assign_user_id else None))
-        if not vals:
-            raise models.ValidationError("Không thể cập nhật bước duyệt, vui lòng kiểm tra thông tin.")
-        return super(ServiceRequestStep, self).write(vals)
 
 
 # Model quản lý thông tin sinh viên KTX
@@ -318,36 +336,32 @@ class StudentNotify(models.Model):
     article = fields.Text('Nội dung chi tiết', required=False, help='Nội dung chi tiết của thông báo, có thể chứa HTML hoặc Markdown')
     created_date = fields.Datetime('Ngày tạo', default=fields.Datetime.now)
     data = fields.Text('Dữ liệu bổ sung', help='Dữ liệu JSON hoặc thông tin bổ sung cho thông báo')
+    notify_type = fields.Selection([
+        ('user', 'Thông báo xử lý nghiệp vụ đến người dùng'),
+        ('articles', 'Thông báo dạng bài viết'),
+    ], string='Loại thông báo', default='articles', help='Loại thông báo')
     # Đánh dấu đã xem:
     read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
     
-    #Nhận notify theo loại
+    #Nhận notify theo user, cluster, activity
     user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id',  string='Danh sách người nhận notify', help='Danh sách người sẽ nhận thông báo')
     dormitory_cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm nhận notify', help='Gửi thông báo đến các SV trong các cụm KTX này')
-
-    user_id = fields.Many2one('res.users', string='Người gửi', help='Người gửi thông báo')
+    activity_role_ids = fields.Many2many('student.activity.role', string='Vai trò nhận notify', help='Gửi thông báo đến các SV có vai trò hoạt động này')
 
     # Thống kê kết quả gửi FCM
+    user_id = fields.Many2one('res.users', string='Người gửi', help='Người gửi thông báo')
     fcm_success_count = fields.Integer('Số lượng gửi thành công', default=0)
     fcm_failure_count = fields.Integer('Số lượng gửi thất bại', default=0)
     fcm_responses = fields.Text('Kết quả gửi FCM', help='Lưu JSON kết quả gửi FCM')
 
-    @api.model
-    def create(self, vals):
-        if isinstance(vals, dict): vals = vals[0] # Chỉ lấy bản ghi đầu tiên nếu là dict
-        # Tạo thông báo mới
-        notify = super().create(vals)
+    def send_fcm(self):
         try:
-            result = None
-            # Gửi FCM nếu có token
-            if notify.notify_type == 'user':
-                result = send_fcm_user(self.env, notify.user_ids.ids, notify.title, notify.body, {})
-            elif notify.notify_type == 'admin':
-                result = send_fcm_admin(self.env, notify.user_ids.ids, notify.title, notify.body, {})
-            
+            dt = { 'type': 'article', 'id': self.id }
+            result = send_fcm_user(self, dt)
             # Cập nhật kết quả gửi FCM
             if result:
-                notify.sudo().write({
+                self.sudo().write({
+                    'data': json.dumps(dt, ensure_ascii=False),
                     'fcm_success_count': result.get('success_count', 0),
                     'fcm_failure_count': result.get('failure_count', 0),
                     'fcm_responses': json.dumps(result.get('responses', []), ensure_ascii=False)
@@ -359,7 +373,7 @@ class StudentNotify(models.Model):
                 'fcm_failure_count': 0,
                 'fcm_responses': error.args[0] if isinstance(error, Exception) else str(error)
             })
-            pass
+            raise models.ValidationError("Gửi thông báo FCM thất bại: %s" % str(e))
         return notify
 
 # Model quản lý khu ký túc xá
