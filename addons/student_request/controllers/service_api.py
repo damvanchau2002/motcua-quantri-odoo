@@ -223,20 +223,32 @@ def remove_user_from_all_firebase_topics(env, user_id):
         return {'success': False, 'message': str(e)}
 
 # Tạo Request mới
-def create_request(env, serviceid, userid, note, attachments):
+def create_request(env, serviceid, requestid, userid, note, attachments):
     service = env['student.service'].browse(serviceid)
     user_name = 'Yêu cầu dịch vụ: '
     user = env['res.users'].browse(userid)
     if not user: return False
-    
-    vals = {
-        'name': f'{user.name}: {service.name}',
-        'service_id': service.id,
-        'request_user_id': userid,
-        'note': note,
-        'image_attachment_ids': attachments,
-        'request_date': Datetime.now(),
-    }
+    vals = {}
+    if requestid > 0:
+        vals = env['student.service.request'].browse(requestid)
+        if vals.exists():
+            vals['name'] = f'{user.name}: {service.name}'
+            vals['service_id'] = service.id
+            vals['request_user_id'] = userid
+            vals['note'] = note
+            vals['image_attachment_ids'] = attachments
+            vals['request_date'] = Datetime.now()
+
+            env['student.service.request'].sudo().write(vals)
+    else:
+        vals = {
+            'name': f'{user.name}: {service.name}',
+            'service_id': service.id,
+            'request_user_id': userid,
+            'note': note,
+            'image_attachment_ids': attachments,
+            'request_date': Datetime.now(),
+        }
     # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
     _steps = service.step_ids.sorted('sequence')
     step_ids = []
@@ -260,6 +272,8 @@ def create_request(env, serviceid, userid, note, attachments):
         vals['users'] = [(6, 0, service.users.ids)]
     if service.role_ids:
         vals['role_ids'] = [(6, 0, service.role_ids.ids)]
+
+    env['student.service.request'].sudo().create(vals)    
     return vals
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
@@ -1001,13 +1015,15 @@ class ServiceApiController(http.Controller):
 
         # Lấy các trường khác từ form
         service_id = httprequest.form.get('service_id')
+        request_id = httprequest.form.get('request_id', 0)  # Có thể có request_id nếu là cập nhật
         request_user_id = httprequest.form.get('request_user_id')
+        assign_user_id = httprequest.form.get('assign_user_id')
         note = httprequest.form.get('note', '')
 
         service = request.env['student.service'].sudo().browse(int(service_id)) if service_id else None
         if not service or not service.exists():
             return Response(
-                json.dumps({'error': 'Service not found'}),
+                json.dumps({'success': False, 'message': 'Service not found'}),
                 content_type='application/json',
                 status=404,
                 headers=[
@@ -1018,12 +1034,8 @@ class ServiceApiController(http.Controller):
             )       
 
         attachments = [(6, 0, attachment_ids)] if attachment_ids else []
-        vals = create_request(request.env, service_id, request_user_id, note, attachments)
-
         try:
-            req = request.env['student.service.request'].sudo().create(vals)
-            # Cập nhật res_id cho attachment
-            request.env['ir.attachment'].sudo().browse(attachment_ids).write({'res_id': req.id})
+            vals = create_request(request.env, service_id, request_user_id, note, attachments)
         except Exception as e:
             return Response(
                 json.dumps({'error': 'Failed to create service request', 'detail': str(e)}),
@@ -1041,9 +1053,9 @@ class ServiceApiController(http.Controller):
                 'success': True,
                 'message': 'Tạo yêu cầu dịch vụ thành công',
                 'data': {
-                    'id': req.id,
-                    'service_id': req.service_id.id,
-                    'service_name': req.service_id.name
+                    'id': vals.id,
+                    'service_id': vals.service_id.id,
+                    'service_name': vals.service_id.name
                 }
             }),
             content_type='application/json',
@@ -1438,8 +1450,11 @@ class ServiceApiController(http.Controller):
         params = request.httprequest.get_json(force=True, silent=True) or {}
         request_id = params.get('request_id')
         user_id = params.get('user_id')
+        asign_user_id = params.get('asign_user_id')
         step_id = params.get('step_id')
+        checked_ids = params.get('checked_ids')
         note = params.get('note', '')
+        final = params.get('final', '')
 
         if not request_id or not user_id or not step_id:
             return Response(
@@ -1482,32 +1497,12 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
-        # Chỉ duyệt bước đang ở trạng thái pending
-        if step.state != 'pending':
-            return Response(
-                json.dumps({'success': False, 'message': 'Step is not pending'}),
-                content_type='application/json',
-                status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
-
         try:
-            step.sudo().write({
-                'state': 'approved',
-                'approved_by': user.id,
-                'approve_note': note,
-                'approve_date': Datetime.now(),
-            })
-            # Nếu là bước cuối cùng thì cập nhật trạng thái request
-            all_steps = req.step_history_ids.sorted('sequence')
-            if step == all_steps[-1]:
-                req.sudo().write({'state': 'approved'})
+            # Cập nhật bước duyệt
+            vals = update_request_step(request.env, request_id, step_id, user_id, note, 'approved', asign_user_id, checked_ids, final)
+            step.sudo().write(vals)
             return Response(
-                json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id}}),
+                json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step': step}}),
                 content_type='application/json',
                 status=200,
                 headers=[
