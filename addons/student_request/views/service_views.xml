@@ -263,7 +263,7 @@
                             </kanban>
                         </field>
                     </group>
-                    <group>
+                    <group invisible="id != 0">
                         <button name="action_create_new" string="Tạo yêu cầu" type="object" class="btn-primary"/>
                     </group>
                 </sheet>

@@ -143,11 +143,13 @@ class ServiceRequestStepHistory(models.Model):
     step_id = fields.Many2one('student.service.request.step', string='Bước duyệt')
     user_id = fields.Many2one('res.users', string='Người duyệt')
     state = fields.Selection([
+        ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
-        ('rejected', 'Từ chối')
+        ('rejected', 'Từ chối'),
+        ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     date = fields.Datetime('Ngày thực hiện', default=fields.Datetime.now)
     note = fields.Text('Ghi chú', help='Ghi chú cho lịch sử thao tác duyệt này')
@@ -162,11 +164,13 @@ class ServiceRequestStep(models.Model):
     base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt')
     base_secquence = fields.Integer('Thứ tự', related='base_step_id.sequence', help='Thứ tự của bước duyệt trong quy trình')
     state = fields.Selection([
+        ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
-        ('rejected', 'Từ chối')
+        ('rejected', 'Từ chối'),
+        ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
@@ -256,7 +260,7 @@ class ServiceRequest(models.Model):
     def action_create_new(self):
         # Tạo mới yêu cầu dịch vụ
         vals = create_request(self.env, self.service_id.id, self.id if self.id else 0, self.request_user_id.id, self.note, self.image_attachment_ids.ids)
-        return vals
+        return { 'type': 'ir.actions.client', 'tag': 'reload' }
         
 
     
