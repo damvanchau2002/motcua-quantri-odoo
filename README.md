@@ -53,12 +53,15 @@ python odoo-bin -c odoo.cfg -i base
 ```
 # Student Service API Documentation
 
-This document describes all API endpoints provided in `service_api.py`, including request and response formats.
+Tài liệu này mô tả tất cả các API trong file `service_api.py`, bao gồm input (request) và output (response).
 
 ---
 
 ## 1. GET `/api/service/groups`
-**Description:** Get all service groups and their services.
+**Mô tả:** Lấy danh sách nhóm dịch vụ và các dịch vụ trong nhóm.
+
+**Input:**  
+Không có.
 
 **Response:**
 ```json
@@ -68,14 +71,14 @@ This document describes all API endpoints provided in `service_api.py`, includin
   "data": [
     {
       "id": 1,
-      "name": "Group Name",
-      "description": "Group Description",
+      "name": "Tên nhóm",
+      "description": "Mô tả nhóm",
       "parent_id": null,
       "services": [
         {
           "id": 10,
-          "name": "Service Name",
-          "description": "Service Description",
+          "name": "Tên dịch vụ",
+          "description": "Mô tả dịch vụ",
           "state": "active"
         }
       ]
@@ -87,7 +90,10 @@ This document describes all API endpoints provided in `service_api.py`, includin
 ---
 
 ## 2. GET `/student_service/api/services`
-**Description:** List all services.
+**Mô tả:** Lấy danh sách tất cả dịch vụ.
+
+**Input:**  
+Không có.
 
 **Response:**
 ```json
@@ -97,8 +103,8 @@ This document describes all API endpoints provided in `service_api.py`, includin
   "data": [
     {
       "id": 10,
-      "name": "Service Name",
-      "description": "Service Description"
+      "name": "Tên dịch vụ",
+      "description": "Mô tả dịch vụ"
     }
   ]
 }
@@ -107,7 +113,10 @@ This document describes all API endpoints provided in `service_api.py`, includin
 ---
 
 ## 3. GET `/student_service/api/service/<int:service_id>`
-**Description:** Get details of a specific service.
+**Mô tả:** Lấy chi tiết một dịch vụ.
+
+**Input:**  
+- `service_id`: ID của dịch vụ (trên URL).
 
 **Response:**
 ```json
@@ -116,20 +125,20 @@ This document describes all API endpoints provided in `service_api.py`, includin
   "message": "Thành công",
   "data": {
     "id": 10,
-    "name": "Service Name",
-    "description": "Service Description",
+    "name": "Tên dịch vụ",
+    "description": "Mô tả dịch vụ",
     "titlenote": "",
     "state": "active",
     "group_id": 1,
-    "group_name": "Group Name",
+    "group_name": "Tên nhóm",
     "step_ids": [
-      {"id": 1, "name": "Step 1", "description": "Step Description"}
+      {"id": 1, "name": "Tên bước", "description": "Mô tả bước"}
     ],
     "users": [
-      {"id": 2, "name": "User Name"}
+      {"id": 2, "name": "Tên người dùng"}
     ],
     "files": [
-      {"id": 3, "name": "File Name", "description": "File Description"}
+      {"id": 3, "name": "Tên file", "description": "Mô tả file"}
     ]
   }
 }
@@ -138,9 +147,9 @@ This document describes all API endpoints provided in `service_api.py`, includin
 ---
 
 ## 4. POST `/api/public_user/refresh_token`
-**Description:** Refresh JWT token.
+**Mô tả:** Làm mới JWT token.
 
-**Request:**  
+**Input:**  
 Header: `Authorization: Bearer <token>`
 
 **Response:**
@@ -155,9 +164,9 @@ Header: `Authorization: Bearer <token>`
 ---
 
 ## 5. POST `/api/public_user/login`
-**Description:** Login public user via external API.
+**Mô tả:** Đăng nhập người dùng public qua API ngoài.
 
-**Request:**
+**Input:**
 ```json
 {
   "username": "student_code",
@@ -174,10 +183,10 @@ Header: `Authorization: Bearer <token>`
   "message": "Đăng nhập thành công",
   "data": {
     "id": 1,
-    "name": "Full Name",
+    "name": "Tên đầy đủ",
     "email": "email@example.com",
     "phone": "0123456789",
-    "gender": "Male",
+    "gender": "Nam",
     "birthday": "YYYY-MM-DD",
     "can_login": false,
     "image_1920": true,
@@ -206,15 +215,15 @@ Header: `Authorization: Bearer <token>`
 ---
 
 ## 6. POST `/api/public_user/oauth`
-**Description:** Login via OAuth provider.
+**Mô tả:** Đăng nhập qua OAuth provider.
 
-**Request:**
+**Input:**
 ```json
 {
   "provider": "google",
   "token": "<oauth_token>",
   "email": "email@example.com",
-  "fullname": "Full Name",
+  "fullname": "Tên đầy đủ",
   "avatar": "...",
   "fcm_device_token": "...",
   "device_id": "...",
@@ -231,7 +240,7 @@ Header: `Authorization: Bearer <token>`
   "data": {
     "id": 1,
     "email": "email@example.com",
-    "fullname": "Full Name",
+    "fullname": "Tên đầy đủ",
     "avatar_url": "...",
     "activated": true,
     "title_name": "...",
@@ -248,16 +257,16 @@ Header: `Authorization: Bearer <token>`
 ---
 
 ## 7. POST `/api/service/request/create`
-**Description:** Create a new service request.
+**Mô tả:** Tạo yêu cầu dịch vụ mới.
 
-**Request:**  
+**Input:**  
 Form-data:  
 - `service_id`
-- `request_id` (optional, for update)
+- `request_id` (tùy chọn, nếu cập nhật)
 - `request_user_id`
-- `assign_user_id` (optional)
+- `assign_user_id` (tùy chọn)
 - `note`
-- Files (attachments)
+- Files (đính kèm)
 
 **Response:**
 ```json
@@ -267,8 +276,8 @@ Form-data:
   "data": {
     "id": 1,
     "service_id": 10,
-    "service_name": "Service Name",
-    "content": "Request note"
+    "service_name": "Tên dịch vụ",
+    "content": "Nội dung yêu cầu"
   }
 }
 ```
@@ -276,9 +285,9 @@ Form-data:
 ---
 
 ## 8. GET `/api/service/request/user`
-**Description:** List service requests of a user, including approval history.
+**Mô tả:** Lấy danh sách yêu cầu dịch vụ của một user, kèm lịch sử duyệt.
 
-**Request:**
+**Input:**
 ```json
 {
   "user_id": 1
@@ -295,14 +304,14 @@ Form-data:
       "id": 1,
       "service": {
         "id": 10,
-        "name": "Service Name",
-        "description": "Service Description"
+        "name": "Tên dịch vụ",
+        "description": "Mô tả dịch vụ"
       },
       "name": "...",
       "note": "...",
       "request_date": "YYYY-MM-DD HH:MM:SS",
       "approve_user_id": 2,
-      "approve_user_name": "Approver",
+      "approve_user_name": "Người duyệt",
       "approve_content": "...",
       "approve_date": "YYYY-MM-DD HH:MM:SS",
       "final_state": "approved",
@@ -314,7 +323,7 @@ Form-data:
           "step_name": "...",
           "state": "approved",
           "user_id": 2,
-          "user_name": "Approver",
+          "user_name": "Người duyệt",
           "note": "...",
           "date": "YYYY-MM-DD HH:MM:SS"
         }
@@ -327,9 +336,9 @@ Form-data:
 ---
 
 ## 9. GET `/api/service/request/list`
-**Description:** List service requests for approval by user or role.
+**Mô tả:** Lấy danh sách yêu cầu dịch vụ cần duyệt theo user hoặc role.
 
-**Request:**
+**Input:**
 ```json
 {
   "user_id": 1
@@ -348,15 +357,15 @@ Form-data:
       "note": "...",
       "request_date": "YYYY-MM-DD HH:MM:SS",
       "approve_user_id": 2,
-      "approve_user_name": "Approver",
+      "approve_user_name": "Người duyệt",
       "approve_content": "...",
       "approve_date": "YYYY-MM-DD HH:MM:SS",
       "final_state": "approved",
       "finalfinal_data": "...",
       "service": {
         "id": 10,
-        "name": "Service Name",
-        "description": "Service Description"
+        "name": "Tên dịch vụ",
+        "description": "Mô tả dịch vụ"
       },
       "steps": [
         {
@@ -371,7 +380,7 @@ Form-data:
               "state": "approved",
               "note": "...",
               "date": "YYYY-MM-DD HH:MM:SS",
-              "user_id": "Approver"
+              "user_id": "Người duyệt"
             }
           ]
         }
@@ -384,7 +393,10 @@ Form-data:
 ---
 
 ## 10. GET `/api/users/forassign`
-**Description:** List users in the "Settings" group.
+**Mô tả:** Lấy danh sách user thuộc group "Settings".
+
+**Input:**  
+Không có.
 
 **Response:**
 ```json
@@ -394,7 +406,7 @@ Form-data:
   "data": [
     {
       "id": 1,
-      "name": "User Name",
+      "name": "Tên người dùng",
       "login": "username",
       "email": "email@example.com"
     }
@@ -405,7 +417,10 @@ Form-data:
 ---
 
 ## 11. GET `/api/service/files`
-**Description:** List all service files.
+**Mô tả:** Lấy danh sách tất cả file dịch vụ.
+
+**Input:**  
+Không có.
 
 **Response:**
 ```json
@@ -415,8 +430,8 @@ Form-data:
   "data": [
     {
       "id": 1,
-      "name": "File Name",
-      "description": "File Description"
+      "name": "Tên file",
+      "description": "Mô tả file"
     }
   ]
 }
@@ -425,7 +440,10 @@ Form-data:
 ---
 
 ## 12. GET `/api/service/request/detail/<int:request_id>`
-**Description:** Get details of a service request.
+**Mô tả:** Lấy chi tiết một yêu cầu dịch vụ.
+
+**Input:**  
+- `request_id`: ID của yêu cầu (trên URL).
 
 **Response:**
 ```json
@@ -452,17 +470,17 @@ Form-data:
         "approve_content": "...",
         "approve_date": "YYYY-MM-DD HH:MM:SS",
         "file_ids": [
-          {"id": 1, "name": "File Name", "description": "..."}
+          {"id": 1, "name": "Tên file", "description": "..."}
         ],
         "file_checkbox_ids": [
-          {"id": 2, "name": "File Name", "description": "..."}
+          {"id": 2, "name": "Tên file", "description": "..."}
         ],
         "history_ids": [
           {
             "id": 1,
             "state": "approved",
             "user_id": 2,
-            "user_name": "Approver",
+            "user_name": "Người duyệt",
             "note": "...",
             "date": "YYYY-MM-DD HH:MM:SS"
           }
@@ -470,10 +488,10 @@ Form-data:
       }
     ],
     "users": [
-      {"id": 2, "name": "Approver"}
+      {"id": 2, "name": "Người duyệt"}
     ],
     "role_ids": [
-      {"id": 1, "name": "Role Name"}
+      {"id": 1, "name": "Tên vai trò"}
     ],
     "final_state": "approved",
     "final_data": "...",
@@ -486,7 +504,7 @@ Form-data:
         "step_name": "...",
         "state": "approved",
         "user_id": 2,
-        "user_name": "Approver",
+        "user_name": "Người duyệt",
         "note": "...",
         "date": "YYYY-MM-DD HH:MM:SS"
       }
@@ -498,9 +516,9 @@ Form-data:
 ---
 
 ## 13. POST `/api/service/request/step/submit`
-**Description:** Submit approval for a request step.
+**Mô tả:** Submit duyệt một bước của yêu cầu dịch vụ.
 
-**Request:**
+**Input:**
 ```json
 {
   "request_id": 1,
@@ -519,16 +537,16 @@ Form-data:
 {
   "success": true,
   "message": "Bước duyệt thành công",
-  "data": { ...step fields... }
+  "data": { ...các trường của step... }
 }
 ```
 
 ---
 
 ## 14. GET `/api/notifications/my`
-**Description:** Get notifications for a user.
+**Mô tả:** Lấy danh sách thông báo của user.
 
-**Request:**
+**Input:**
 ```json
 {
   "user_id": 1
@@ -543,8 +561,8 @@ Form-data:
   "data": [
     {
       "id": 1,
-      "title": "Notification Title",
-      "body": "Notification Body",
+      "title": "Tiêu đề thông báo",
+      "body": "Nội dung thông báo",
       "is_read": false,
       "create_date": "YYYY-MM-DD HH:MM:SS",
       "data": {}
@@ -556,9 +574,9 @@ Form-data:
 ---
 
 ## 15. POST `/api/service/request/approve`
-**Description:** Approve a service request step.
+**Mô tả:** Duyệt một bước của yêu cầu dịch vụ.
 
-**Request:**
+**Input:**
 ```json
 {
   "request_id": 1,
@@ -578,7 +596,7 @@ Form-data:
   "message": "Yêu cầu đã được duyệt",
   "data": {
     "request_id": 1,
-    "step": { ...step fields... }
+    "step": { ...các trường của step... }
   }
 }
 ```
