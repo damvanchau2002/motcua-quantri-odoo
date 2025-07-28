@@ -1486,7 +1486,7 @@ class ServiceApiController(http.Controller):
 
 
     # TODO API duyệt yêu cầu dịch vụ ()
-    @http.route('/api/service/request/approve', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST'], csrf=False)
     def approve_service_request(self, **post):
         params = request.httprequest.get_json(force=True, silent=True) or {}
         request_id = params.get('request_id')
@@ -1494,6 +1494,7 @@ class ServiceApiController(http.Controller):
         asign_user_id = params.get('asign_user_id')
         step_id = params.get('step_id')
         checked_ids = params.get('checked_ids')
+        state = params.get('state', '')
         note = params.get('note', '')
         final = params.get('final', '')
 
@@ -1526,24 +1527,24 @@ class ServiceApiController(http.Controller):
             )
 
         # Kiểm tra quyền duyệt
-        if user not in req.users:
-            return Response(
-                json.dumps({'success': False, 'message': 'User does not have approval rights'}),
-                content_type='application/json',
-                status=403,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
+        # if user not in req.users:
+        #     return Response(
+        #         json.dumps({'success': False, 'message': 'User does not have approval rights'}),
+        #         content_type='application/json',
+        #         status=403,
+        #         headers=[
+        #             ('Access-Control-Allow-Origin', '*'),
+        #             ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+        #             ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+        #         ]
+        #     )
 
         try:
             # Cập nhật bước duyệt
-            vals = update_request_step(request.env, request_id, step_id, user_id, note, 'approved', asign_user_id, checked_ids, final)
+            vals = update_request_step(request.env, request_id, step_id, user_id, note, state, asign_user_id, checked_ids, final)
             step.sudo().write(vals)
             return Response(
-                json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step': step}}),
+                json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
                 content_type='application/json',
                 status=200,
                 headers=[
