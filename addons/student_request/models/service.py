@@ -253,15 +253,13 @@ class ServiceRequest(models.Model):
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now, help='Ngày và giờ thao tác cập nhật duyệt yêu cầu dịch vụ này')
     approve_user_id = fields.Many2one('res.users', string='Người đang nhận duyệt', help='Người đang thụ lý yêu cầu dịch vụ này')
 
-    @api.model
-    def create(self, vals):
-        # Xử lý dữ liệu trước khi tạo mới
-        # vals = create_request(self.env, vals.get('service_id'), vals.get('id', 0), vals.get('request_user_id'), vals.get('note', ''), vals.get('image_attachment_ids', []))
-        # if not vals:
-        #    raise models.ValidationError("Không thể tạo yêu cầu dịch vụ, vui lòng kiểm tra thông tin dịch vụ và người dùng.")
-        return super().create(vals)
+    def action_create_new(self):
+        # Tạo mới yêu cầu dịch vụ
+        vals = create_request(self.env, self.service_id.id, self.id if self.id else 0, self.request_user_id.id, self.note, self.image_attachment_ids.ids)
+        return vals
+        
 
-
+    
 # Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):
     _name = 'student.user.profile'

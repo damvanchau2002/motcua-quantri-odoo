@@ -180,7 +180,7 @@
             <form delete="false">
                 <sheet>
                     <header>
-                        <!-- Có thể thêm nút duyệt ở đây nếu cần -->
+                        Tạo yêu cầu mới:
                     </header>
                     <group>
                         <group string="Nội dung yêu cầu">
@@ -263,10 +263,9 @@
                             </kanban>
                         </field>
                     </group>
-                    <!-- <footer >
-                        <button name="action_confirm_approve" string="Xác nhận duyệt" type="object" class="btn-primary"/>
-                        <button string="Đóng" class="btn-secondary" special="cancel"/>
-                    </footer> -->
+                    <group>
+                        <button name="action_create_new" string="Tạo yêu cầu" type="object" class="btn-primary"/>
+                    </group>
                 </sheet>
             </form>
         </field>

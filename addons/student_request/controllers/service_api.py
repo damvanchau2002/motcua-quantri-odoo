@@ -1039,7 +1039,6 @@ class ServiceApiController(http.Controller):
         vals = {}   
         try:
             vals = create_request(request.env, service_id, request_id, request_user_id, note, attachment_ids)
-            
         except Exception as e:
             return Response(
                 json.dumps({'error': 'Failed to create service request', 'detail': str(e)}),
@@ -1059,7 +1058,8 @@ class ServiceApiController(http.Controller):
                 'data': {
                     'id': vals.id,
                     'service_id': vals.service_id.id,
-                    'service_name': vals.service_id.name
+                    'service_name': vals.service_id.name,
+                    'content': vals.note,
                 }
             }),
             content_type='application/json',
