@@ -240,11 +240,13 @@ class ServiceRequest(models.Model):
     role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
 
     final_state = fields.Selection([
+        ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
-        ('rejected', 'Từ chối')
+        ('rejected', 'Từ chối'),
+        ('closed', 'Đã đóng')
       ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt hiện tại cho yêu cầu dịch vụ này')
@@ -254,9 +256,9 @@ class ServiceRequest(models.Model):
     @api.model
     def create(self, vals):
         # Xử lý dữ liệu trước khi tạo mới
-        vals = create_request(self.env, vals.get('service_id'), vals.get('request_user_id'), vals.get('note', ''), vals.get('image_attachment_ids', []))
-        if not vals:
-            raise models.ValidationError("Không thể tạo yêu cầu dịch vụ, vui lòng kiểm tra thông tin dịch vụ và người dùng.")
+        # vals = create_request(self.env, vals.get('service_id'), vals.get('id', 0), vals.get('request_user_id'), vals.get('note', ''), vals.get('image_attachment_ids', []))
+        # if not vals:
+        #    raise models.ValidationError("Không thể tạo yêu cầu dịch vụ, vui lòng kiểm tra thông tin dịch vụ và người dùng.")
         return super().create(vals)
 
 

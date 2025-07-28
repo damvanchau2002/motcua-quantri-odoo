@@ -224,30 +224,33 @@ def remove_user_from_all_firebase_topics(env, user_id):
 
 # Tạo Request mới
 def create_request(env, serviceid, requestid, userid, note, attachments):
-    service = env['student.service'].browse(serviceid)
+    service = env['student.service'].browse(int(serviceid))
     user_name = 'Yêu cầu dịch vụ: '
-    user = env['res.users'].browse(userid)
+    user = env['res.users'].sudo().browse(int(userid))
     if not user: return False
     vals = {}
-    if requestid > 0:
-        vals = env['student.service.request'].browse(requestid)
+    if int(requestid) > 0:
+        vals = env['student.service.request'].browse(int(requestid))
         if vals.exists():
             vals['name'] = f'{user.name}: {service.name}'
             vals['service_id'] = service.id
-            vals['request_user_id'] = userid
+            vals['request_user_id'] = int(userid)
             vals['note'] = note
-            vals['image_attachment_ids'] = attachments
+            vals['image_attachment_ids'] = [(6, 0, attachments if attachments else [])]
             vals['request_date'] = Datetime.now()
 
+            vals['final_state'] = 'pending'
             env['student.service.request'].sudo().write(vals)
+            return vals
     else:
         vals = {
             'name': f'{user.name}: {service.name}',
             'service_id': service.id,
-            'request_user_id': userid,
+            'request_user_id': int(userid),
             'note': note,
-            'image_attachment_ids': attachments,
+            'image_attachment_ids': [(6, 0, attachments if attachments else [])],
             'request_date': Datetime.now(),
+            'final_state': 'pending',
         }
     # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
     _steps = service.step_ids.sorted('sequence')
@@ -273,7 +276,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     if service.role_ids:
         vals['role_ids'] = [(6, 0, service.role_ids.ids)]
 
-    env['student.service.request'].sudo().create(vals)    
+    vals = env['student.service.request'].sudo().create(vals)    
     return vals
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
@@ -1033,9 +1036,10 @@ class ServiceApiController(http.Controller):
                 ]
             )       
 
-        attachments = [(6, 0, attachment_ids)] if attachment_ids else []
+        vals = {}   
         try:
-            vals = create_request(request.env, service_id, request_user_id, note, attachments)
+            vals = create_request(request.env, service_id, request_id, request_user_id, note, attachment_ids)
+            
         except Exception as e:
             return Response(
                 json.dumps({'error': 'Failed to create service request', 'detail': str(e)}),
@@ -1066,6 +1070,7 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
+        
 
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
