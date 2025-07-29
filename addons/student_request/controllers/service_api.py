@@ -23,6 +23,7 @@ def convert_date(date_str):
 # Khai báo constant secretKey random
 SECRET_KEY = 'access-motcua-student-service-maiatech'
 REFRESH_KEY = 'refresh-motcua-student-service-maiatech'
+FIREBASE_SDK_JSON = 'firebase-adminsdk-fbsvc-75fb4407a3.json'
 
 def generate_jwt_token(uid, secretkey):
     payload = {
@@ -82,78 +83,78 @@ def check_jwt_token(request, secretkey):
         )
 
 
-# Gửi thông báo FCM đến người dùng
-def send_fcm_user(notify, data):
-    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
-    if not hasattr(send_fcm_user, 'firebase_app'):
+# Gửi FCM object Notify đến người dùng (trên web) 
+def send_fcm_notify(env, notify, data):
+    json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
+    if not hasattr(send_fcm_notify, 'firebase_app'):
         cred = credentials.Certificate(json_path)
-        send_fcm_user.firebase_app = initialize_app(cred)
+        send_fcm_notify.firebase_app = initialize_app(cred)
 
-    res =  {
-        'success_count': 0,
-        'failure_count': 0,
-        'responses': '',
-    }
+    notify.fcm_success_count = 0
+    notify.fcm_failure_count = 0
+    notify.fcm_responses = ''
 
-    if user_ids:  
+    if notify.user_ids:  
         try:  
             tokens = []
-            profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
+            profiles = env['student.user.profile'].sudo().search([('user_id', 'in', notify.user_ids.ids)])
             for profile in profiles:
                 if profile.fcm_token:
                     tokens.append(profile.fcm_token)
 
             message = messaging.MulticastMessage(
                 notification=messaging.Notification(
-                    title=title,
-                    body=body,
+                    title = notify.title,
+                    body = notify.body,
                 ),
                 tokens=tokens,
                 data=data if data else None,
             )
-            response = messaging.send_each_for_multicast(message, app=send_fcm_admin.firebase_app)
-            res = {
-                'success_count': res.success_count + response.success_count,
-                'failure_count': response.failure_count,
-                'responses': res.responses + response.responses if response.responses else '',
-            }
+            response = messaging.send_each_for_multicast(message, app=send_fcm_notify.firebase_app)
+            notify.fcm_success_count += response.success_count
+            notify.fcm_failure_count += response.failure_count
+            # notify.fcm_responses += response.responses if response.responses else ''
         except Exception as e:
-            res['responses'] = res.responses + str(e)
+            notify.fcm_responses += str(e)
 
-    if dormitory_cluster_ids:  
+    if notify.dormitory_cluster_ids:  
         try:  
-            cluster_names = self.dormitory_cluster_ids.mapped('name')
+            cluster_names = notify.dormitory_cluster_ids.mapped('name')
             topics = ' || '.join([f"'{name}' in topics" for name in cluster_names])
             
             message = messaging.Message(
                 notification=messaging.Notification(
-                    title=title,
-                    body=body,
+                    title = notify.title,
+                    body = notify.body,
                 ),
                 condition=topics,
                 data=data if data else None,
             )
-            response = messaging.send(message, app=send_fcm_admin.firebase_app)
-            res = {
-                'success_count': res.success_count + response.success_count,
-                'failure_count': response.failure_count,
-                'responses': res.responses + response.responses if response.responses else '',
-            }
+            response = messaging.send(message, app=send_fcm_notify.firebase_app)
+            notify.fcm_success_count += response.success_count
+            notify.fcm_failure_count += response.failure_count
+            # notify.fcm_responses += response.responses if response.responses else ''
         except Exception as e:
-            res['responses'] = res.responses + str(e)
+            notify.fcm_responses += str(e)
+            pass
 
-    return res
+    return notify
 
 
-# Gửi thông báo FCM đến quản trị viên
-def send_fcm_admin(env, user_ids, title, body, data):
-    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
-    if not hasattr(send_fcm_admin, 'firebase_app'):
+# Gửi FCM đến danh sách users (nếu user đó có FCM token) và tạo 1 bản ghi Notify
+def send_fcm_users(env, user_ids, title, body, data):
+    json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
+    if not hasattr(send_fcm_users, 'firebase_app'):
         cred = credentials.Certificate(json_path)
-        send_fcm_admin.firebase_app = initialize_app(cred)
+        send_fcm_users.firebase_app = initialize_app(cred)
+
     tokens = []
-    admin_profiles = env['student.admin.profile'].sudo().search([('user_id', 'in', user_ids)])
-    for profile in admin_profiles:
+    admins_profiles = env['student.admin.profile'].sudo().search([('user_id', 'in', user_ids)])
+    users_profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
+    for profile in admins_profiles:
+        if profile.fcm_token:
+            tokens.append(profile.fcm_token)
+    for profile in users_profiles:
         if profile.fcm_token:
             tokens.append(profile.fcm_token)
 
@@ -165,23 +166,42 @@ def send_fcm_admin(env, user_ids, title, body, data):
         tokens=tokens,
         data=data if data else None,
     )
+    # Tạo bản ghi notification
+    vals = env['student.notify'].sudo().create({
+        'notify_type': 'users',
+        'title': title,
+        'body': body,
+        'data': data,
+        'user_ids': user_ids,
+
+        'fcm_success_count': 0,
+        'fcm_failure_count': 0,
+        'fcm_responses': '',
+    })
 
     try:
-        response = messaging.send_each_for_multicast(message, app=send_fcm_admin.firebase_app)
-        return {
-            'success_count': response.success_count,
-            'failure_count': response.failure_count,
-            'responses': [r.__dict__ for r in response.responses],
-        }
+        response = messaging.send_each_for_multicast(message, app=send_fcm_users.firebase_app)
+
+        vals.fcm_responses = str(e)
+        vals.sudo().write({
+            'fcm_success_count': response.success_count,
+            'fcm_failure_count': response.failure_count,
+            'fcm_responses': str(e),
+        })
+        return vals
     except Exception as e:
-        return { 'success_count': 0, 'failure_count': 0, 'responses': [], 'error': str(e) }
+        vals.fcm_responses = str(e)
+        vals.sudo().write({
+            'fcm_responses': str(e),
+        })
+        return vals
 
 # Thêm người dùng vào topic Firebase
 def add_user_to_firebase_topic(env, user_id, topic_area, topic_cluster):
     profile = env['student.user.profile'].sudo().search([('user_id', '=', user_id)], limit=1)
     if not profile or not profile.fcm_token:
         return {'success': False, 'message': 'User FCM token not found'}
-    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
+    json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
     if not hasattr(add_user_to_firebase_topic, 'firebase_app'):
         cred = credentials.Certificate(json_path)
         add_user_to_firebase_topic.firebase_app = initialize_app(cred)
@@ -201,7 +221,7 @@ def remove_user_from_all_firebase_topics(env, user_id):
     profile = env['student.user.profile'].sudo().search([('user_id', '=', user_id)], limit=1)
     if not profile or not profile.fcm_token:
         return {'success': False, 'message': 'User FCM token not found'}
-    json_path = os.path.join(os.path.dirname(__file__), '../security/serviceAccountKey.json')
+    json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
     if not hasattr(remove_user_from_all_firebase_topics, 'firebase_app'):
         cred = credentials.Certificate(json_path)
         remove_user_from_all_firebase_topics.firebase_app = initialize_app(cred)

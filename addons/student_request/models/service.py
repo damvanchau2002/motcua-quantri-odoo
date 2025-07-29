@@ -1,6 +1,6 @@
 import os
 from odoo import models, fields, api
-from odoo.addons.student_request.controllers.service_api import send_fcm_user, send_fcm_admin, create_request, update_request_step
+from odoo.addons.student_request.controllers.service_api import send_fcm_notify, send_fcm_users, create_request, update_request_step
 import json
 import requests
 
@@ -341,7 +341,7 @@ class StudentNotify(models.Model):
     created_date = fields.Datetime('Ngày tạo', default=fields.Datetime.now)
     data = fields.Text('Dữ liệu bổ sung', help='Dữ liệu JSON hoặc thông tin bổ sung cho thông báo')
     notify_type = fields.Selection([
-        ('user', 'Thông báo xử lý nghiệp vụ đến người dùng'),
+        ('users', 'Thông báo xử lý nghiệp vụ đến người dùng'),
         ('articles', 'Thông báo dạng bài viết'),
     ], string='Loại thông báo', default='articles', help='Loại thông báo')
     # Đánh dấu đã xem:
@@ -360,25 +360,25 @@ class StudentNotify(models.Model):
 
     def send_fcm(self):
         try:
-            dt = { 'type': 'article', 'id': self.id }
-            result = send_fcm_user(self, dt)
+            dt = { 'type': 'article', 'id': f'{self.id}' }
+            result = send_fcm_notify(self.env, self, dt)
             # Cập nhật kết quả gửi FCM
             if result:
                 self.sudo().write({
                     'data': json.dumps(dt, ensure_ascii=False),
-                    'fcm_success_count': result.get('success_count', 0),
-                    'fcm_failure_count': result.get('failure_count', 0),
-                    'fcm_responses': json.dumps(result.get('responses', []), ensure_ascii=False)
+                    'fcm_success_count': result.fcm_success_count,
+                    'fcm_failure_count': result.fcm_failure_count,
+                    'fcm_responses': result.fcm_responses
                 })
         except Exception as e:
             # Log lỗi hoặc xử lý theo ý muốn
-            notify.sudo().write({
+            self.sudo().write({
                 'fcm_success_count': 0,
                 'fcm_failure_count': 0,
-                'fcm_responses': error.args[0] if isinstance(error, Exception) else str(error)
+                'fcm_responses': e.args[0] if isinstance(e, Exception) else str(e)
             })
             raise models.ValidationError("Gửi thông báo FCM thất bại: %s" % str(e))
-        return notify
+        return self
 
 # Model quản lý khu ký túc xá
 class StudentDormitoryArea(models.Model):
