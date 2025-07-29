@@ -322,11 +322,44 @@
             </kanban>
         </field>
     </record>
+    <record id="view_student_service_request_list" model="ir.ui.view">
+        <field name="name">student.service.request.list</field>
+        <field name="model">student.service.request</field>
+        <field name="arch" type="xml">
+            <list>
+               <field name="id"/>
+               <field name="service_id"/>
+               <field name="request_user_id"/>
+               <field name="final_state"/>
+               <field name="request_date"/>
+               <field name="note"/>
+               <field name="users" />
+               <field name="role_ids"/>
+               <field name="approve_user_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_student_service_request_search" model="ir.ui.view">
+        <field name="name">student.service.request.search</field>
+        <field name="model">student.service.request</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="service_id"/>
+                <field name="note"/>
+                <field name="request_user_id"/>
+                
+                <filter string="Đã duyệt" name="approved" domain="[('final_state','=','approved')]"/>
+                <filter string="Chưa duyệt" name="pending" domain="[('final_state','!=','approved')]"/>
+                <!-- Thêm các filter khác nếu cần -->
+            </search>
+        </field>
+    </record>
     <!-- Action mở form tạo yêu cầu dịch vụ -->
     <record id="action_service_request" model="ir.actions.act_window">
         <field name="name">Yêu cầu dịch vụ</field>
         <field name="res_model">student.service.request</field>
-        <field name="view_mode">kanban,form</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_student_service_request_search"/>
         <field name="domain">[ '|', ("service_id.users", "in", [uid]), ("approve_user_id", "=", uid) ]</field>
     </record>
     
