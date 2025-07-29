@@ -24,6 +24,8 @@ def convert_date(date_str):
 SECRET_KEY = 'access-motcua-student-service-maiatech'
 REFRESH_KEY = 'refresh-motcua-student-service-maiatech'
 FIREBASE_SDK_JSON = 'firebase-adminsdk-fbsvc-75fb4407a3.json'
+_firebase_app = None
+
 
 def generate_jwt_token(uid, secretkey):
     payload = {
@@ -82,9 +84,106 @@ def check_jwt_token(request, secretkey):
             ]
         )
 
+def get_firebase_app():
+    global _firebase_app
+    if _firebase_app is None:
+        json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
+        cred = credentials.Certificate(json_path)
+        _firebase_app = initialize_app(cred)
+    return _firebase_app
+
+# Gửi FCM object Notify đến người dùng
+def send_fcm_notify(env, notify, data):
+    firebase_app = get_firebase_app()
+
+    notify.fcm_success_count = 0
+    notify.fcm_failure_count = 0
+    notify.fcm_responses = ''
+
+    if notify.user_ids:
+        try:
+            tokens = []
+            profiles = env['student.user.profile'].sudo().search([('user_id', 'in', notify.user_ids.ids)])
+            tokens = [p.fcm_token for p in profiles if p.fcm_token]
+
+            message = messaging.MulticastMessage(
+                notification=messaging.Notification(
+                    title=notify.title,
+                    body=notify.body,
+                ),
+                tokens=tokens,
+                data=data if data else None,
+            )
+            response = messaging.send_each_for_multicast(message, app=firebase_app)
+            notify.fcm_success_count += response.success_count
+            notify.fcm_failure_count += response.failure_count
+        except Exception as e:
+            notify.fcm_responses += str(e)
+
+    if notify.dormitory_cluster_ids:
+        try:
+            cluster_names = notify.dormitory_cluster_ids.mapped('name')
+            topics = ' || '.join([f"'{name}' in topics" for name in cluster_names])
+
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=notify.title,
+                    body=notify.body,
+                ),
+                condition=topics,
+                data=data if data else None,
+            )
+            response = messaging.send(message, app=firebase_app)
+            notify.fcm_success_count += response.success_count
+            notify.fcm_failure_count += response.failure_count
+        except Exception as e:
+            notify.fcm_responses += str(e)
+
+    return notify
+
+# Gửi FCM đến danh sách users (nếu user đó có FCM token) và tạo bản ghi Notify
+def send_fcm_users(env, user_ids, title, body, data):
+    firebase_app = get_firebase_app()
+
+    tokens = []
+    admins_profiles = env['student.admin.profile'].sudo().search([('user_id', 'in', user_ids)])
+    users_profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
+    tokens += [p.fcm_token for p in admins_profiles if p.fcm_token]
+    tokens += [p.fcm_token for p in users_profiles if p.fcm_token]
+
+    message = messaging.MulticastMessage(
+        notification=messaging.Notification(title=title, body=body),
+        tokens=tokens,
+        data=data if data else None,
+    )
+
+    notify = env['student.notify'].sudo().create({
+        'notify_type': 'users',
+        'title': title,
+        'body': body,
+        'data': data,
+        'user_ids': user_ids,
+        'fcm_success_count': 0,
+        'fcm_failure_count': 0,
+        'fcm_responses': '',
+    })
+
+    try:
+        response = messaging.send_each_for_multicast(message, app=firebase_app)
+        notify.sudo().write({
+            'fcm_success_count': response.success_count,
+            'fcm_failure_count': response.failure_count,
+            'fcm_responses': '',
+        })
+    except Exception as e:
+        notify.sudo().write({
+            'fcm_responses': str(e),
+        })
+
+    return notify
 
 # Gửi FCM object Notify đến người dùng (trên web) 
-def send_fcm_notify(env, notify, data):
+def send_fcm_notify_old(env, notify, data):
     json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
     if not hasattr(send_fcm_notify, 'firebase_app'):
         cred = credentials.Certificate(json_path)
@@ -142,7 +241,7 @@ def send_fcm_notify(env, notify, data):
 
 
 # Gửi FCM đến danh sách users (nếu user đó có FCM token) và tạo 1 bản ghi Notify
-def send_fcm_users(env, user_ids, title, body, data):
+def send_fcm_users_old(env, user_ids, title, body, data):
     json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
     if not hasattr(send_fcm_users, 'firebase_app'):
         cred = credentials.Certificate(json_path)
