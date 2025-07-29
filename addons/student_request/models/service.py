@@ -240,8 +240,11 @@ class ServiceRequest(models.Model):
 
     # Tạo tự động theo setup Service:
     step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
-    users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
+    
     role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
+    # Ai sẽ duyệt dịch vụ này: Lấy user trong role_ids dồn vào đây
+    users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
+    
 
     final_state = fields.Selection([
         ('repairing', 'Chờ sửa chữa'),

@@ -179,121 +179,38 @@ def send_fcm_users(env, user_ids, title, body, data):
         notify.sudo().write({
             'fcm_responses': str(e),
         })
-
     return notify
 
-# Gửi FCM object Notify đến người dùng (trên web) 
-def send_fcm_notify_old(env, notify, data):
-    json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
-    if not hasattr(send_fcm_notify, 'firebase_app'):
-        cred = credentials.Certificate(json_path)
-        send_fcm_notify.firebase_app = initialize_app(cred)
+# Gửi FCM với đầu vào là Request object, data sẽ là {'type': 'request', 'id': f'{request.id}'}
+# send_type = 0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt
+def send_fcm_request(env, request_obj, send_type=0):
+    data = {'type': 'request', 'id': str(request_obj.id)}
+    # Nội dung thông báo cho người duyệt
+    title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.user_request_id.name}"
+    body = "Bạn có một yêu cầu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+    if send_type == 0:
+        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công', f'Yêu cầu của bạn đã được tạo thành công. {request_obj.note}', data)
+    elif send_type == 1:
+        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được cập nhật', f'Yêu cầu của bạn đã được cập nhật. {request_obj.note}', data)
+        # Nội dung thông báo cho người duyệt
+        title = f"Cập nhật yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}"
+        body = "Bạn có một yêu cầu đã chỉnh sửa: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+    elif send_type == 2:
+        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được duyệt', f'Yêu cầu của bạn đã được duyệt. {request_obj.note}', data)
+        # Nội dung thông báo cho người duyệt
+        title = f"Duyệt yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}"
+        body = "Bạn có một yêu cầu đã được duyệt: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+    elif send_type == 3:
+        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được hoàn thành', f'Yêu cầu của bạn đã được hoàn thành. {request_obj.note}', data)
+        # Nội dung thông báo cho người duyệt
+        title = f"Hoàn thành yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}"
+        body = "Yêu cầu của bạn đã được hoàn thành: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
-    notify.fcm_success_count = 0
-    notify.fcm_failure_count = 0
-    notify.fcm_responses = ''
-
-    if notify.user_ids:  
-        try:  
-            tokens = []
-            profiles = env['student.user.profile'].sudo().search([('user_id', 'in', notify.user_ids.ids)])
-            for profile in profiles:
-                if profile.fcm_token:
-                    tokens.append(profile.fcm_token)
-
-            message = messaging.MulticastMessage(
-                notification=messaging.Notification(
-                    title = notify.title,
-                    body = notify.body,
-                ),
-                tokens=tokens,
-                data=data if data else None,
-            )
-            response = messaging.send_each_for_multicast(message, app=send_fcm_notify.firebase_app)
-            notify.fcm_success_count += response.success_count
-            notify.fcm_failure_count += response.failure_count
-            # notify.fcm_responses += response.responses if response.responses else ''
-        except Exception as e:
-            notify.fcm_responses += str(e)
-
-    if notify.dormitory_cluster_ids:  
-        try:  
-            cluster_names = notify.dormitory_cluster_ids.mapped('name')
-            topics = ' || '.join([f"'{name}' in topics" for name in cluster_names])
-            
-            message = messaging.Message(
-                notification=messaging.Notification(
-                    title = notify.title,
-                    body = notify.body,
-                ),
-                condition=topics,
-                data=data if data else None,
-            )
-            response = messaging.send(message, app=send_fcm_notify.firebase_app)
-            notify.fcm_success_count += response.success_count
-            notify.fcm_failure_count += response.failure_count
-            # notify.fcm_responses += response.responses if response.responses else ''
-        except Exception as e:
-            notify.fcm_responses += str(e)
-            pass
-
-    return notify
-
-
-# Gửi FCM đến danh sách users (nếu user đó có FCM token) và tạo 1 bản ghi Notify
-def send_fcm_users_old(env, user_ids, title, body, data):
-    json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
-    if not hasattr(send_fcm_users, 'firebase_app'):
-        cred = credentials.Certificate(json_path)
-        send_fcm_users.firebase_app = initialize_app(cred)
-
-    tokens = []
-    admins_profiles = env['student.admin.profile'].sudo().search([('user_id', 'in', user_ids)])
-    users_profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
-    for profile in admins_profiles:
-        if profile.fcm_token:
-            tokens.append(profile.fcm_token)
-    for profile in users_profiles:
-        if profile.fcm_token:
-            tokens.append(profile.fcm_token)
-
-    message = messaging.MulticastMessage(
-        notification=messaging.Notification(
-            title=title,
-            body=body,
-        ),
-        tokens=tokens,
-        data=data if data else None,
-    )
-    # Tạo bản ghi notification
-    vals = env['student.notify'].sudo().create({
-        'notify_type': 'users',
-        'title': title,
-        'body': body,
-        'data': data,
-        'user_ids': user_ids,
-
-        'fcm_success_count': 0,
-        'fcm_failure_count': 0,
-        'fcm_responses': '',
-    })
-
-    try:
-        response = messaging.send_each_for_multicast(message, app=send_fcm_users.firebase_app)
-
-        vals.fcm_responses = str(e)
-        vals.sudo().write({
-            'fcm_success_count': response.success_count,
-            'fcm_failure_count': response.failure_count,
-            'fcm_responses': str(e),
-        })
-        return vals
-    except Exception as e:
-        vals.fcm_responses = str(e)
-        vals.sudo().write({
-            'fcm_responses': str(e),
-        })
-        return vals
+    # Gửi tới các user được gán xử lý yêu cầu này
+    user_ids = request_obj.users.ids if request_obj.users else []
+    if user_ids:
+        return send_fcm_users(env, user_ids, title, body, data)
+    return None
 
 # Thêm người dùng vào topic Firebase
 def add_user_to_firebase_topic(env, user_id, topic_area, topic_cluster):
@@ -350,6 +267,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     vals = {}
     requestid = int(requestid)
     if requestid > 0:
+        # Tạo yêu cầu trên Web thì form đã new object requestid rồi (lúc đó len(vals.step_ids) > 0).  
         vals = env['student.service.request'].browse(requestid)
         if vals.exists():
             vals['name'] = f'{user.name}: {service.name}'
@@ -362,6 +280,8 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
             vals['final_state'] = 'pending'
             env['student.service.request'].sudo().write(vals)
             if len(vals.step_ids) > 0:
+                # Nếu chỉnh sửa yêu cầu trên API sẽ chạy qua đây:
+                send_fcm_request(env, vals, 1)
                 return vals
     else:
         vals = {
@@ -392,12 +312,23 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
         vals['step_ids'] = [(6, 0, step_ids)]
 
     # Ai sẽ duyệt dịch vụ này:
-    if service.users:
-        vals['users'] = [(6, 0, service.users.ids)]
+    role_users = []
     if service.role_ids:
         vals['role_ids'] = [(6, 0, service.role_ids.ids)]
+        # Lấy các user có role trong role_ids rồi add vào users
+        # Lấy tất cả các user có role_ids nằm trong service.role_ids từ student.admin.profile
+        admin_profiles = request.env['student.admin.profile'].sudo().search([('role_ids', 'in', service.role_ids.ids)])
+        role_users = admin_profiles.mapped('user_id')
+    if service.users:
+        # Thêm các user trong service.users vào role_users
+        role_users = list(set(role_users.ids) | set(service.users.ids))
+        role_users = request.env['res.users'].browse(role_users)
+
+    vals['users'] = [(6, 0, role_users.ids)]
 
     if requestid == 0:
+        # Gọi qua API sẽ đi qua đây:
+        send_fcm_request(env, vals)
         vals = env['student.service.request'].sudo().create(vals)    
     return vals
 
@@ -468,6 +399,11 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'final_state': act,
         'final_data': final_data if step.base_step_id.sequence == 99 else '',
     })
+
+    if step.base_secquence == 99 and act == 'approved':
+        send_fcm_request(env, request, 3)
+    else:
+        send_fcm_request(env, request, 2)
 
     return vals
 
