@@ -138,6 +138,7 @@ def send_fcm_notify(env, notify, data):
             notify.fcm_failure_count += response.failure_count
         except Exception as e:
             notify.fcm_responses += str(e)
+            print(f"Error sending FCM object notify: {str(e)}")
 
     return notify
 
@@ -179,6 +180,7 @@ def send_fcm_users(env, user_ids, title, body, data):
         notify.sudo().write({
             'fcm_responses': str(e),
         })
+        print(f"Error sending FCM send_fcm_users: {str(e)}")
     return notify
 
 # Gửi FCM với đầu vào là Request object, data sẽ là {'type': 'request', 'id': f'{request.id}'}
@@ -318,18 +320,16 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
         # Lấy các user có role trong role_ids rồi add vào users
         # Lấy tất cả các user có role_ids nằm trong service.role_ids từ student.admin.profile
         admin_profiles = request.env['student.admin.profile'].sudo().search([('role_ids', 'in', service.role_ids.ids)])
-        role_users = admin_profiles.mapped('user_id')
+        role_users = [ap.user_id.id for ap in admin_profiles if ap.user_id]
     if service.users:
         # Thêm các user trong service.users vào role_users
-        role_users = list(set(role_users.ids) | set(service.users.ids))
-        role_users = request.env['res.users'].browse(role_users)
-
-    vals['users'] = [(6, 0, role_users.ids)]
-
+        # Thêm các user_id từ danh sách service.users vào mảng role_users (tránh trùng lặp)
+        role_users = list(set(role_users) | set(service.users.ids))
+        #role_users = request.env['res.users'].browse(role_users)
+    vals['users'] = [(6, 0, role_users)] if role_users else []
     if requestid == 0:
-        # Gọi qua API sẽ đi qua đây:
-        send_fcm_request(env, vals)
-        vals = env['student.service.request'].sudo().create(vals)    
+        vals = env['student.service.request'].sudo().create(vals)
+    send_fcm_request(env, vals)    
     return vals
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
