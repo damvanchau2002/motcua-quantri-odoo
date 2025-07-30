@@ -140,10 +140,33 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         vals['file_checkbox_ids'] = step.file_checkbox_ids
     if step.base_secquence == 99:
         vals['final_data'] = final_data
+    
+    next_step_users = [nextuserid]
+    #Nếu chưa phải bước cuối cùng và duyệt đã hoàn thành
+    if step.base_secquence != 99 and act == 'approved':
+        #Tìm bước tiếp theo trong request.step_ids theo sequence
+        next_step = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
+        if next_step:
+            #Gán trạng thái cho bước tiếp theo là 'assigned' và gán user xử lý tiếp theo nếu có
+            next_step = next_step[0]
+            #Lấy users trong base_step_id của bước tiếp theo
+            next_step_users = list(set(next_step_users) | set(next_step.base_step_id.user_ids.ids))
+            #quét các user trong base_step.role_ids để lấy user_id
+            admin_profiles = env['student.admin.profile'].sudo().search([('role_ids', 'in', next_step.base_step_id.role_ids.ids)])
+            next_step_users = list(set(next_step_users) | set([ap.user_id.id for ap in admin_profiles if ap.user_id]))
 
-    # Update database: request các field: approve_content approve_date final_state final_data
+            next_step.sudo().write({
+                'state': 'pending',
+                'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
+                'approve_date': Datetime.now(),
+                'approve_content': f'Đang chờ duyệt bước {next_step.base_step_id.name}',
+            })
+            note = f'Đã duyệt bước {step.base_step_id.name}, đang chờ duyệt bước {next_step.base_step_id.name}'
+        
+
+    #Update database: request các field: approve_content approve_date final_state final_data
     request.sudo().write({
-        'users': [(4, nextuserid)] if nextuserid else [],
+        'users': [(4, uid) for uid in next_step_users],
         'approve_content': note,
         'approve_date': Datetime.now(),
         'approve_user_id': nextuserid if nextuserid else False,
