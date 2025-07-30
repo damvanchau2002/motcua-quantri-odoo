@@ -212,34 +212,36 @@
                             <kanban>
                                 <templates>
                                     <t t-name="kanban-box">
-                                        <div class="oe_kanban_card">
-                                            <div class="oe_kanban_header">
+                                        <div class="card oe_kanban_card" t-att-class="record.state.raw_value == 'rejected' ? 'bg-danger' : (record.state.raw_value == 'approved' ? 'bg-success' : (record.state.raw_value == 'pending' ? '' : 'bg-warning'))">
+                                            <div class="card-header oe_kanban_header">
                                                 <strong><field name="base_step_id"/></strong>
                                             </div>
-                                            <div>
-                                                Trạng thái: 
-                                                <span><field name="state"/></span>
+                                            <div class="oe_kanban_details card-body">
+                                                <div>
+                                                    Trạng thái: 
+                                                    <span><field name="state"/></span>
+                                                </div>
+                                                <div>Nội dung duyệt: <field name="approve_content"/></div>
+                                                <div>
+                                                    <t t-if="record.base_step_id and record.base_step_id.sequence == 1 and record.request_id and record.request_id.service_id and record.request_id.service_id.files">
+                                                        <div>
+                                                            <strong>Files của dịch vụ:</strong>
+                                                            <ul style="padding-left: 18px;">
+                                                                <t t-foreach="record.request_id.service_id.files.raw_value" t-as="file">
+                                                                    <li>
+                                                                        <span t-esc="file.name"/>
+                                                                        <span t-if="file.description"> (<t t-esc="file.description"/>)</span>
+                                                                    </li>
+                                                                </t>
+                                                            </ul>
+                                                        </div>
+                                                        <div>
+                                                            <field name="file_checkbox_ids" widget="many2many_tags"/>
+                                                        </div>
+                                                    </t>
+                                                </div>
                                             </div>
-                                            <div>Nội dung duyệt: <field name="approve_content"/></div>
-                                             <div>
-                                                <t t-if="record.base_step_id and record.base_step_id.sequence == 1 and record.request_id and record.request_id.service_id and record.request_id.service_id.files">
-                                                    <div>
-                                                        <strong>Files của dịch vụ:</strong>
-                                                        <ul style="padding-left: 18px;">
-                                                            <t t-foreach="record.request_id.service_id.files.raw_value" t-as="file">
-                                                                <li>
-                                                                    <span t-esc="file.name"/>
-                                                                    <span t-if="file.description"> (<t t-esc="file.description"/>)</span>
-                                                                </li>
-                                                            </t>
-                                                        </ul>
-                                                    </div>
-                                                    <div>
-                                                        <field name="file_checkbox_ids" widget="many2many_tags"/>
-                                                    </div>
-                                                </t>
-                                            </div>
-                                            <div class="oe_kanban_footer">
+                                            <div class="oe_kanban_footer card-body">
                                                 <span>Người duyệt: <field name="assign_user_id" options="{'no_create': True}"/></span>
                                                 <br/>
                                                 <span>Lịch sử:</span>
@@ -347,7 +349,7 @@
                 <field name="service_id"/>
                 <field name="note"/>
                 <field name="request_user_id"/>
-                
+
                 <filter string="Đã duyệt" name="approved" domain="[('final_state','=','approved')]"/>
                 <filter string="Chưa duyệt" name="pending" domain="[('final_state','!=','approved')]"/>
                 <!-- Thêm các filter khác nếu cần -->

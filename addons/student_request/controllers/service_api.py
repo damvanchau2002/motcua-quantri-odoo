@@ -395,6 +395,25 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         vals['file_checkbox_ids'] = step.file_checkbox_ids
     if step.base_secquence == 99:
         vals['final_data'] = final_data
+    
+    # Nếu chưa phải bước cuối cùng và duyệt đã hoàn thành
+    if step.base_secquence != 99 and act == 'approved':
+        # Tìm bước tiếp theo trong request.step_ids theo sequence
+        next_step = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
+        if next_step:
+            # Gán trạng thái cho bước tiếp theo là 'assigned' và gán user xử lý tiếp theo nếu có
+            next_step = next_step[0]
+            # Lấy users trong base_step_id của bước tiếp theo
+            next_step_users = next_step.base_step_id.users if next_step.base_step_id else []
+            #quét các user trong base_step.role_ids để lấy user_id
+            next_step_users = next_step_users | next_step.base_step_id.role_ids.mapped('user_id')
+            next_step.sudo().write({
+                'state': 'assigned',
+                'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
+                'approve_date': Datetime.now(),
+                'approve_content': f'Đang chờ duyệt bước {next_step.name}' if next_step else '',
+            })
+        
 
     # Update database: request các field: approve_content approve_date final_state final_data
     request.sudo().write({
@@ -404,6 +423,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'approve_user_id': nextuserid if nextuserid else False,
         'final_state': act,
         'final_data': final_data if step.base_step_id.sequence == 99 else '',
+        'users': [(4, nextuserid)] if nextuserid else [],
     })
 
     if step.base_secquence == 99 and act == 'approved':
