@@ -13,6 +13,16 @@ from .utils import send_fcm_request, send_fcm_users, send_fcm_notify
 
 
 def create_request(env, serviceid, requestid, userid, note, attachments):
+    """
+    Tạo hoặc cập nhật yêu cầu dịch vụ
+            :param env: Odoo environment
+            :param serviceid: ID của dịch vụ
+            :param requestid: ID của yêu cầu (nếu có)
+            :param userid: ID của người dùng yêu cầu
+            :param note: Ghi chú của yêu cầu
+            :param attachments: Danh sách ID của các file đính kèm
+        :return: Record của yêu cầu dịch vụ đã tạo hoặc cập nhật
+    """
     if not userid:
         raise ValueError("Thiếu user id")
 
@@ -31,12 +41,12 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
         raise ValueError(f"Lỗi khi duyệt user/service: {str(e)}")
 
     attachments = attachments or []
-
-    # Nếu có request_id => cập nhật
+    vals = {}
+    # Nếu có request_id => cập nhật (chô này nếu tạo trên Web sẽ luôn có request_id và không có step_ids)
     if requestid and str(requestid).isdigit() and int(requestid) > 0:
-        request_rec = env['student.service.request'].sudo().browse(int(requestid))
-        if request_rec.exists():
-            request_rec.write({
+        vals = env['student.service.request'].sudo().browse(int(requestid))
+        if vals.exists():
+            vals.sudo().write({
                 'name': f'{user.name}: {service.name}',
                 'service_id': service.id,
                 'request_user_id': user.id,
@@ -45,24 +55,23 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
                 'request_date': Datetime.now(),
                 'final_state': 'pending',
             })
-            if request_rec.step_ids:
-                send_fcm_request(env, request_rec, 1)
-            return request_rec
-        else:
-            raise ValueError(f"Yêu cầu không tồn tại: {requestid}")
+            if len(vals.step_ids.ids) > 0:
+                # Sửa yêu cầu ok
+                send_fcm_request(env, vals, 1)
+                return vals
+    else:
+        # Tạo mới yêu cầu
+        vals = {
+            'name': f'{user.name}: {service.name}',
+            'service_id': service.id,
+            'request_user_id': user.id,
+            'note': note,
+            'image_attachment_ids': [(6, 0, attachments)],
+            'request_date': Datetime.now(),
+            'final_state': 'pending',
+        }
 
-    # Tạo mới yêu cầu
-    vals = {
-        'name': f'{user.name}: {service.name}',
-        'service_id': service.id,
-        'request_user_id': user.id,
-        'note': note,
-        'image_attachment_ids': [(6, 0, attachments)],
-        'request_date': Datetime.now(),
-        'final_state': 'pending',
-    }
-
-    # Tạo các bước xử lý
+    # Tạo mới yêu cầu các bước xử lý
     step_ids = []
     for step in service.step_ids.sorted('sequence'):
         step_vals = {
@@ -93,10 +102,11 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     if role_users:
         vals['users'] = [(6, 0, role_users)]
 
-    # Tạo record
-    request_rec = env['student.service.request'].sudo().create(vals)
-    send_fcm_request(env, request_rec)
-    return request_rec
+    if not vals.get('id') or vals.id == 0:
+        # Tạo record
+        vals = env['student.service.request'].sudo().create(vals)
+        send_fcm_request(env, vals, 0)
+    return vals
 
 
 
@@ -179,7 +189,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 'approve_content': f'Đang chờ duyệt bước {next_step.base_step_id.name}',
             })
             note = f'Đã duyệt bước {step.base_step_id.name}, đang chờ duyệt bước {next_step.base_step_id.name}'
-        
+            act = 'pending'
 
     #Update database: request các field: approve_content approve_date final_state final_data
     request.sudo().write({
@@ -232,10 +242,7 @@ class ServiceApiController(http.Controller):
             note = form.get('note', '')
 
             # Gọi hàm tạo yêu cầu
-            request_rec = create_request(
-                request.env, service_id, request_id,
-                request_user_id, note, attachment_ids
-            )
+            request_rec = create_request(request.env, service_id, request_id, request_user_id, note, attachment_ids)
 
             return Response(
                 json.dumps({
