@@ -103,6 +103,7 @@ class Service(models.Model):
     name = fields.Char('Tên dịch vụ', required=True)
     description = fields.Text('Mô tả chi tiết', help='Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên')
     titlenote = fields.Char('Tiêu đề gửi nội dung yêu cầu', help='Ghi chú cho SV thông tin cần nhập như thế nào')
+    duration = fields.Integer('Thời gian xử lý (ngày)', default=7, help='Thời gian dự kiến để xử lý yêu cầu dịch vụ này, tính bằng ngày')
     state = fields.Selection([
         ('enabled', 'Enabled'),
         ('disabled', 'Disabled')
