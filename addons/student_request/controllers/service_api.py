@@ -2,6 +2,8 @@ from odoo import http, models, fields
 from odoo.http import request, Response
 from odoo.fields import Datetime
 from firebase_admin import messaging, credentials, initialize_app
+from firebase_admin import _apps  
+
 import requests as py_requests
 import json
 import base64
@@ -87,10 +89,14 @@ def check_jwt_token(request, secretkey):
 def get_firebase_app():
     global _firebase_app
     if _firebase_app is None:
-        json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
-        cred = credentials.Certificate(json_path)
-        _firebase_app = initialize_app(cred)
+        if not _apps: 
+            json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
+            cred = credentials.Certificate(json_path)
+            _firebase_app = initialize_app(cred)
+        else:
+            _firebase_app = list(_apps.values())[0]  
     return _firebase_app
+
 
 # Gửi FCM object Notify đến người dùng
 def send_fcm_notify(env, notify, data):

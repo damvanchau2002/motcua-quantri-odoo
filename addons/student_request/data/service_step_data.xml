@@ -14,19 +14,53 @@
     </record>
     <!-- Steps -->
     <record id="student_service_step_1" model="student.service.step">
-        <field name="name">Tiếp nhận hồ sơ</field>
+        <field name="name">Tiếp nhận yêu cầu</field> 
         <field name="sequence">1</field>
-        <field name="nextstep">99</field>
+        <field name="nextstep">2</field>
         <field name="state">0</field>
-        <field name="description">Bước đầu tiên tiếp nhận hồ sơ dịch vụ.</field>
+        <field name="description">Yêu cầu được kiểm tra bởi người duyệt.</field>
     </record>
+
     <record id="student_service_step_2" model="student.service.step">
-        <field name="name">Chuyển hồ sơ lên P.CTSV</field>
+        <field name="name">Phân loại</field>
         <field name="sequence">2</field>
-        <field name="nextstep">0</field>
-        <field name="state">1</field>
-        <field name="description">Chuyển hồ sơ yêu cầu dịch vụ lên phòng CTSV.</field>
+        <field name="nextstep">3</field>
+        <field name="state">0</field>
+        <field name="description">Dựa vào nội dung yêu cầu, người duyệt phân bổ người xử lý.</field>
     </record>
+
+    <record id="student_service_step_3" model="student.service.step">
+        <field name="name">Điều chuyển xử lý</field>
+        <field name="sequence">3</field>
+        <field name="nextstep">4</field>
+        <field name="state">0</field>
+        <field name="description">Người xử lý có thể điều chuyển yêu cầu tới người khác nếu không thuộc thẩm quyền giải quyết.</field>
+    </record>
+
+    <record id="student_service_step_4" model="student.service.step">
+        <field name="name">Xử lý yêu cầu</field>
+        <field name="sequence">4</field>
+        <field name="nextstep">5</field>
+        <field name="state">1</field>
+        <field name="description">Với mỗi yêu cầu sẽ có các quy trình xử lý con phù hợp để thực hiện xử lý.</field>
+    </record>
+
+    <record id="student_service_step_5" model="student.service.step">
+        <field name="name">Nghiệm thu kết quả</field>
+        <field name="sequence">5</field>
+        <field name="nextstep">6</field>
+        <field name="state">2</field>
+        <field name="description">Người yêu cầu sẽ nghiệm thu / nhận kết quả của yêu cầu. Nếu không đạt, người xử lý phải thực hiện lại.</field>
+    </record>
+
+    <record id="student_service_step_6" model="student.service.step">
+        <field name="name">Đánh giá chất lượng</field>
+        <field name="sequence">6</field>
+        <field name="nextstep">0</field>
+        <field name="state">3</field>
+        <field name="description">Sau khi xác nhận kết quả, người yêu cầu được quyền đánh giá, nhận xét chất lượng công việc.</field>
+    </record>
+
     <record id="student_service_step_99" model="student.service.step">
         <field name="name">Hoàn tất</field>
         <field name="sequence">99</field>
@@ -56,7 +90,15 @@
         <field name="description">Dịch vụ xin thuê trọ ký túc xá cho sinh viên.</field>
         <field name="group_id" ref="student_service_group_basic"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard')), (4, ref('student_service_file_contract'))]"/>
-        <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_2')), (4, ref('student_service_step_99'))]"/>
+        <field name="step_ids" eval="[
+            (4, ref('student_service_step_1')),
+            (4, ref('student_service_step_2')),
+            (4, ref('student_service_step_3')),
+            (4, ref('student_service_step_4')),
+            (4, ref('student_service_step_5')),
+            (4, ref('student_service_step_6')),
+            (4, ref('student_service_step_99'))
+        ]"/>
         <field name="users" eval="[(4, 1)]"/>
     </record>
 
@@ -67,7 +109,15 @@
         <field name="description">Dịch vụ sửa chữa điện trong ký túc xá.</field>
         <field name="group_id" ref="student_service_group_repair"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>
-        <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_99'))]"/>
+        <field name="step_ids" eval="[
+            (4, ref('student_service_step_1')),
+            (4, ref('student_service_step_2')),
+            (4, ref('student_service_step_3')),
+            (4, ref('student_service_step_4')),
+            (4, ref('student_service_step_5')),
+            (4, ref('student_service_step_6')),
+            (4, ref('student_service_step_99'))
+        ]"/>
         <field name="users" eval="[(4, 1)]"/>
     </record>
 
@@ -78,7 +128,13 @@
         <field name="description">Dịch vụ xin cấp giấy chứng nhận cho sinh viên.</field>
         <field name="group_id" ref="student_service_group_admin"/>
         <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>
-        <field name="step_ids" eval="[(4, ref('student_service_step_1')), (4, ref('student_service_step_99'))]"/>
+        <field name="step_ids" eval="[
+            (4, ref('student_service_step_1')),
+            (4, ref('student_service_step_2')),
+            (4, ref('student_service_step_4')),
+            (4, ref('student_service_step_5')),
+            (4, ref('student_service_step_99'))
+        ]"/>
         <field name="users" eval="[(4, 1)]"/>
     </record>
 
