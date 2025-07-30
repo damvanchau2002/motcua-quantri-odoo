@@ -194,24 +194,24 @@ def send_fcm_users(env, user_ids, title, body, data):
 def send_fcm_request(env, request_obj, send_type=0):
     data = {'type': 'request', 'id': str(request_obj.id)}
     # Nội dung thông báo cho người duyệt
-    title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.user_request_id.name}"
+    title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.request_user_id.name}"
     body = "Bạn có một yêu cầu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
     if send_type == 0:
-        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công', f'Yêu cầu của bạn đã được tạo thành công. {request_obj.note}', data)
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công', f'Yêu cầu của bạn đã được tạo thành công. {request_obj.note}', data)
     elif send_type == 1:
-        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được cập nhật', f'Yêu cầu của bạn đã được cập nhật. {request_obj.note}', data)
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được cập nhật', f'Yêu cầu của bạn đã được cập nhật. {request_obj.note}', data)
         # Nội dung thông báo cho người duyệt
-        title = f"Cập nhật yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}"
+        title = f"Cập nhật yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
         body = "Bạn có một yêu cầu đã chỉnh sửa: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
     elif send_type == 2:
-        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được duyệt', f'Yêu cầu của bạn đã được duyệt. {request_obj.note}', data)
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được duyệt', f'Yêu cầu của bạn đã được duyệt. {request_obj.note}', data)
         # Nội dung thông báo cho người duyệt
-        title = f"Duyệt yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}"
+        title = f"Duyệt yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
         body = "Bạn có một yêu cầu đã được duyệt: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
     elif send_type == 3:
-        send_fcm_users(env, [request_obj.user_request_id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được hoàn thành', f'Yêu cầu của bạn đã được hoàn thành. {request_obj.note}', data)
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được hoàn thành', f'Yêu cầu của bạn đã được hoàn thành. {request_obj.note}', data)
         # Nội dung thông báo cho người duyệt
-        title = f"Hoàn thành yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.user_request_id.name}"
+        title = f"Hoàn thành yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
         body = "Yêu cầu của bạn đã được hoàn thành: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
     # Gửi tới các user được gán xử lý yêu cầu này
@@ -396,6 +396,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     if step.base_secquence == 99:
         vals['final_data'] = final_data
     
+    next_step_users = [nextuserid]
     # Nếu chưa phải bước cuối cùng và duyệt đã hoàn thành
     if step.base_secquence != 99 and act == 'approved':
         # Tìm bước tiếp theo trong request.step_ids theo sequence
@@ -404,26 +405,28 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
             # Gán trạng thái cho bước tiếp theo là 'assigned' và gán user xử lý tiếp theo nếu có
             next_step = next_step[0]
             # Lấy users trong base_step_id của bước tiếp theo
-            next_step_users = next_step.base_step_id.users if next_step.base_step_id else []
+            next_step_users = list(set(next_step_users) | set(next_step.base_step_id.user_ids.ids))
             #quét các user trong base_step.role_ids để lấy user_id
-            next_step_users = next_step_users | next_step.base_step_id.role_ids.mapped('user_id')
+            admin_profiles = env['student.admin.profile'].sudo().search([('role_ids', 'in', next_step.base_step_id.role_ids.ids)])
+            next_step_users = list(set(next_step_users) | set([ap.user_id.id for ap in admin_profiles if ap.user_id]))
+
             next_step.sudo().write({
-                'state': 'assigned',
+                'state': 'pending',
                 'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
                 'approve_date': Datetime.now(),
-                'approve_content': f'Đang chờ duyệt bước {next_step.name}' if next_step else '',
+                'approve_content': f'Đang chờ duyệt bước {next_step.base_step_id.name}',
             })
+            note = f'Đã duyệt bước {step.base_step_id.name}, đang chờ duyệt bước {next_step.base_step_id.name}'
         
 
     # Update database: request các field: approve_content approve_date final_state final_data
     request.sudo().write({
-        'users': [(4, nextuserid)] if nextuserid else [],
+        'users': [(4, uid) for uid in next_step_users],
         'approve_content': note,
         'approve_date': Datetime.now(),
         'approve_user_id': nextuserid if nextuserid else False,
         'final_state': act,
         'final_data': final_data if step.base_step_id.sequence == 99 else '',
-        'users': [(4, nextuserid)] if nextuserid else [],
     })
 
     if step.base_secquence == 99 and act == 'approved':

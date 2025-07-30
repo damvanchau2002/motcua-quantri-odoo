@@ -212,7 +212,7 @@
                             <kanban>
                                 <templates>
                                     <t t-name="kanban-box">
-                                        <div class="card oe_kanban_card" t-att-class="record.state.raw_value == 'rejected' ? 'bg-danger' : (record.state.raw_value == 'approved' ? 'bg-success' : (record.state.raw_value == 'pending' ? '' : 'bg-warning'))">
+                                        <div class="card oe_kanban_card p-0" t-att-class="record.state.raw_value == 'rejected' ? 'bg-danger' : (record.state.raw_value == 'approved' ? 'bg-success' : (record.state.raw_value == 'pending' ? '' : 'bg-warning'))">
                                             <div class="card-header oe_kanban_header">
                                                 <strong><field name="base_step_id"/></strong>
                                             </div>
