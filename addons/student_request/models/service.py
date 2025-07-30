@@ -187,6 +187,7 @@ class ServiceRequestStep(models.Model):
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
+    final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
 
     # Phân công
     assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
@@ -208,7 +209,6 @@ class ServiceRequestStep(models.Model):
         string='Hồ sơ đã nộp',
         help='Các giấy tờ đã nộp trong bước này'
     )
-    final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
 
     def action_confirm_approve(self):
         # Nếu tạo mới:
@@ -255,7 +255,7 @@ class ServiceRequest(models.Model):
     step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
     
     role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
-    # Ai sẽ duyệt dịch vụ này: Lấy user trong role_ids dồn vào đây
+    # Lấy user trong role_ids dồn vào đây, field users sẽ chứa tất cả người dùng có quyền duyệt, đã duyệt và sẽ duyệt dịch vụ này
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
     
 
