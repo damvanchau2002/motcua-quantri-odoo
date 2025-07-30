@@ -183,7 +183,9 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
 # Controller cho API dịch vụ
 class ServiceApiController(http.Controller):
-    # Lấy danh sách các nhóm dịch vụ và các dịch vụ trong nhóm
+
+    # Tạo yêu cầu dịch vụ mới
+    # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
         # Kiểm tra JWT token
@@ -261,7 +263,6 @@ class ServiceApiController(http.Controller):
             ]
         )
         
-
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
     def list_requests_by_user(self):
@@ -425,7 +426,7 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
-    # Lấy danh sách users có group_id.name == 'Settings'
+    # Lấy chi tiết 1 yêu cầu dịch vụ
     @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_service_request_detail(self, request_id):
         req = request.env['student.service.request'].sudo().browse(request_id)
@@ -570,7 +571,6 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
-
 
     # Lấy danh sách thông báo của user
     @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST'], csrf=False)

@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 class UserApiController(http.Controller):
     
+    # Lấy danh sách users có group_id.name == 'Settings'
     @http.route('/api/users/forassign', type='http', auth='public', methods=['GET'], csrf=False)
     def get_settings_users(self):
         group = request.env['res.groups'].sudo().search([('name', '=', 'Settings')], limit=1)
@@ -38,5 +39,3 @@ class UserApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
-
-    # Lấy danh sách các Files trong student.service.file

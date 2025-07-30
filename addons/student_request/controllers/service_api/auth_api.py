@@ -14,6 +14,7 @@ from .utils import *
 
 class AuthApiController(http.Controller):
 
+    #API làm mới JWT token
     @http.route('/api/public_user/refresh_token', type='http', auth='public', methods=['POST'], csrf=False)
     def refresh_token(self):
         params = request.httprequest.get_json(force=True, silent=True) or {}
@@ -567,5 +568,3 @@ class AuthApiController(http.Controller):
                 ]
             )
 
-    # Tạo yêu cầu dịch vụ mới
-    # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }

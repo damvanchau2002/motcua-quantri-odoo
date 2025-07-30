@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 class ServiceApiController(http.Controller):
 
+    # Lấy danh sách các nhóm dịch vụ và các dịch vụ trong nhóm
     @http.route('/api/service/groups', type='http', auth='public', methods=['GET'], csrf=False)
     def get_groups_and_services(self):
         groups = request.env['student.service.group'].search([])
@@ -115,7 +116,7 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # API làm mới JWT token
+    # Lấy danh sách các Files trong student.service.file
     @http.route('/api/service/files', type='http', auth='public', methods=['GET'], csrf=False)
     def get_service_files(self):
         files = request.env['student.service.file'].sudo().search([])
@@ -130,5 +131,3 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
-
-    # Lấy chi tiết 1 yêu cầu dịch vụ

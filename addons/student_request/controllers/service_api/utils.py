@@ -10,6 +10,8 @@ import os
 import jwt
 from datetime import datetime, timedelta
 
+
+# Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyy-MM-dd
 def convert_date(date_str):
     if not date_str:
         return False
@@ -25,7 +27,7 @@ REFRESH_KEY = 'refresh-motcua-student-service-maiatech'
 FIREBASE_SDK_JSON = 'firebase-adminsdk-fbsvc-75fb4407a3.json'
 _firebase_app = None
 
-
+# Tạo JWT token với uid và secretkey, thời hạn 30 ngày
 def generate_jwt_token(uid, secretkey):
     payload = {
         'uid': uid,
@@ -35,6 +37,7 @@ def generate_jwt_token(uid, secretkey):
     token = jwt.encode(payload, secretkey, algorithm='HS256')
     return token
 
+# Giải mã JWT token, trả về payload nếu hợp lệ, hoặc trả về lỗi nếu không hợp lệ
 def decode_jwt_token(token, secretkey):
     try:
         payload = jwt.decode(token, secretkey, algorithms=['HS256'])
@@ -44,6 +47,7 @@ def decode_jwt_token(token, secretkey):
     except jwt.InvalidTokenError:
         return {'error': 'Invalid token'}
 
+# Kiểm tra JWT token từ request, trả về True nếu hợp lệ, hoặc trả về Response lỗi nếu không hợp lệ
 def check_jwt_token(request, secretkey):
     try:
         auth_header = request.httprequest.headers.get('Authorization')
@@ -83,6 +87,7 @@ def check_jwt_token(request, secretkey):
             ]
         )
 
+# Lấy Firebase app, nếu chưa khởi tạo thì khởi tạo mới
 def get_firebase_app():
     global _firebase_app
     if _firebase_app is None:
@@ -263,4 +268,3 @@ def remove_user_from_all_firebase_topics(env, user_id):
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
-# Tạo Request mới
