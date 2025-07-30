@@ -13,75 +13,92 @@ from .utils import send_fcm_request, send_fcm_users, send_fcm_notify
 
 
 def create_request(env, serviceid, requestid, userid, note, attachments):
-    service = env['student.service'].browse(int(serviceid))
-    user_name = 'Yêu cầu dịch vụ: '
-    user = env['res.users'].sudo().browse(int(userid))
-    if not user: return False
-    vals = {}
-    requestid = int(requestid)
-    if requestid > 0:
-        # Tạo yêu cầu trên Web thì form đã new object requestid rồi (lúc đó len(vals.step_ids) > 0).  
-        vals = env['student.service.request'].browse(requestid)
-        if vals.exists():
-            vals['name'] = f'{user.name}: {service.name}'
-            vals['service_id'] = service.id
-            vals['request_user_id'] = user.id
-            vals['note'] = note
-            vals['image_attachment_ids'] = [(6, 0, attachments if attachments else [])]
-            vals['request_date'] = Datetime.now()
+    if not userid:
+        raise ValueError("Thiếu user id")
 
-            vals['final_state'] = 'pending'
-            env['student.service.request'].sudo().write(vals)
-            if len(vals.step_ids) > 0:
-                # Nếu chỉnh sửa yêu cầu trên API sẽ chạy qua đây:
-                send_fcm_request(env, vals, 1)
-                return vals
-    else:
-        vals = {
-            'name': f'{user.name}: {service.name}',
-            'service_id': service.id,
-            'request_user_id': user.id,
-            'note': note,
-            'image_attachment_ids': [(6, 0, attachments if attachments else [])],
-            'request_date': Datetime.now(),
-            'final_state': 'pending',
-        }
-    # Tạo các bản ghi student.service.request.step ứng với mỗi bước duyệt của dịch vụ
-    _steps = service.step_ids.sorted('sequence')
+    if not serviceid:
+        raise ValueError("Thiếu service id")
+
+    try:
+        user = env['res.users'].sudo().browse(int(userid))
+        if not user.exists():
+            raise ValueError(f"User không tồn tại: {userid}")
+
+        service = env['student.service'].sudo().browse(int(serviceid))
+        if not service.exists():
+            raise ValueError(f"Service không tồn tại: {serviceid}")
+    except Exception as e:
+        raise ValueError(f"Lỗi khi duyệt user/service: {str(e)}")
+
+    attachments = attachments or []
+
+    # Nếu có request_id => cập nhật
+    if requestid and str(requestid).isdigit() and int(requestid) > 0:
+        request_rec = env['student.service.request'].sudo().browse(int(requestid))
+        if request_rec.exists():
+            request_rec.write({
+                'name': f'{user.name}: {service.name}',
+                'service_id': service.id,
+                'request_user_id': user.id,
+                'note': note,
+                'image_attachment_ids': [(6, 0, attachments)],
+                'request_date': Datetime.now(),
+                'final_state': 'pending',
+            })
+            if request_rec.step_ids:
+                send_fcm_request(env, request_rec, 1)
+            return request_rec
+        else:
+            raise ValueError(f"Yêu cầu không tồn tại: {requestid}")
+
+    # Tạo mới yêu cầu
+    vals = {
+        'name': f'{user.name}: {service.name}',
+        'service_id': service.id,
+        'request_user_id': user.id,
+        'note': note,
+        'image_attachment_ids': [(6, 0, attachments)],
+        'request_date': Datetime.now(),
+        'final_state': 'pending',
+    }
+
+    # Tạo các bước xử lý
     step_ids = []
-    for step in _steps:
-        step_request = env['student.service.request.step'].create({
+    for step in service.step_ids.sorted('sequence'):
+        step_vals = {
             'request_id': False,
             'base_step_id': step.id,
             'state': 'pending',
-        })
-        # Tạo file_checkbox_ids cho từng file của step
-        # Nếu là bước đầu tiên, tạo các bản ghi file_checkbox ứng với mỗi file trong service.files
-        if step == _steps[0]:
-            if service.files:
-                step_request.file_ids = [(6, 0, service.files.ids)]
+        }
+        step_request = env['student.service.request.step'].create(step_vals)
+        if step == service.step_ids.sorted('sequence')[0] and service.files:
+            step_request.file_ids = [(6, 0, service.files.ids)]
         step_ids.append(step_request.id)
+
     if step_ids:
         vals['step_ids'] = [(6, 0, step_ids)]
 
-    # Ai sẽ duyệt dịch vụ này:
+    # Gán role và người duyệt
     role_users = []
     if service.role_ids:
         vals['role_ids'] = [(6, 0, service.role_ids.ids)]
-        # Lấy các user có role trong role_ids rồi add vào users
-        # Lấy tất cả các user có role_ids nằm trong service.role_ids từ student.admin.profile
-        admin_profiles = request.env['student.admin.profile'].sudo().search([('role_ids', 'in', service.role_ids.ids)])
-        role_users = [ap.user_id.id for ap in admin_profiles if ap.user_id]
+        admin_profiles = env['student.admin.profile'].sudo().search([
+            ('role_ids', 'in', service.role_ids.ids)
+        ])
+        role_users += [ap.user_id.id for ap in admin_profiles if ap.user_id]
+
     if service.users:
-        # Thêm các user trong service.users vào role_users
-        # Thêm các user_id từ danh sách service.users vào mảng role_users (tránh trùng lặp)
         role_users = list(set(role_users) | set(service.users.ids))
-        #role_users = request.env['res.users'].browse(role_users)
-    vals['users'] = [(6, 0, role_users)] if role_users else []
-    if requestid == 0:
-        vals = env['student.service.request'].sudo().create(vals)
-    send_fcm_request(env, vals)    
-    return vals
+
+    if role_users:
+        vals['users'] = [(6, 0, role_users)]
+
+    # Tạo record
+    request_rec = env['student.service.request'].sudo().create(vals)
+    send_fcm_request(env, request_rec)
+    return request_rec
+
+
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
 def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data):
@@ -188,52 +205,65 @@ class ServiceApiController(http.Controller):
     # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request(self, **post):
-        # Kiểm tra JWT token
-        #checklogin = check_jwt_token(request, SECRET_KEY)
-        #if checklogin != True: return checklogin #Response lỗi nếu không hợp lệ
+        try:
+            httprequest = request.httprequest
+            files = httprequest.files.getlist('attachment')
 
-        httprequest = request.httprequest
-        files = httprequest.files.getlist('')  # lấy tất cả file upload (không có tên field cụ thể)
-        attachment_ids = []
-        for file_storage in files:
-            file_data = file_storage.read()
-            base64_data = base64.b64encode(file_data).decode('utf-8')
-            attachment = request.env['ir.attachment'].sudo().create({
-                'name': file_storage.filename,
-                'datas': base64_data,
-                'res_model': 'student.service.request',
-                'res_id': 0,
-                'type': 'binary',
-                'mimetype': file_storage.mimetype or 'image/png',
-            })
-            attachment_ids.append(attachment.id)
+            attachment_ids = []
 
-        # Lấy các trường khác từ form
-        service_id = httprequest.form.get('service_id')
-        request_id = httprequest.form.get('request_id', 0)  # Có thể có request_id nếu là cập nhật
-        request_user_id = httprequest.form.get('request_user_id')
-        assign_user_id = httprequest.form.get('assign_user_id')
-        note = httprequest.form.get('note', '')
+            for file_storage in files:
+                file_data = file_storage.read()
+                base64_data = base64.b64encode(file_data).decode('utf-8')
+                attachment = request.env['ir.attachment'].sudo().create({
+                    'name': file_storage.filename,
+                    'datas': base64_data,
+                    'res_model': 'student.service.request',
+                    'res_id': 0,
+                    'type': 'binary',
+                    'mimetype': file_storage.mimetype or 'application/octet-stream',
+                })
+                attachment_ids.append(attachment.id)
 
-        service = request.env['student.service'].sudo().browse(int(service_id)) if service_id else None
-        if not service or not service.exists():
+            # Lấy dữ liệu từ form
+            form = httprequest.form
+            service_id = form.get('service_id')
+            request_id = form.get('request_id')
+            request_user_id = form.get('request_user_id')
+            note = form.get('note', '')
+
+            # Gọi hàm tạo yêu cầu
+            request_rec = create_request(
+                request.env, service_id, request_id,
+                request_user_id, note, attachment_ids
+            )
+
             return Response(
-                json.dumps({'success': False, 'message': 'Service not found'}),
+                json.dumps({
+                    'success': True,
+                    'message': 'Tạo yêu cầu dịch vụ thành công',
+                    'data': {
+                        'id': request_rec.id,
+                        'service_id': request_rec.service_id.id,
+                        'service_name': request_rec.service_id.name,
+                        'content': request_rec.note,
+                    }
+                }),
                 content_type='application/json',
-                status=404,
+                status=200,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
-            )       
+            )
 
-        vals = {}   
-        try:
-            vals = create_request(request.env, service_id, request_id, request_user_id, note, attachment_ids)
         except Exception as e:
             return Response(
-                json.dumps({'error': 'Failed to create service request', 'detail': str(e)}),
+                json.dumps({
+                    'success': False,
+                    'message': 'Không thể tạo yêu cầu',
+                    'detail': str(e)
+                }),
                 content_type='application/json',
                 status=500,
                 headers=[
@@ -243,25 +273,6 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
-        return Response(
-            json.dumps({
-                'success': True,
-                'message': 'Tạo yêu cầu dịch vụ thành công',
-                'data': {
-                    'id': vals.id,
-                    'service_id': vals.service_id.id,
-                    'service_name': vals.service_id.name,
-                    'content': vals.note,
-                }
-            }),
-            content_type='application/json',
-            status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-            ]
-        )
         
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)

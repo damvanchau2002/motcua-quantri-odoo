@@ -21,6 +21,11 @@ def convert_date(date_str):
     except Exception:
         return date_str  # Nếu đã đúng định dạng thì giữ nguyên
 
+# Đường dẫn đến thư mục chứa file bảo mật
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SECURITY_DIR = os.path.abspath(os.path.join(BASE_DIR, '..', '..', 'security'))
+
+
 # Khai báo constant secretKey random
 SECRET_KEY = 'access-motcua-student-service-maiatech'
 REFRESH_KEY = 'refresh-motcua-student-service-maiatech'
@@ -92,7 +97,8 @@ def get_firebase_app():
     global _firebase_app
     if _firebase_app is None:
         if not _apps: 
-            json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
+            # json_path = os.path.join(os.path.dirname(__file__), '../security/' + FIREBASE_SDK_JSON)
+            json_path = os.path.join(SECURITY_DIR, FIREBASE_SDK_JSON)
             cred = credentials.Certificate(json_path)
             _firebase_app = initialize_app(cred)
         else:

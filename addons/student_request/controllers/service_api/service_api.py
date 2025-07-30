@@ -22,7 +22,10 @@ class ServiceApiController(http.Controller):
                 'id': s.id,
                 'name': s.name,
                 'description': s.description,
+                'titlenote': s.titlenote,
                 'state': s.state,
+                'duration': s.duration if hasattr(s, 'duration') else 0,
+                'files': [f.name for f in s.files],
             } for s in group.service_ids]
             result.append({
                 'id': group.id,
