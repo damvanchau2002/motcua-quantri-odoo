@@ -1,9 +1,0 @@
-/* Kanban custom styles for student_request module */
-.state-approved { border-left: 4px solid #28a745; }
-.state-rejected { border-left: 4px solid #dc3545; }
-.state-pending { border-left: 4px solid #ffc107; }
-.oe_kanban_details { padding: 8px; }
-.oe_kanban_title { font-size: 16px; margin-bottom: 4px; }
-.oe_kanban_user { margin-bottom: 4px; }
-.oe_kanban_date, .oe_kanban_note { font-size: 13px; color: #666; margin-bottom: 2px; }
-.oe_kanban_images img { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }

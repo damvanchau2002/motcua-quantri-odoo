@@ -1,0 +1,189 @@
+<odoo>
+    <!-- Nhóm -->
+    <record id="student_service_group_basic" model="student.service.group">
+        <field name="name">Cơ bản</field>
+        <field name="description">Nhóm dịch vụ cơ bản cho sinh viên.</field>
+    </record>
+    <record id="student_service_group_repair" model="student.service.group">
+        <field name="name">Dịch vụ sửa chữa</field>
+        <field name="description">Nhóm dịch vụ sửa chữa, bảo trì.</field>
+    </record>
+    <record id="student_service_group_admin" model="student.service.group">
+        <field name="name">Hành chính</field>
+        <field name="description">Nhóm dịch vụ hành chính, giấy tờ.</field>
+    </record>
+    <!-- Steps -->
+    <record id="student_service_step_1" model="student.service.step">
+        <field name="name">Tiếp nhận yêu cầu</field> 
+        <field name="sequence">1</field>
+        <field name="nextstep">2</field>
+        <field name="state">0</field>
+        <field name="description">Yêu cầu được kiểm tra bởi người duyệt.</field>
+    </record>
+
+    <record id="student_service_step_2" model="student.service.step">
+        <field name="name">Phân loại</field>
+        <field name="sequence">2</field>
+        <field name="nextstep">3</field>
+        <field name="state">0</field>
+        <field name="description">Dựa vào nội dung yêu cầu, người duyệt phân bổ người xử lý.</field>
+    </record>
+
+    <record id="student_service_step_3" model="student.service.step">
+        <field name="name">Điều chuyển xử lý</field>
+        <field name="sequence">3</field>
+        <field name="nextstep">4</field>
+        <field name="state">0</field>
+        <field name="description">Người xử lý có thể điều chuyển yêu cầu tới người khác nếu không thuộc thẩm quyền giải quyết.</field>
+    </record>
+
+    <record id="student_service_step_4" model="student.service.step">
+        <field name="name">Xử lý yêu cầu</field>
+        <field name="sequence">4</field>
+        <field name="nextstep">5</field>
+        <field name="state">1</field>
+        <field name="description">Với mỗi yêu cầu sẽ có các quy trình xử lý con phù hợp để thực hiện xử lý.</field>
+    </record>
+
+    <record id="student_service_step_5" model="student.service.step">
+        <field name="name">Nghiệm thu kết quả</field>
+        <field name="sequence">5</field>
+        <field name="nextstep">6</field>
+        <field name="state">2</field>
+        <field name="description">Người yêu cầu sẽ nghiệm thu / nhận kết quả của yêu cầu. Nếu không đạt, người xử lý phải thực hiện lại.</field>
+    </record>
+
+    <record id="student_service_step_6" model="student.service.step">
+        <field name="name">Đánh giá chất lượng</field>
+        <field name="sequence">6</field>
+        <field name="nextstep">0</field>
+        <field name="state">3</field>
+        <field name="description">Sau khi xác nhận kết quả, người yêu cầu được quyền đánh giá, nhận xét chất lượng công việc.</field>
+    </record>
+
+    <record id="student_service_step_99" model="student.service.step">
+        <field name="name">Hoàn tất</field>
+        <field name="sequence">99</field>
+        <field name="nextstep">0</field>
+        <field name="state">0</field>
+        <field name="description">Kết thúc quy trình duyệt dịch vụ.</field>
+    </record>
+    <!-- Files -->
+    <record id="student_service_file_card" model="student.service.file">
+        <field name="name">Thẻ sinh viên</field>
+        <field name="description">Ảnh hoặc bản scan thẻ sinh viên.</field>
+    </record>
+    <record id="student_service_file_idcard" model="student.service.file">
+        <field name="name">Căn cước công dân</field>
+        <field name="description">Ảnh hoặc bản scan căn cước công dân.</field>
+    </record>
+    <record id="student_service_file_contract" model="student.service.file">
+        <field name="name">Hợp đồng thuê trọ KTX</field>
+        <field name="description">Ảnh hoặc bản scan hợp đồng thuê trọ ký túc xá.</field>
+    </record>
+
+    <!-- Service -->
+     <!-- Dịch vụ: Xin trọ (Nhóm Cơ bản) -->
+    <record id="student_service_xintro" model="student.service">
+        <field name="name">Xin trọ</field>
+        <field name="titlenote">Điền thông tin phòng muốn thuê:</field>
+        <field name="description">Dịch vụ xin thuê trọ ký túc xá cho sinh viên.</field>
+        <field name="group_id" ref="student_service_group_basic"/>
+        <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard')), (4, ref('student_service_file_contract'))]"/>
+        <field name="step_ids" eval="[
+            (4, ref('student_service_step_1')),
+            (4, ref('student_service_step_2')),
+            (4, ref('student_service_step_3')),
+            (4, ref('student_service_step_4')),
+            (4, ref('student_service_step_5')),
+            (4, ref('student_service_step_6')),
+            (4, ref('student_service_step_99'))
+        ]"/>
+        <field name="users" eval="[(4, 1)]"/>
+    </record>
+
+    <!-- Dịch vụ: Sửa điện (Nhóm Dịch vụ sửa chữa) -->
+    <record id="student_service_suadien" model="student.service">
+        <field name="name">Sửa điện</field>
+        <field name="titlenote">Mô tả thiết bị hỏng và chụp ảnh:</field>
+        <field name="description">Dịch vụ sửa chữa điện trong ký túc xá.</field>
+        <field name="group_id" ref="student_service_group_repair"/>
+        <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>
+        <field name="step_ids" eval="[
+            (4, ref('student_service_step_1')),
+            (4, ref('student_service_step_2')),
+            (4, ref('student_service_step_3')),
+            (4, ref('student_service_step_4')),
+            (4, ref('student_service_step_5')),
+            (4, ref('student_service_step_6')),
+            (4, ref('student_service_step_99'))
+        ]"/>
+        <field name="users" eval="[(4, 1)]"/>
+    </record>
+
+    <!-- Dịch vụ: Xin cấp giấy chứng nhận (Nhóm Hành chính) -->
+    <record id="student_service_xincapgiay" model="student.service">
+        <field name="name">Xin cấp giấy chứng nhận</field>
+        <field name="titlenote">Điền thông tin giấy chứng nhận cần cấp:</field>
+        <field name="description">Dịch vụ xin cấp giấy chứng nhận cho sinh viên.</field>
+        <field name="group_id" ref="student_service_group_admin"/>
+        <field name="files" eval="[(4, ref('student_service_file_card')), (4, ref('student_service_file_idcard'))]"/>
+        <field name="step_ids" eval="[
+            (4, ref('student_service_step_1')),
+            (4, ref('student_service_step_2')),
+            (4, ref('student_service_step_4')),
+            (4, ref('student_service_step_5')),
+            (4, ref('student_service_step_99'))
+        ]"/>
+        <field name="users" eval="[(4, 1)]"/>
+    </record>
+
+    <record id="student_admin_profile_user_1" model="student.admin.profile">
+        <field name="user_id" eval="2"/>
+
+        <field name="title_name">Quản trị hệ thống</field>
+        <field name="activated">True</field>
+    </record>
+
+    <!-- Vai trò hoạt động KTX -->
+    <record id="role_le_tan" model="student.activity.role">
+        <field name="name">Lễ tân</field>
+        <field name="description">Tiếp đón, hướng dẫn sinh viên và khách đến KTX.</field>
+    </record>
+    <record id="role_tap_vu" model="student.activity.role">
+        <field name="name">Tạp vụ</field>
+        <field name="description">Dọn dẹp, vệ sinh khu vực KTX.</field>
+    </record>
+    <record id="role_hanh_chinh" model="student.activity.role">
+        <field name="name">Hành chính</field>
+        <field name="description">Quản lý hồ sơ, giấy tờ và các thủ tục hành chính.</field>
+    </record>
+    <record id="role_ky_thuat" model="student.activity.role">
+        <field name="name">Kỹ thuật</field>
+        <field name="description">Bảo trì, sửa chữa các thiết bị, cơ sở vật chất KTX.</field>
+    </record>
+    <record id="role_bao_ve" model="student.activity.role">
+        <field name="name">Bảo vệ</field>
+        <field name="description">Đảm bảo an ninh, trật tự trong khu KTX.</field>
+    </record>
+    <record id="role_tai_chinh" model="student.activity.role">
+        <field name="name">Tài chính</field>
+        <field name="description">Quản lý thu chi, các vấn đề tài chính của KTX.</field>
+    </record>
+    <record id="role_cong_nghe" model="student.activity.role">
+        <field name="name">Công nghệ</field>
+        <field name="description">Quản lý hệ thống CNTT, phần mềm, mạng trong KTX.</field>
+    </record>
+    <record id="role_y_te" model="student.activity.role">
+        <field name="name">Y tế</field>
+        <field name="description">Chăm sóc sức khỏe, sơ cứu, tư vấn y tế cho sinh viên.</field>
+    </record>
+    <record id="role_quan_ly" model="student.activity.role">
+        <field name="name">Quản lý</field>
+        <field name="description">Điều hành, quản lý chung các hoạt động của KTX.</field>
+    </record>
+    <record id="role_giam_doc" model="student.activity.role">
+        <field name="name">Giám đốc</field>
+        <field name="description">Chịu trách nhiệm cao nhất về hoạt động của KTX.</field>
+    </record>
+</odoo>
