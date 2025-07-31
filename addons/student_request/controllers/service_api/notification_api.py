@@ -9,6 +9,7 @@ import base64
 import os
 import jwt
 from datetime import datetime, timedelta
+from .utils import *
 
 class NotificationApiController(http.Controller):
     
@@ -42,7 +43,7 @@ class NotificationApiController(http.Controller):
                 'article': n.article or '',
                 'is_read': profile.user_id.id in n.read_user_ids.ids if n.read_user_ids else False,
                 'create_date': n.create_date.strftime('%Y-%m-%d %H:%M:%S') if n.create_date else '',
-                'data': n.data or {},
+                'data': safe_json_parse(n.data),
             } for n in notifications]
 
             return Response(

@@ -10,6 +10,16 @@ import os
 import jwt
 from datetime import datetime, timedelta
 
+# Hàm để parse JSON an toàn, trả về dict nếu là dict, hoặc cố gắng chuyển đổi từ string
+def safe_json_parse(data):
+    if isinstance(data, dict):
+        return data
+    if isinstance(data, str):
+        try:
+            return json.loads(data.replace("'", '"'))  # tạm thời chuyển ' thành " nếu lỡ sai format
+        except Exception:
+            return {}
+    return {}
 
 # Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyy-MM-dd
 def convert_date(date_str):
