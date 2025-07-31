@@ -9,7 +9,7 @@ import base64
 import os
 import jwt
 from datetime import datetime, timedelta
-from .utils import send_fcm_request, send_fcm_users, send_fcm_notify
+from .utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
 
 
 def create_request(env, serviceid, requestid, userid, note, attachments):
@@ -102,7 +102,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     if role_users:
         vals['users'] = [(6, 0, role_users)]
 
-    if not vals.get('id') or vals.id == 0:
+    if 'id' not in vals or vals.get('id', 0) == 0:
         # Tạo record
         vals = env['student.service.request'].sudo().create(vals)
         send_fcm_request(env, vals, 0)
@@ -253,6 +253,7 @@ class ServiceApiController(http.Controller):
                         'service_id': request_rec.service_id.id,
                         'service_name': request_rec.service_id.name,
                         'content': request_rec.note,
+                        'request_date': format_datetime_local(request_rec.create_date, request_user_id)
                     }
                 }),
                 content_type='application/json',
@@ -306,7 +307,7 @@ class ServiceApiController(http.Controller):
                             'user_id': h.user_id.id if h.user_id else None,
                             'user_name': h.user_id.name if h.user_id else '',
                             'note': h.note,
-                            'date': h.date.strftime('%Y-%m-%d %H:%M:%S') if h.date else '',
+                            'date': format_datetime_local(h.date, request_user_id),
                         })
 
                 result.append({
@@ -320,11 +321,11 @@ class ServiceApiController(http.Controller):
 
                     'name': req.name,
                     'note': req.note,
-                    'request_date': req.request_date and req.request_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                    'request_date': format_datetime_local(req.request_date, request_user_id),
                     'approve_user_id': req.approve_user_id.id if req.approve_user_id else None,
                     'approve_user_name': req.approve_user_id.name if req.approve_user_id else '',
                     'approve_content': req.approve_content,
-                    'approve_date': req.approve_date and req.approve_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                    'approve_date': format_datetime_local(req.approve_date, request_user_id),
                     'final_state': req.final_state,
                     'finalfinal_data': req.final_data,
 
@@ -401,11 +402,11 @@ class ServiceApiController(http.Controller):
 
                     'name': req.name,
                     'note': req.note,
-                    'request_date': req.request_date and req.request_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                    'request_date': format_datetime_local(req.create_date, user_id),
                     'approve_user_id': req.approve_user_id.id if req.approve_user_id else None,
                     'approve_user_name': req.approve_user_id.name if req.approve_user_id else '',
                     'approve_content': req.approve_content,
-                    'approve_date': req.approve_date and req.approve_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                    'approve_date': format_datetime_local(req.approve_date, user_id),
                     'final_state': req.final_state,
                     'finalfinal_data': req.final_data,
 
@@ -471,7 +472,7 @@ class ServiceApiController(http.Controller):
                     'user_id': h.user_id.id if h.user_id else None,
                     'user_name': h.user_id.name if h.user_id else '',
                     'note': h.note,
-                    'date': h.date.strftime('%Y-%m-%d %H:%M:%S') if h.date else '',
+                    'date': format_datetime_local(h.date),
                 })
         req_data = {
             'id': req.id,
@@ -481,8 +482,8 @@ class ServiceApiController(http.Controller):
             'note': req.note,
             
             'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
-            'request_date': req.request_date.strftime('%Y-%m-%d %H:%M:%S') if req.request_date else '',
-            
+            'request_date': format_datetime_local(req.request_date),
+
             'request_user_id': req.request_user_id.id if req.request_user_id else None,
             'request_user_name': req.request_user_id.name if req.request_user_id else '',
 
@@ -492,7 +493,7 @@ class ServiceApiController(http.Controller):
                 'state': step.state,
                 'sequence': step.base_step_id.sequence if step.base_step_id else 0,
                 'approve_content': step.approve_content,
-                'approve_date': step.approve_date.strftime('%Y-%m-%d %H:%M:%S') if step.approve_date else '',
+                'approve_date': format_datetime_local(step.approve_date),
                 'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
                 'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
                 'history_ids': [{
@@ -501,7 +502,7 @@ class ServiceApiController(http.Controller):
                     'user_id': h.user_id.id if h.user_id else None,
                     'user_name': h.user_id.name if h.user_id else '',
                     'note': h.note,
-                    'date': h.date.strftime('%Y-%m-%d %H:%M:%S') if h.date else '',
+                    'date': format_datetime_local(h.date),
                 } for h in step.history_ids],
             } for step in req.step_ids],
             'users': [{'id': u.id, 'name': u.name} for u in req.users],
@@ -510,7 +511,7 @@ class ServiceApiController(http.Controller):
             'final_state': req.final_state,
             'final_data': req.final_data,
             'approve_content': req.approve_content,
-            'approve_date': req.approve_date.strftime('%Y-%m-%d %H:%M:%S') if req.approve_date else '',
+            'approve_date': format_datetime_local(req.approve_date),
             'histories': sumhistories,
         }
 

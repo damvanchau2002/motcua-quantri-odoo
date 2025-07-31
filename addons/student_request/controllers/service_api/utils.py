@@ -284,3 +284,24 @@ def remove_user_from_all_firebase_topics(env, user_id):
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
+import pytz
+def format_datetime_local(dt, user_id=None):
+    """
+    Chuyển đổi datetime từ UTC sang timezone local của user
+    """
+    if not dt:
+        return ''
+    
+    # Lấy timezone của user, mặc định là UTC+7 (Asia/Ho_Chi_Minh)
+    user_tz = 'Asia/Ho_Chi_Minh'
+    if user_id:
+        user = request.env['res.users'].sudo().browse(user_id)
+        if user.tz:
+            user_tz = user.tz
+    
+    # Chuyển đổi từ UTC sang timezone local
+    utc_dt = pytz.UTC.localize(dt.replace(tzinfo=None))
+    local_tz = pytz.timezone(user_tz)
+    local_dt = utc_dt.astimezone(local_tz)
+    
+    return local_dt.strftime('%Y-%m-%d %H:%M:%S')
