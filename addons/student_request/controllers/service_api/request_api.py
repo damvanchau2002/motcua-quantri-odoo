@@ -292,6 +292,7 @@ class ServiceApiController(http.Controller):
             print("GET API /api/service/request/user:", user_id)
             if user_id:
                 domain.append(('request_user_id', '=', user_id))
+            request_user_id = user_id
             requests = request.env['student.service.request'].sudo().search(domain)
 
             result = []

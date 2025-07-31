@@ -296,9 +296,9 @@ def format_datetime_local(dt, user_id=None):
     user_tz = 'Asia/Ho_Chi_Minh'
     if user_id:
         user = request.env['res.users'].sudo().browse(user_id)
-        if user.tz:
+        if user and user.exists() and user.tz:
             user_tz = user.tz
-    
+
     # Chuyển đổi từ UTC sang timezone local
     utc_dt = pytz.UTC.localize(dt.replace(tzinfo=None))
     local_tz = pytz.timezone(user_tz)

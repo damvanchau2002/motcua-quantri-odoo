@@ -13,28 +13,41 @@ from .utils import *
 
 class NotificationApiController(http.Controller):
     
-     # Lấy danh sách thông báo của user
-    @http.route('/api/notifications/my', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/notifications/my', type='http', auth='public', methods=['POST'], csrf=False)
     def get_my_notifications(self):
-        params = request.httprequest.get_json(force=True, silent=True) or {}
-        user_id = params.get('user_id')
-        if not user_id:
-            return Response(
-                json.dumps({'success': False, 'message': 'Missing user_id'}),
-                content_type='application/json',
-                status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
-
         try:
+            params = request.httprequest.get_json(force=True, silent=True) or {}
+            user_id = params.get('user_id')
+            page = int(params.get('page', 1))
+            limit = int(params.get('limit', 10))
+
+            if not user_id:
+                return Response(
+                    json.dumps({'success': False, 'message': 'Missing user_id'}),
+                    content_type='application/json',
+                    status=400
+                )
+
             profile = request.env['student.user.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
-            domain = ['|', ('user_ids', 'in', [profile.user_id.id]), ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])] if profile and profile.dormitory_cluster_id else [('user_ids', 'in', [profile.user_id.id])]
-            notifications = request.env['student.notify'].sudo().search(domain, order='create_date desc')
-            
+            if not profile:
+                return Response(
+                    json.dumps({'success': False, 'message': 'User profile not found'}),
+                    content_type='application/json',
+                    status=404
+                )
+
+            if profile.dormitory_cluster_id:
+                domain = ['|',
+                          ('user_ids', 'in', [profile.user_id.id]),
+                          ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])]
+            else:
+                domain = [('user_ids', 'in', [profile.user_id.id])]
+
+            total = request.env['student.notify'].sudo().search_count(domain)
+            offset = (page - 1) * limit
+            notifications = request.env['student.notify'].sudo().search(
+                domain, order='create_date desc', offset=offset, limit=limit)
+
             data = [{
                 'id': n.id,
                 'title': n.title,
@@ -47,7 +60,77 @@ class NotificationApiController(http.Controller):
             } for n in notifications]
 
             return Response(
-                json.dumps({'success': True, 'message': 'Danh sách thông báo', 'data': data}),
+                json.dumps({
+                    'success': True,
+                    'message': 'Danh sách thông báo',
+                    'data': data,
+                    'meta': {
+                        'total': total,
+                        'page': page,
+                        'limit': limit,
+                        'has_next': offset + limit < total,
+                    }
+                }),
+                content_type='application/json',
+                status=200
+            )
+
+        except Exception as e:
+            return Response(
+                json.dumps({
+                    "success": False,
+                    "message": str(e)
+                }),
+                content_type='application/json',
+                status=500
+            )
+
+        except Exception as e:
+            return {'success': False, 'message': str(e)}
+
+
+    # lấy chi tiết thông báo
+    @http.route('/api/notifications/detail', type='http', methods=['POST'], auth='public', csrf=False)
+    def get_notification_detail(self):
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        notify_id = params.get('notify_id')
+        if not notify_id:
+            return Response(
+                json.dumps({'success': False, 'message': 'Missing notify_id'}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        try:
+            notify = request.env['student.notify'].sudo().browse(int(notify_id))
+            if not notify.exists():
+                return Response(
+                    json.dumps({'success': False, 'message': 'Notification not found'}),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+            data = {
+                'id': notify.id,
+                'title': notify.title,
+                'body': notify.body,
+                'image': notify.image or '',
+                'article': notify.article or '',
+                'is_read': request.env.user.id in notify.read_user_ids.ids if notify.read_user_ids else False,
+                'create_date': notify.create_date.strftime('%Y-%m-%d %H:%M:%S') if notify.create_date else '',
+                'data': safe_json_parse(notify.data),
+            }
+            return Response(
+                json.dumps({'success': True, 'message': 'Chi tiết thông báo', 'data': data}),
                 content_type='application/json',
                 status=200,
                 headers=[
