@@ -121,7 +121,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         return False
     # nếu act khác pending thì tìm các bước trước đó còn pending cập nhật nó thanh ignored
     if act != 'pending':
-        prev_steps = request.step_ids.filtered(lambda s: s.base_secquence < step.base_secquence and (s.state == 'pending' or s.state != 'assigned' or s.state != 'rejected'))
+        prev_steps = request.step_ids.filtered(lambda s: s.base_secquence < step.base_secquence and (s.state == 'pending' or s.state == 'assigned' or s.state == 'rejected'))
         for s in prev_steps:
             s.state = 'ignored'
             # Tạo bản ghi history cho các bước đã ignored
