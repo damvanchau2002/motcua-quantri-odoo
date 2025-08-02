@@ -13,10 +13,10 @@ from .utils import *
 
 class NotificationApiController(http.Controller):
     
-    @http.route('/api/notifications/my', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/notifications/my', type='http', auth='public', methods=['GET'], csrf=False)
     def get_my_notifications(self):
         try:
-            params = request.httprequest.get_json(force=True, silent=True) or {}
+            params = request.params
             user_id = params.get('user_id')
             page = int(params.get('page', 1))
             limit = int(params.get('limit', 10))

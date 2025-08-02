@@ -109,6 +109,51 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     return vals
 
 
+def update_request(env, requestid, userid, note=None, attachments=None, final_state='pending'):
+    """
+    Cập nhật yêu cầu dịch vụ đã có
+        :param env: Odoo environment
+        :param requestid: ID của yêu cầu cần cập nhật
+        :param userid: ID của người cập nhật
+        :param note: Ghi chú mới (tùy chọn)
+        :param attachments: Danh sách ID file đính kèm (tùy chọn)
+        :param final_state: Trạng thái cuối (tùy chọn, mặc định là 'pending')
+        :return: Record yêu cầu dịch vụ đã cập nhật
+    """
+    if not requestid:
+        raise ValueError("Thiếu request id")
+
+    if not userid:
+        raise ValueError("Thiếu user id")
+
+    request = env['student.service.request'].sudo().browse(int(requestid))
+    if not request.exists():
+        raise ValueError(f"Yêu cầu không tồn tại: {requestid}")
+
+    user = env['res.users'].sudo().browse(int(userid))
+    if not user.exists():
+        raise ValueError(f"User không tồn tại: {userid}")
+
+    vals = {
+        'request_user_id': user.id,
+        'request_date': Datetime.now(),
+    }
+
+    if note is not None:
+        vals['note'] = note
+
+    if attachments:
+        vals['image_attachment_ids'] = [(4, attach_id) for attach_id in attachments] # 4: Thêm file đính kèm, 6: Gán file mới
+
+
+    # Cập nhật
+    request.sudo().write(vals)
+
+    # Gửi FCM thông báo cập nhật yêu cầu
+    send_fcm_request(env, request, 1)
+
+    return request
+
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
 def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data):
@@ -282,62 +327,177 @@ class ServiceApiController(http.Controller):
             )
 
         
+    # Cập nhật yêu cầu dịch vụ
+    # Formdata: { request_id, request_user_id, note, files: [file1, file2, ...] }
+    @http.route('/api/service/request/update', type='http', auth='public', methods=['POST'], csrf=False)
+    def update_service_request(self, **post):
+        try:
+            httprequest = request.httprequest
+            files = httprequest.files.getlist('attachment')
+
+            attachment_ids = []
+
+            for file_storage in files:
+                file_data = file_storage.read()
+                base64_data = base64.b64encode(file_data).decode('utf-8')
+                attachment = request.env['ir.attachment'].sudo().create({
+                    'name': file_storage.filename,
+                    'datas': base64_data,
+                    'res_model': 'student.service.request',
+                    'res_id': 0,
+                    'type': 'binary',
+                    'mimetype': file_storage.mimetype or 'application/octet-stream',
+                })
+                attachment_ids.append(attachment.id)
+
+            # Lấy dữ liệu từ form
+            form = httprequest.form
+            request_id = form.get('request_id')
+            request_user_id = form.get('request_user_id')
+            note = form.get('note', '')
+
+            if not request_id:
+                raise ValueError("Thiếu request_id")
+
+            if not request_user_id:
+                raise ValueError("Thiếu request_user_id")
+
+            # Gọi hàm cập nhật yêu cầu
+            request_rec = update_request(
+                env=request.env,
+                requestid=request_id,
+                userid=request_user_id,
+                note=note,
+                attachments=attachment_ids
+            )
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Cập nhật yêu cầu dịch vụ thành công',
+                    'data': {
+                        'id': request_rec.id,
+                        'service_id': request_rec.service_id.id,
+                        'service_name': request_rec.service_id.name,
+                        'content': request_rec.note,
+                        'request_date': format_datetime_local(request_rec.write_date or request_rec.create_date, request_user_id)
+                    }
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': 'Không thể cập nhật yêu cầu',
+                    'detail': str(e)
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
     def list_requests_by_user(self):
-        domain = []
-        params = request.httprequest.get_json(force=True, silent=True) or {}
         try:
+            # params = request.httprequest.get_json(force=True, silent=True) or {}
+            params = request.params
             user_id = params.get('user_id')
-            print("GET API /api/service/request/user:", user_id)
-            if user_id:
-                domain.append(('request_user_id', '=', user_id))
-            request_user_id = user_id
-            requests = request.env['student.service.request'].sudo().search(domain)
+            page = int(params.get('page', 1))
+            limit = int(params.get('limit', 10))
+            keyword = params.get('keyword', '').strip()
 
+            if not user_id:
+                raise ValueError("Thiếu user_id")
+
+            domain = [('request_user_id', '=', int(user_id))]
+
+            if keyword is not None and keyword != '':
+                domain += ['|', ('name', 'ilike', keyword), ('note', 'ilike', keyword)]
+
+            offset = (page - 1) * limit
+
+            total = request.env['student.service.request'].sudo().search_count(domain)
+            requests_data = request.env['student.service.request'].sudo().search(domain, offset=offset, limit=limit, order='request_date desc')
             result = []
-            for req in requests:
-                sumhistories = []
+            for req in requests_data:
+                sumhistories_dict = {}
                 for step in req.step_ids:
                     for h in step.history_ids:
-                        sumhistories.append({
+                        step_id = step.id
+                        history_data = {
                             'id': h.id,
-                            'step_id': step.id,
+                            'step_id': step_id,
                             'step_name': step.base_step_id.name if step.base_step_id else '',
                             'state': h.state,
                             'user_id': h.user_id.id if h.user_id else None,
                             'user_name': h.user_id.name if h.user_id else '',
                             'note': h.note,
-                            'date': format_datetime_local(h.date, request_user_id),
-                        })
+                            'date': format_datetime_local(h.date, user_id),
+                        }
+
+                        if (
+                            step_id not in sumhistories_dict
+                            or h.date > sumhistories_dict[step_id]['_raw_date']
+                        ):
+                            history_data['_raw_date'] = h.date  
+                            sumhistories_dict[step_id] = history_data
+
+                # Bỏ _raw_date trước khi trả ra, và sort theo date mới nhất
+                sumhistories = sorted(
+                    [
+                        {k: v for k, v in data.items() if k != '_raw_date'}
+                        for data in sumhistories_dict.values()
+                    ],
+                    key=lambda x: x['date'],
+                    reverse=True
+                )
+
 
                 result.append({
                     'id': req.id,
-
                     'service': {
                         'id': req.service_id.id,
                         'name': req.service_id.name,
                         'description': req.service_id.description,
                     } if req.service_id else {},
-
                     'name': req.name,
                     'note': req.note,
-                    'request_date': format_datetime_local(req.request_date, request_user_id),
+                    'request_date': format_datetime_local(req.request_date, user_id),
                     'approve_user_id': req.approve_user_id.id if req.approve_user_id else None,
                     'approve_user_name': req.approve_user_id.name if req.approve_user_id else '',
                     'approve_content': req.approve_content,
-                    'approve_date': format_datetime_local(req.approve_date, request_user_id),
+                    'approve_date': format_datetime_local(req.approve_date, user_id),
                     'final_state': req.final_state,
                     'finalfinal_data': req.final_data,
-
                     'histories': sorted(sumhistories, key=lambda x: x['date'], reverse=True),
                 })
-            # Trả về danh sách yêu cầu dịch vụ của user
+
             return Response(
                 json.dumps({
                     'success': True,
                     'message': 'Thành công',
-                    'data': result
+                    'meta': {
+                        'page': page,
+                        'limit': limit,
+                        'total': total,
+                        'total_pages': (total + limit - 1) // limit
+                    },
+                    'data': result,
+                    
                 }),
                 content_type='application/json',
                 status=200,
@@ -347,6 +507,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
+
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
@@ -358,6 +519,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
+
 
     # Lấy danh sách các yêu cầu dịch vụ theo: Quyền duyệt của user_id
     @http.route('/api/service/request/list', type='http', auth='public', methods=['GET'], csrf=False)
