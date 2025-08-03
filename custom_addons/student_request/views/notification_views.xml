@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Gửi thông báo  -->
+    <record id="view_student_notify_list" model="ir.ui.view">
+        <field name="name">student.notify.list</field>
+        <field name="model">student.notify</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="title"/>
+                <field name="body"/>
+                <field name="user_id"/>
+                <field name="dormitory_cluster_ids"/>
+                <field name="create_date"/>
+                <field name="fcm_success_count"/>
+                <field name="fcm_failure_count"/>
+                <field name="fcm_responses"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_student_notify_form" model="ir.ui.view">
+        <field name="name">student.notify.form</field>
+        <field name="model">student.notify</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group string="Thông tin thông báo">
+                        <field name="title"/>
+                        <field name="body"/>
+                        <field name="article" widget="textarea"/>
+                        <field name="data"/>
+                        <field name="image"/>
+                        <hr/>
+                        <field name="user_id" domain="[('groups_id.name', '=', 'Settings')]" />
+                    </group>
+                    <group string="Thông tin người nhận">
+                        <field name="user_ids" />
+                        <field name="dormitory_cluster_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
+                    </group>
+                    <group>
+                        <button name="send_fcm" string="Gửi FCM" type="object" class="btn-primary" confirm="Bạn có chắc chắn muốn gửi thông báo này không?"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_student_notify" model="ir.actions.act_window">
+        <field name="name">Thông báo</field>
+        <field name="res_model">student.notify</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Dormitory -->
+    <!-- Dormitory Area List & Cluster List with Sync Button -->
+    <record id="view_student_dormitory_area_list" model="ir.ui.view">
+        <field name="name">student.dormitory.area.list</field>
+        <field name="model">student.dormitory.area</field>
+        <field name="arch" type="xml">
+            <list> 
+                <field name="name"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_student_dormitory_area_form" model="ir.ui.view">
+        <field name="name">student.dormitory.area.form</field>
+        <field name="model">student.dormitory.area</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="description"/>
+                    </group>
+                    <group>
+                        <field name="cluster_ids">
+                            <list>
+                                <field name="name"/>
+                                <field name="description"/>
+                            </list>
+                        </field>
+                    </group>
+                    <group>
+                        <button name="action_sync_cluster"
+                                type="object"
+                                string="Đồng bộ"
+                                class="btn-primary"
+                                icon="fa-refresh"
+                                confirm="Bạn có chắc chắn muốn đồng bộ dữ liệu không?"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_dormitory_area" model="ir.actions.act_window">
+        <field name="name">Khu ký túc xá</field>
+        <field name="res_model">student.dormitory.area</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Dormitory Cluster List & Form with Sync Button -->
+    <record id="view_student_dormitory_cluster_list" model="ir.ui.view">
+        <field name="name">student.dormitory.cluster.list</field>
+        <field name="model">student.dormitory.cluster</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="area_id"/>
+                <field name="description"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_student_dormitory_cluster_form" model="ir.ui.view">
+        <field name="name">student.dormitory.cluster.form</field>
+        <field name="model">student.dormitory.cluster</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="area_id"/>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_student_dormitory_cluster" model="ir.actions.act_window">
+        <field name="name">Cụm ký túc xá</field>
+        <field name="res_model">student.dormitory.cluster</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

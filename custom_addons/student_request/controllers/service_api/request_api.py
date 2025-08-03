@@ -328,6 +328,7 @@ class ServiceApiController(http.Controller):
 
         
     # Cập nhật yêu cầu dịch vụ
+    # todo: cần kiểm tra trạng thái của yêu cầu trước khi cập nhật (chỉ cho cập nhật nếu là pending hoặc repairing )
     # Formdata: { request_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/update', type='http', auth='public', methods=['POST'], csrf=False)
     def update_service_request(self, **post):
