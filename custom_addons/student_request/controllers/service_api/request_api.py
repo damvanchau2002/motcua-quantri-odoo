@@ -834,4 +834,225 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
-        
+    
+    # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
+    @http.route('/api/service/request/review/list', type='http', auth='public', methods=['GET'], csrf=False)
+    def list_service_request_reviews(self, **kwargs):
+        try:
+            params = request.httprequest.args or request.params
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            domain = []
+            if request_id:
+                domain.append(('request_id', '=', int(request_id)))
+            if user_id:
+                domain.append(('user_id', '=', int(user_id)))
+            reviews = request.env['student.service.request.review'].sudo().search(domain)
+            result = []
+            for review in reviews:
+                result.append({
+                    'id': review.id,
+                    'request_id': review.request_id.id if review.request_id else None,
+                    'user_id': review.user_id.id if review.user_id else None,
+                    'user_name': review.user_id.name if review.user_id else '',
+                    'rating': review.rating,
+                    'comment': review.comment,
+                    'create_date': review.create_date.strftime('%Y-%m-%d %H:%M:%S') if review.create_date else '',
+                })
+            return Response(
+                json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e), 'data': []}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    # API: Tạo đánh giá cho yêu cầu dịch vụ
+    @http.route('/api/service/request/review/create', type='json', auth='public', methods=['POST'], csrf=False)
+    def create_service_request_review(self, **post):
+        try:
+            params = request.httprequest.get_json(force=True, silent=True) or {}
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            rating = params.get('rating')
+            comment = params.get('comment', '')
+
+            if not request_id or not user_id or rating is None:
+                return Response(
+                    json.dumps({'success': False, 'message': 'Thiếu request_id, user_id hoặc rating'}),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Kiểm tra đã đánh giá chưa (1 user chỉ được đánh giá 1 lần cho 1 request)
+            existed = request.env['student.service.request.review'].sudo().search([
+                ('request_id', '=', int(request_id)),
+                ('user_id', '=', int(user_id))
+            ], limit=1)
+            if existed:
+                return Response(
+                    json.dumps({'success': False, 'message': 'Bạn đã đánh giá yêu cầu này rồi'}),
+                    content_type='application/json',
+                    status=409,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            review = request.env['student.service.request.review'].sudo().create({
+                'request_id': int(request_id),
+                'user_id': int(user_id),
+                'rating': rating,
+                'comment': comment,
+            })
+            return Response(
+                json.dumps({'success': True, 'message': 'Đánh giá thành công', 'data': {
+                    'id': review.id,
+                    'request_id': review.request_id.id,
+                    'user_id': review.user_id.id,
+                    'rating': review.rating,
+                    'comment': review.comment,
+                    'create_date': review.create_date.strftime('%Y-%m-%d %H:%M:%S') if review.create_date else '',
+                }}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e)}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    
+    # API: Lấy danh sách khiếu nại cho yêu cầu dịch vụ
+    @http.route('/api/service/request/complaint/list', type='http', auth='public', methods=['GET'], csrf=False)
+    def list_service_request_complaints(self, **kwargs):
+        try:
+            params = request.httprequest.args or request.params
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            domain = []
+            if request_id:
+                domain.append(('request_id', '=', int(request_id)))
+            if user_id:
+                domain.append(('user_id', '=', int(user_id)))
+            complaints = request.env['student.service.request.complaint'].sudo().search(domain)
+            result = []
+            for complaint in complaints:
+                result.append({
+                    'id': complaint.id,
+                    'request_id': complaint.request_id.id if complaint.request_id else None,
+                    'user_id': complaint.user_id.id if complaint.user_id else None,
+                    'user_name': complaint.user_id.name if complaint.user_id else '',
+                    'content': complaint.content,
+                    'state': complaint.state,
+                    'create_date': complaint.create_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.create_date else '',
+                })
+            return Response(
+                json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e), 'data': []}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    # API: Tạo khiếu nại cho yêu cầu dịch vụ
+    @http.route('/api/service/request/complaint/create', type='json', auth='public', methods=['POST'], csrf=False)
+    def create_service_request_complaint(self, **post):
+        try:
+            params = request.httprequest.get_json(force=True, silent=True) or {}
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            content = params.get('content', '')
+
+            if not request_id or not user_id or not content:
+                return Response(
+                    json.dumps({'success': False, 'message': 'Thiếu request_id, user_id hoặc content'}),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            complaint = request.env['student.service.request.complaint'].sudo().create({
+                'request_id': int(request_id),
+                'user_id': int(user_id),
+                'content': content,
+            })
+            return Response(
+                json.dumps({'success': True, 'message': 'Gửi khiếu nại thành công', 'data': {
+                    'id': complaint.id,
+                    'request_id': complaint.request_id.id,
+                    'user_id': complaint.user_id.id,
+                    'content': complaint.content,
+                    'state': complaint.state,
+                    'create_date': complaint.create_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.create_date else '',
+                }}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e)}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )

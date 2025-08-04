@@ -14,6 +14,15 @@ class RequestReview(models.Model):
         ('average', 'Average'),
         ('poor', 'Poor'),
     ], string='Rating', required=True)
+    ispublic = fields.Boolean(string='Công bố review này', default=False)
+    image_ids = fields.Many2many(
+        'ir.attachment',
+        'request_review_image_rel',
+        'review_id',
+        'attachment_id',
+        string='Review Images',
+        help='Upload and attach multiple images to this review'
+    )
     comments = fields.Text(string='Comments')
 
 
@@ -30,4 +39,12 @@ class RequestComplaint(models.Model):
         ('process', 'Process'),
         ('other', 'Other'),
     ], string='Complaint Type', required=True)
+    image_ids = fields.Many2many(
+        'ir.attachment',
+        'request_complaint_image_rel',
+        'complaint_id',
+        'attachment_id',
+        string='Complaint Images',
+        help='Upload and attach multiple images to this complaint'
+    )
     description = fields.Text(string='Description')

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Review Views -->
+    <record id="view_student_service_request_review_tree" model="ir.ui.view">
+        <field name="name">student.service.request.review.tree</field>
+        <field name="model">student.service.request.review</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="request_id"/>
+                <field name="user_id"/>
+                <field name="review_date"/>
+                <field name="rating"/>
+                <field name="ispublic"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_student_service_request_review_form" model="ir.ui.view">
+        <field name="name">student.service.request.review.form</field>
+        <field name="model">student.service.request.review</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="request_id"/>
+                            <field name="user_id"/>
+                            <field name="review_date"/>
+                        </group>
+                        <group>
+                            <field name="rating"/>
+                            <field name="ispublic"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="comments"/>
+                    </group>
+                    <group>
+                        <field name="image_ids" widget="many2many_binary"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_service_request_review" model="ir.actions.act_window">
+        <field name="name">Student Service Request Reviews</field>
+        <field name="res_model">student.service.request.review</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Complaint Views -->
+    <record id="view_student_service_request_complaint_tree" model="ir.ui.view">
+        <field name="name">student.service.request.complaint.tree</field>
+        <field name="model">student.service.request.complaint</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="request_id"/>
+                <field name="user_id"/>
+                <field name="complaint_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_student_service_request_complaint_form" model="ir.ui.view">
+        <field name="name">student.service.request.complaint.form</field>
+        <field name="model">student.service.request.complaint</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="request_id"/>
+                        <field name="user_id"/>
+                        <field name="complaint_date"/>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                    <group>
+                        <field name="image_ids" widget="many2many_binary"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_service_request_complaint" model="ir.actions.act_window">
+        <field name="name">Student Service Request Complaints</field>
+        <field name="res_model">student.service.request.complaint</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+
+</odoo>

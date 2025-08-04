@@ -22,6 +22,7 @@
         'views/admin_profile_views.xml',
         'views/notification_views.xml',
         'views/dormitory_views.xml',
+        'views/request_review_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',
