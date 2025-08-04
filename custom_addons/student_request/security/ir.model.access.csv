@@ -17,3 +17,5 @@ access_student_dormitory_area,access_student_dormitory_area,model_student_dormit
 access_student_dormitory_cluster,access_student_dormitory_cluster,model_student_dormitory_cluster,,1,1,1,1
 access_student_activity_role_readonly,student.activity.role readonly,model_student_activity_role,,1,0,0,0
 access_service_request_step_history_user,access.service.request.step.history.user,model_student_service_request_step_history,,1,1,1,0
+access_student_service_request_review_manager,student.service.request.review manager,model_student_service_request_review,,1,1,1,1
+access_student_service_request_complaint_manager,student.service.request.complaint manager,model_student_service_request_complaint,,1,1,1,1

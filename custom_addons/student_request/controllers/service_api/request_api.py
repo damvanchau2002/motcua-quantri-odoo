@@ -841,12 +841,11 @@ class ServiceApiController(http.Controller):
         try:
             params = request.httprequest.args or request.params
             request_id = params.get('request_id')
-            user_id = params.get('user_id')
+            
             domain = []
             if request_id:
                 domain.append(('request_id', '=', int(request_id)))
-            if user_id:
-                domain.append(('user_id', '=', int(user_id)))
+            
             reviews = request.env['student.service.request.review'].sudo().search(domain)
             result = []
             for review in reviews:
@@ -854,10 +853,10 @@ class ServiceApiController(http.Controller):
                     'id': review.id,
                     'request_id': review.request_id.id if review.request_id else None,
                     'user_id': review.user_id.id if review.user_id else None,
-                    'user_name': review.user_id.name if review.user_id else '',
+                    'name': review.name if review.name else '',
                     'rating': review.rating,
-                    'comment': review.comment,
-                    'create_date': review.create_date.strftime('%Y-%m-%d %H:%M:%S') if review.create_date else '',
+                    'comments': review.comments,
+                    'review_date': review.review_date.strftime('%Y-%m-%d %H:%M:%S') if review.review_date else '',
                 })
             return Response(
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
@@ -882,14 +881,14 @@ class ServiceApiController(http.Controller):
             )
 
     # API: Tạo đánh giá cho yêu cầu dịch vụ
-    @http.route('/api/service/request/review/create', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/review/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request_review(self, **post):
         try:
             params = request.httprequest.get_json(force=True, silent=True) or {}
             request_id = params.get('request_id')
             user_id = params.get('user_id')
             rating = params.get('rating')
-            comment = params.get('comment', '')
+            comments = params.get('comments', '')
 
             if not request_id or not user_id or rating is None:
                 return Response(
@@ -924,7 +923,7 @@ class ServiceApiController(http.Controller):
                 'request_id': int(request_id),
                 'user_id': int(user_id),
                 'rating': rating,
-                'comment': comment,
+                'comments': comments,
             })
             return Response(
                 json.dumps({'success': True, 'message': 'Đánh giá thành công', 'data': {
@@ -932,8 +931,8 @@ class ServiceApiController(http.Controller):
                     'request_id': review.request_id.id,
                     'user_id': review.user_id.id,
                     'rating': review.rating,
-                    'comment': review.comment,
-                    'create_date': review.create_date.strftime('%Y-%m-%d %H:%M:%S') if review.create_date else '',
+                    'comments': review.comments,
+                    'review_date': review.review_date.strftime('%Y-%m-%d %H:%M:%S') if review.review_date else '',
                 }}),
                 content_type='application/json',
                 status=200,
@@ -966,8 +965,7 @@ class ServiceApiController(http.Controller):
             domain = []
             if request_id:
                 domain.append(('request_id', '=', int(request_id)))
-            if user_id:
-                domain.append(('user_id', '=', int(user_id)))
+
             complaints = request.env['student.service.request.complaint'].sudo().search(domain)
             result = []
             for complaint in complaints:
@@ -975,10 +973,16 @@ class ServiceApiController(http.Controller):
                     'id': complaint.id,
                     'request_id': complaint.request_id.id if complaint.request_id else None,
                     'user_id': complaint.user_id.id if complaint.user_id else None,
-                    'user_name': complaint.user_id.name if complaint.user_id else '',
-                    'content': complaint.content,
-                    'state': complaint.state,
-                    'create_date': complaint.create_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.create_date else '',
+                    'name': complaint.name if complaint.name else '',
+                    'description': complaint.description if complaint.description else '',
+                    'image_ids': [
+                        {
+                            'id': img.id,
+                            'name': img.name,
+                            'url': getattr(img, 'public_url', '') or ''
+                        } for img in complaint.image_ids
+                    ],
+                    'complaint_date': complaint.complaint_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.complaint_date else '',
                 })
             return Response(
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
@@ -1003,7 +1007,7 @@ class ServiceApiController(http.Controller):
             )
 
     # API: Tạo khiếu nại cho yêu cầu dịch vụ
-    @http.route('/api/service/request/complaint/create', type='json', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/complaint/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request_complaint(self, **post):
         try:
             params = request.httprequest.get_json(force=True, silent=True) or {}
@@ -1026,16 +1030,37 @@ class ServiceApiController(http.Controller):
             complaint = request.env['student.service.request.complaint'].sudo().create({
                 'request_id': int(request_id),
                 'user_id': int(user_id),
-                'content': content,
+                'description': content,
             })
+            
+            # Lưu file đính kèm nếu có
+            files = request.httprequest.files.getlist('attachment')
+            attachment_ids = []
+            for file_storage in files:
+                file_data = file_storage.read()
+                base64_data = base64.b64encode(file_data).decode('utf-8')
+                attachment = request.env['ir.attachment'].sudo().create({
+                    'name': file_storage.filename,
+                    'datas': base64_data,
+                    'res_model': 'student.service.request.complaint',
+                    'res_id': complaint.id,
+                    'type': 'binary',
+                    'mimetype': file_storage.mimetype or 'application/octet-stream',
+                })
+                attachment_ids.append(attachment.id)
+            if attachment_ids:
+                complaint.sudo().write({'image_ids': [(6, 0, attachment_ids)]})
+
             return Response(
                 json.dumps({'success': True, 'message': 'Gửi khiếu nại thành công', 'data': {
                     'id': complaint.id,
                     'request_id': complaint.request_id.id,
                     'user_id': complaint.user_id.id,
-                    'content': complaint.content,
-                    'state': complaint.state,
-                    'create_date': complaint.create_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.create_date else '',
+
+                    'name': complaint.name,
+                    'description': complaint.description,
+                    'image_ids': complaint.image_ids.ids,
+                    'complaint_date': complaint.complaint_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.complaint_date else '',
                 }}),
                 content_type='application/json',
                 status=200,
