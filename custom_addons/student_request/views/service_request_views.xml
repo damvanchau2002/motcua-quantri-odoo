@@ -229,6 +229,19 @@
             </form>
         </field>
     </record>
+
+    <!-- Cron job check request timeout -->
+    <record id="cron_check_request_timeout" model="ir.cron">
+        <field name="name">Check Request Timeout</field>
+        <field name="model_id" ref="model_student_service_request"/> 
+        <field name="state">code</field>
+        <field name="code">model.cron_check_timeout_requests()</field>
+        <field name="interval_number">120</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">True</field>
+        <field name="user_id" ref="base.user_admin"/>
+    </record>
+
     <record id="action_student_service_request_step" model="ir.actions.act_window">
         <field name="name">Bước duyệt yêu cầu dịch vụ</field>
         <field name="res_model">student.service.request.step</field>

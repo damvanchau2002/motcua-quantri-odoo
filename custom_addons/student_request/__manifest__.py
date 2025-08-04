@@ -7,7 +7,13 @@
     'license': 'LGPL-3',
     'depends': ['base'],
     'data': [
+        # Security files
         'security/ir.model.access.csv',
+        
+        # Data files (nên load trước views)
+        'data/service_step_data.xml',
+        
+        # View files
         'views/service_group_views.xml',
         'views/service_views.xml',
         'views/service_step_views.xml',
@@ -16,8 +22,9 @@
         'views/admin_profile_views.xml',
         'views/notification_views.xml',
         'views/dormitory_views.xml',
+        
+        # Menu (phải để cuối)
         'views/menus.xml',
-        'data/service_step_data.xml',
     ],
     'installable': True,
     'application': True,

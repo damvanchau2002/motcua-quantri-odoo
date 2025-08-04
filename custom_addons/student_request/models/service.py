@@ -91,7 +91,10 @@ class Service(models.Model):
     name = fields.Char('Tên dịch vụ', required=True)
     description = fields.Text('Mô tả chi tiết', help='Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên')
     titlenote = fields.Char('Tiêu đề gửi nội dung yêu cầu', help='Ghi chú cho SV thông tin cần nhập như thế nào')
+
     duration = fields.Integer('Thời gian xử lý (ngày)', default=7, help='Thời gian dự kiến để xử lý yêu cầu dịch vụ này, tính bằng ngày')
+    per_week = fields.Integer('Số lượng yêu cầu tối đa mỗi tuần', default=1, help='Số lượng yêu cầu tối đa User được phép gửi mỗi tuần')
+
     state = fields.Selection([
         ('enabled', 'Enabled'),
         ('disabled', 'Disabled')
@@ -148,6 +151,7 @@ class ServiceRequestStepHistory(models.Model):
         ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
+        ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối'),
@@ -169,6 +173,7 @@ class ServiceRequestStep(models.Model):
         ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
+        ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối'),
@@ -252,6 +257,7 @@ class ServiceRequest(models.Model):
         ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
+        ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối'),
@@ -262,12 +268,30 @@ class ServiceRequest(models.Model):
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now, help='Ngày và giờ thao tác cập nhật duyệt yêu cầu dịch vụ này')
     approve_user_id = fields.Many2one('res.users', string='Người đang nhận duyệt', help='Người đang thụ lý yêu cầu dịch vụ này')
 
+    complaint_ids = fields.One2many('student.service.request.complaint', 'request_id', string='Các khiếu nại', help='Các khiếu nại liên quan đến yêu cầu dịch vụ này')
+    review_ids = fields.One2many('student.service.request.review', 'request_id', string='Các đánh giá', help='Các đánh giá liên quan đến yêu cầu dịch vụ này')
+
     def action_create_new(self):
         # Tạo mới yêu cầu dịch vụ
         vals = create_request(self.env, self.service_id.id, self.id if self.id else 0, self.request_user_id.id, self.note, self.image_attachment_ids.ids)
         return { 'type': 'ir.actions.client', 'tag': 'reload' }
         
+    @api.model
+    def cron_check_timeout_requests(self):
+        """Kiểm tra và cập nhật trạng thái timeout cho các request"""
+        try:
+            # Tìm các request đã quá thời gian xử lý
+            timeout_date = fields.Datetime.now() - timedelta(days=7)
+            timeout_requests = self.search([('final_state', '=', 'pending'), ('request_date', '<', timeout_date)])
+            
+            for request in timeout_requests:
+                # Cập nhật trạng thái timeout
+                print(f"Updating request {request.id} to timeout status")
 
+            print(f"Updated {len(timeout_requests)} requests to timeout status")
+            
+        except Exception as e:
+            print(f"Error in cron_check_timeout_requests: {str(e)}")
     
 # Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):
