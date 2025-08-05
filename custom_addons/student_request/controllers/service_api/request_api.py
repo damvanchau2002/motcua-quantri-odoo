@@ -926,6 +926,15 @@ class ServiceApiController(http.Controller):
                 'rating': rating,
                 'comments': comments,
             })
+            try:
+                send_fcm_request(
+                    request.env,
+                    review.request_id,
+                    send_type=4 # Gửi thông báo đánh giá
+                )
+            except Exception as e:
+                pass
+
             return Response(
                 json.dumps({'success': True, 'message': 'Đánh giá thành công', 'data': {
                     'id': review.id,
@@ -987,6 +996,14 @@ class ServiceApiController(http.Controller):
                     'complaint_date': format_datetime_local(complaint.complaint_date, complaint.user_id.id)
 
                 })
+                try:
+                    send_fcm_request(
+                        request.env,
+                        complaint.request_id,
+                        send_type=5  # Gửi thông báo khiếu nại
+                    )
+                except Exception as e:
+                    pass  # Nếu không tìm thấy user_id thì bỏ qua
             return Response(
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
                 content_type='application/json',

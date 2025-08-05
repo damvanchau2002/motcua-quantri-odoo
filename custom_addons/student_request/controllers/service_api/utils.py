@@ -338,7 +338,7 @@ def send_fcm_batch(env, tokens, title, body, data=None, batch_size=500):
     }
 
 # Gửi FCM với đầu vào là Request object, data sẽ là {'type': 'request', 'id': f'{request.id}'}
-# send_type = 0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt
+# send_type = 0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt hoàn thành, 4: Đánh giá, 5: Khiếu nại  
 def send_fcm_request(env, request_obj, send_type=0):
     data = {'type': 'request', 'id': str(request_obj.id)}
     # Nội dung thông báo cho người duyệt
@@ -361,6 +361,16 @@ def send_fcm_request(env, request_obj, send_type=0):
         #Nội dung thông báo cho người duyệt
         title = f"Hoàn thành yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
         body = "Yêu cầu của bạn đã được hoàn thành: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+    elif send_type == 4:
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Bạn đã gửi đánh giá {request_obj.service_id.name} ', f'Đánh giá cho yêu cầu {request_obj.service_id.name} của bạn đã được gửi.', data)
+        #Nội dung thông báo cho người duyệt
+        title = f"Đánh giá yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
+        body = "Bạn có một yêu cầu đã được đánh giá: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+    elif send_type == 5:
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Đã gửi khiếu nại dịch vụ {request_obj.service_id.name}', f'Bạn đã gửi khiếu nại yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
+        #Nội dung thông báo cho người duyệt
+        title = f"Khiếu nại yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
+        body = "Bạn có một yêu cầu đã được khiếu nại: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
     # Gửi tới các user được gán xử lý yêu cầu này
     user_ids = request_obj.users.ids if request_obj.users else []
