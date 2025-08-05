@@ -856,7 +856,8 @@ class ServiceApiController(http.Controller):
                     'name': review.name if review.name else '',
                     'rating': review.rating,
                     'comments': review.comments,
-                    'review_date': review.review_date.strftime('%Y-%m-%d %H:%M:%S') if review.review_date else '',
+                    'review_date': format_datetime_local(review.review_date, review.user_id.id)
+
                 })
             return Response(
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
@@ -932,7 +933,8 @@ class ServiceApiController(http.Controller):
                     'user_id': review.user_id.id,
                     'rating': review.rating,
                     'comments': review.comments,
-                    'review_date': review.review_date.strftime('%Y-%m-%d %H:%M:%S') if review.review_date else '',
+                    'review_date': format_datetime_local(review.review_date, review.user_id.id)
+
                 }}),
                 content_type='application/json',
                 status=200,
@@ -982,7 +984,8 @@ class ServiceApiController(http.Controller):
                             'url': getattr(img, 'public_url', '') or ''
                         } for img in complaint.image_ids
                     ],
-                    'complaint_date': complaint.complaint_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.complaint_date else '',
+                    'complaint_date': format_datetime_local(complaint.complaint_date, complaint.user_id.id)
+
                 })
             return Response(
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
@@ -1063,7 +1066,8 @@ class ServiceApiController(http.Controller):
                     'name': complaint.name,
                     'description': complaint.description,
                     'image_ids': complaint.image_ids.ids,
-                    'complaint_date': complaint.complaint_date.strftime('%Y-%m-%d %H:%M:%S') if complaint.complaint_date else '',
+                    'complaint_date': format_datetime_local(complaint.complaint_date, complaint.user_id.id)
+
                 }}),
                 content_type='application/json',
                 status=200,
