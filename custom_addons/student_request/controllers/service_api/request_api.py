@@ -1010,10 +1010,13 @@ class ServiceApiController(http.Controller):
     @http.route('/api/service/request/complaint/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request_complaint(self, **post):
         try:
-            params = request.httprequest.get_json(force=True, silent=True) or {}
-            request_id = params.get('request_id')
-            user_id = params.get('user_id')
-            content = params.get('content', '')
+            httprequest = request.httprequest
+
+            # Lấy dữ liệu từ form
+            form = httprequest.form
+            request_id = form.get('request_id')
+            user_id = form.get('user_id')
+            content = form.get('content', '')
 
             if not request_id or not user_id or not content:
                 return Response(
@@ -1033,8 +1036,8 @@ class ServiceApiController(http.Controller):
                 'description': content,
             })
             
-            # Lưu file đính kèm nếu có
-            files = request.httprequest.files.getlist('attachment')
+          
+            files = httprequest.files.getlist('attachment')
             attachment_ids = []
             for file_storage in files:
                 file_data = file_storage.read()

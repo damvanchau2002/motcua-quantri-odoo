@@ -330,7 +330,7 @@ class AuthApiController(http.Controller):
                     'message': 'Đăng nhập thành công',
                     'data': {
                         'id': user.id,
-                        'name': user.name,
+                        'fullname': user.name,
                         'email': email,
                         'phone': phone,
                         'gender': gender,
@@ -539,7 +539,7 @@ class AuthApiController(http.Controller):
                     'fullname': fullname,
                     'avatar_url': avatar,
                     'activated': profile.activated if profile else False,
-                    'title_name': profile.title_name if profile else '',
+                    'title_name': str(profile.title_name or '') if profile else '',
                     'dormitory_area_id': profile.dormitory_area_id.id if profile and profile.dormitory_area_id else 0,
                     'dormitory_cluster_id': profile.dormitory_cluster_id.id if profile and profile.dormitory_cluster_id else 0,
                     'oauth': oauth.provider if oauth else '',
