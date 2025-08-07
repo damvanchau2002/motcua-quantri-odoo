@@ -12,6 +12,31 @@ from datetime import datetime, timedelta
 from .utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
 
 
+def get_user_received_requests(env, cluster_id, service, step):
+    """ Lấy danh sách các Users sẽ nhận được yêu cầu
+        :param env: Odoo environment
+        :param cluster_id: ID của cụm KTX (dùng để lọc user)
+        :param service: Dịch vụ cần lấy yêu cầu
+        :param step: Bước xử lý của dịch vụ
+        :return: Danh sách các user sẽ nhận được yêu cầu này """
+    received_users = []
+    if service.users: # Nếu dịch vụ có gán user thì lấy luôn
+        received_users += service.users.ids
+
+    if step.user_ids: # Nếu bước có gán user thì lấy luôn
+        received_users += step.user_ids.ids
+
+    # Lấy các user trong cụm KTX
+    if cluster_id > 0:
+        domain = [('dormitory_cluster_id', '=', cluster_id), ('role_ids', 'in', step.role_ids.ids)]
+
+        dormitory_admins = env['student.admin.profile'].sudo().search(domain)
+        if dormitory_admins:  # Nếu có quản lý KTX thì lấy user_id của họ
+            received_users += dormitory_admins.mapped('user_id.id')
+
+    return received_users
+
+
 def create_request(env, serviceid, requestid, userid, note, attachments):
     """
     Tạo hoặc cập nhật yêu cầu dịch vụ
@@ -29,16 +54,21 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     if not serviceid:
         raise ValueError("Thiếu service id")
 
-    try:
-        user = env['res.users'].sudo().browse(int(userid))
-        if not user.exists():
-            raise ValueError(f"User không tồn tại: {userid}")
+    user = env['res.users'].sudo().browse(int(userid))
+    if not user.exists():
+        raise ValueError(f"User không tồn tại: {userid}")
 
-        service = env['student.service'].sudo().browse(int(serviceid))
-        if not service.exists():
-            raise ValueError(f"Service không tồn tại: {serviceid}")
-    except Exception as e:
-        raise ValueError(f"Lỗi khi duyệt user/service: {str(e)}")
+    user_profile = env['student.user.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
+    if not user_profile.exists():
+        raise ValueError(f"User profile không tồn tại: {userid}")
+
+    # ID của cụm KTX
+    cluster_id = user_profile.dormitory_cluster_id.id if user_profile.dormitory_cluster_id else 0
+
+    service = env['student.service'].sudo().browse(int(serviceid))
+    if not service.exists():
+        raise ValueError(f"Service không tồn tại: {serviceid}")
+    
 
     attachments = attachments or []
     vals = {}
@@ -54,6 +84,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
                 'image_attachment_ids': [(6, 0, attachments)],
                 'request_date': Datetime.now(),
                 'final_state': 'pending',
+                'dormitory_cluster_id': cluster_id,  # Gán cụm KTX nếu có
             })
             if len(vals.step_ids.ids) > 0:
                 # Sửa yêu cầu ok
@@ -69,10 +100,12 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
             'image_attachment_ids': [(6, 0, attachments)],
             'request_date': Datetime.now(),
             'final_state': 'pending',
+            'dormitory_cluster_id': cluster_id,  # Gán cụm KTX nếu có
         }
 
     # Tạo mới yêu cầu các bước xử lý
-    step_ids = []
+    received_users = [] # Danh sách user sẽ nhận yêu cầu
+    step_ids = [] # Danh sách các bước duyệt
     for step in service.step_ids.sorted('sequence'):
         step_vals = {
             'request_id': False,
@@ -81,26 +114,32 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
         }
         step_request = env['student.service.request.step'].create(step_vals)
         if step == service.step_ids.sorted('sequence')[0] and service.files:
+            # Nếu là bước đầu tiên thì gán file_ids từ service.files
             step_request.file_ids = [(6, 0, service.files.ids)]
+            # Lấy user duyệt trong cấu hình step đầu tiên
+            if step.user_ids:
+                step_request.user_ids = [(6, 0, step.user_ids.ids)]
+            received_users = get_user_received_requests(env, cluster_id, service, step)
+            if received_users: 
+                vals['users'] = [(6, 0, received_users)] # Gán user nhận yêu cầu
+
         step_ids.append(step_request.id)
 
     if step_ids:
         vals['step_ids'] = [(6, 0, step_ids)]
 
     # Gán role và người duyệt
-    role_users = []
+    # role_users = []
     if service.role_ids:
         vals['role_ids'] = [(6, 0, service.role_ids.ids)]
-        admin_profiles = env['student.admin.profile'].sudo().search([
-            ('role_ids', 'in', service.role_ids.ids)
-        ])
-        role_users += [ap.user_id.id for ap in admin_profiles if ap.user_id]
+    #   admin_profiles = env['student.admin.profile'].sudo().search([
+    #       ('role_ids', 'in', service.role_ids.ids)
+    #   ])
+    #   role_users += [ap.user_id.id for ap in admin_profiles if ap.user_id]
 
-    if service.users:
-        role_users = list(set(role_users) | set(service.users.ids))
+    #if service.users: role_users = list(set(role_users) | set(service.users.ids))
 
-    if role_users:
-        vals['users'] = [(6, 0, role_users)]
+    #if role_users: vals['users'] = [(6, 0, role_users)]
 
     if 'id' not in vals or vals.get('id', 0) == 0:
         # Tạo record
@@ -155,7 +194,7 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
     return request
 
 
-#Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, file đính kèm)
+#Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, action duyệt, user được giao, file đính kèm, kết luận)
 def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data):
     request = env['student.service.request'].browse(requestid)
     step = request.step_ids.browse(stepid)
@@ -235,6 +274,9 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
             })
             note = f'Đã duyệt bước {step.base_step_id.name}, đang chờ duyệt bước {next_step.base_step_id.name}'
             act = 'pending'
+            received_users = get_user_received_requests(env, request.dormitory_cluster_id.id, request.service_id, next_step)
+            if received_users:
+                next_step_users += received_users
 
     #Update database: request các field: approve_content approve_date final_state final_data
     request.sudo().write({
@@ -533,9 +575,9 @@ class ServiceApiController(http.Controller):
             
             # Lọc các yêu cầu dịch vụ mà user_id nằm trong users hoặc một trong các role_id của aprofile nằm trong role_ids
 
-            domain.append('|')
+            #domain.append('|')
             domain.append(('users', 'in', [user_id]))
-            domain.append(('role_ids', 'in', aprofile.role_ids.ids))
+            #domain.append(('role_ids', 'in', aprofile.role_ids.ids))
 
             requests = request.env['student.service.request'].sudo().search(domain)
 

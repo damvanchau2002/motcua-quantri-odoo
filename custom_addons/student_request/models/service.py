@@ -240,6 +240,7 @@ class ServiceRequest(models.Model):
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
     )
     request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ')
+    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này')
 
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
@@ -253,6 +254,7 @@ class ServiceRequest(models.Model):
     users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
     
 
+    # Trạng thái cuối cùng của yêu cầu dịch vụ
     final_state = fields.Selection([
         ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
@@ -264,6 +266,8 @@ class ServiceRequest(models.Model):
         ('closed', 'Đã đóng')
       ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
+
+    # Thông tin duyệt mỗi bước cập nhật lên
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt hiện tại cho yêu cầu dịch vụ này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now, help='Ngày và giờ thao tác cập nhật duyệt yêu cầu dịch vụ này')
     approve_user_id = fields.Many2one('res.users', string='Người đang nhận duyệt', help='Người đang thụ lý yêu cầu dịch vụ này')
