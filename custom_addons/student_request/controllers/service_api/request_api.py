@@ -23,8 +23,11 @@ def get_user_received_requests(env, cluster_id, service, step):
     if service.users: # Nếu dịch vụ có gán user thì lấy luôn
         received_users += service.users.ids
 
-    if step.user_ids: # Nếu bước có gán user thì lấy luôn
-        received_users += step.user_ids.ids
+    if step.assign_user_id: # Nếu bước có gán user thì lấy luôn
+        received_users += [step.assign_user_id.id]
+
+    if step.base_step_id.user_ids: # Nếu bước có gán user_ids thì lấy luôn
+        received_users += step.base_step_id.user_ids.ids
 
     # Lấy các user trong cụm KTX
     if cluster_id > 0:
@@ -63,7 +66,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
         raise ValueError(f"User profile không tồn tại: {userid}")
 
     # ID của cụm KTX
-    cluster_id = user_profile.dormitory_cluster_id.id if user_profile.dormitory_cluster_id else 0
+    cluster_id = user_profile.dormitory_cluster_id if user_profile.dormitory_cluster_id else 0
 
     service = env['student.service'].sudo().browse(int(serviceid))
     if not service.exists():
