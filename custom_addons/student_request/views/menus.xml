@@ -13,7 +13,7 @@
     <menuitem id="student_file_menu" name="Giấy tờ nộp kèm" parent="student_request_config" action="action_student_service_file"/>
     <menuitem id="student_dormitory_area" name="Khu ký túc xá" parent="student_request_config" action="action_student_dormitory_area"/>
     <menuitem id="student_dormitory_cluster" name="Cụm ký túc xá" parent="student_request_config" action="action_student_dormitory_cluster"/>
-    <menuitem id="menu_student_activity_role" name="Student Activity Roles" parent="student_request_config" action="action_student_activity_role"/>
+    <menuitem id="menu_student_activity_role" name="Chức danh, phòng ban" parent="student_request_config" action="action_student_activity_role"/>
 
     <menuitem id="student_request_review" name="Duyệt comments " parent="student_request_root" />
     <menuitem id="student_request_review_menu" name="Đánh giá yêu cầu" parent="student_request_review" action="action_student_service_request_review"/>
