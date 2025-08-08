@@ -102,9 +102,9 @@ class Service(models.Model):
     group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
 
     files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
-    users = fields.Many2many('res.users', string='Người duyệt', help='Người có quyền duyệt dịch vụ này')
+    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
-    role_ids = fields.Many2many('student.activity.role', string='Vai trò duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
+    role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
 
 
 # Định nghĩa bước duyệt của 1 dịch vụ
@@ -119,8 +119,8 @@ class ServiceStep(models.Model):
     nextstep = fields.Integer('Thứ tự', default=99)
     state = fields.Integer('Trạng thái', default=1)  # Trạng thái bước, mặc định là 1 (có thể chỉnh sửa)
 
-    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định nhận được thông báo để thực hiện bước này')
-    role_ids = fields.Many2many('student.activity.role', string='Vai trò', help='Các vai trò nhận được thông báo để thực hiện bước này')
+    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định được phân công thực hiện duyệt bước này')
+    role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này')
 
     def unlink(self):
         for step in self:
