@@ -1051,14 +1051,7 @@ class ServiceApiController(http.Controller):
                     'complaint_date': format_datetime_local(complaint.complaint_date, complaint.user_id.id)
 
                 })
-                try:
-                    send_fcm_request(
-                        request.env,
-                        complaint.request_id,
-                        send_type=5  # Gửi thông báo khiếu nại
-                    )
-                except Exception as e:
-                    pass  # Nếu không tìm thấy user_id thì bỏ qua
+     
             return Response(
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
                 content_type='application/json',
@@ -1128,7 +1121,14 @@ class ServiceApiController(http.Controller):
                 attachment_ids.append(attachment.id)
             if attachment_ids:
                 complaint.sudo().write({'image_ids': [(6, 0, attachment_ids)]})
-
+                try:
+                    send_fcm_request(
+                        request.env,
+                        complaint.request_id,
+                        send_type=5  # Gửi thông báo khiếu nại
+                    )
+                except Exception as e:
+                    pass  # Nếu không tìm thấy user_id thì bỏ qua
             return Response(
                 json.dumps({'success': True, 'message': 'Gửi khiếu nại thành công', 'data': {
                     'id': complaint.id,
