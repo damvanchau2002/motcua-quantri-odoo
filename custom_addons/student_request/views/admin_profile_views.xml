@@ -12,7 +12,7 @@
                 <field name="phone"/>
                 <field name="email"/>
                 <field name="dormitory_area_id"/>
-                <field name="dormitory_cluster_id"/>
+                <field name="dormitory_clusters"/>
                 <field name="oauth_ids" />
             </list>
         </field>
@@ -27,7 +27,7 @@
                         <field name="user_id" readonly="1"/>
                         <field name="title_name"  />
                         <field name="dormitory_area_id"  />
-                        <field name="dormitory_cluster_id"  />
+                        <field name="dormitory_clusters"  />
                         <field name="role_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}" />
                         <field name="specialization" />
                         <field name="activated"/>

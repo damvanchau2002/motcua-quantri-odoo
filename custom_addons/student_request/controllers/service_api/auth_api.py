@@ -541,7 +541,7 @@ class AuthApiController(http.Controller):
                     'activated': profile.activated if profile else False,
                     'title_name': str(profile.title_name or '') if profile else '',
                     'dormitory_area_id': profile.dormitory_area_id.id if profile and profile.dormitory_area_id else 0,
-                    'dormitory_cluster_id': profile.dormitory_cluster_id.id if profile and profile.dormitory_cluster_id else 0,
+                    'dormitory_clusters': profile.dormitory_clusters.ids if profile and profile.dormitory_clusters else [],
                     'oauth': oauth.provider if oauth else '',
                     'providers': oauths.mapped('provider'),
                     'access_token': jwt_token,

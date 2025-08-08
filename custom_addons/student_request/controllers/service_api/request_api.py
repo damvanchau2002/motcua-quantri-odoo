@@ -31,7 +31,7 @@ def get_user_received_requests(env, cluster_id, service, step):
 
     # Lấy các user trong cụm KTX
     if cluster_id > 0:
-        domain = [('dormitory_cluster_id', '=', cluster_id), ('role_ids', 'in', step.role_ids.ids)]
+        domain = [('dormitory_clusters', 'in', [cluster_id]), ('role_ids', 'in', step.base_step_id.role_ids.ids)]
 
         dormitory_admins = env['student.admin.profile'].sudo().search(domain)
         if dormitory_admins:  # Nếu có quản lý KTX thì lấy user_id của họ
@@ -225,9 +225,19 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 'state': 'ignored',
                 'approve_content': 'Đã duyệt bước sau, bỏ qua bước này',
                 'approve_date': Datetime.now(),
-                'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
+                'assign_user_id': nextuserid if nextuserid else 0,
                 'history_ids': [(4, h.id)],
             })
+        next_steps = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence and (s.state != 'pending'))
+        for s in next_steps:
+            s.state = 'pending'
+            s.sudo().write({
+                'state': 'pending',
+                'approve_content': 'Chuyển lại trạng thái chờ duyệt do thay đổi trạng thái bước trước',
+                'approve_date': Datetime.now(),
+                'assign_user_id': nextuserid if nextuserid else 0,
+            })
+
 
     # Tạo bản ghi history cho bước đang duyệt
     hh = env['student.service.request.step.history'].sudo().create({
@@ -245,7 +255,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'approve_content': note,
         'state': act,
         'approve_date': Datetime.now(),
-        'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
+        'assign_user_id': nextuserid if nextuserid else 0,
         'history_ids': [(4, hh.id)],
     }
     
@@ -271,7 +281,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
             next_step.sudo().write({
                 'state': 'pending',
-                'assign_user_id': [(6, 0, [nextuserid])] if nextuserid else [],
+                'assign_user_id': nextuserid if nextuserid else 0,
                 'approve_date': Datetime.now(),
                 'approve_content': f'Đang chờ duyệt bước {next_step.base_step_id.name}',
             })

@@ -345,7 +345,9 @@ class StudentAdminProfile(models.Model):
     title_name = fields.Char('Chức danh', help='Chức danh, khu vực quản lý của quản trị viên sinh viên')
     activated = fields.Boolean('Đã kích hoạt', default=False, help='Trạng thái kích hoạt tài khoản quản trị viên sinh viên')
     dormitory_area_id = fields.Many2one('student.dormitory.area', string='Khu ký túc xá')
-    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm ký túc xá')
+    #dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm ký túc xá')
+    dormitory_clusters = fields.Many2many('student.dormitory.cluster', string='Cụm KTX quản lý', help='Các cụm ký túc xá mà quản trị viên này quản lý')
+
     # Thông tin vai trò:
     specialization = fields.Text('Chuyên môn', default='Chưa xác định', required=False, help='Ghi chú thêm về chuyên môn hoặc khu vực quản lý của quản trị của người này')
     role_ids = fields.Many2many('student.activity.role', string='Vai trò', help='Các vai trò hoạt động của quản trị viên')
