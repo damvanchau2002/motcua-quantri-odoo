@@ -627,7 +627,7 @@ class ServiceApiController(http.Controller):
                     'approve_content': req.approve_content,
                     'approve_date': format_datetime_local(req.approve_date, user_id),
                     'final_state': req.final_state,
-                    'finalfinal_data': req.final_data,
+                    'finalfinal_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
 
                     'service': {
                         'id': req.service_id.id,
