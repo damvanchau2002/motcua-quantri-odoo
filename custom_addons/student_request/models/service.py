@@ -350,7 +350,7 @@ class StudentAdminProfile(models.Model):
 
     # Thông tin vai trò:
     specialization = fields.Text('Chuyên môn', default='Chưa xác định', required=False, help='Ghi chú thêm về chuyên môn hoặc khu vực quản lý của quản trị của người này')
-    role_ids = fields.Many2many('student.activity.role', string='Vai trò', help='Các vai trò hoạt động của quản trị viên')
+    role_ids = fields.Many2many('student.activity.role', string='Nhóm chức danh', help='Các vai trò hoạt động của quản trị viên')
 
 # Model quản lý thông tin OAuth của quản trị viên
 class StudentAdminOauth(models.Model):
