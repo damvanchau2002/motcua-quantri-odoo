@@ -7,6 +7,7 @@
             <list>
                 <field name="name"/>
                 <field name="description"/>
+                <field name="level"/>
             </list>
         </field>
     </record>
@@ -20,6 +21,7 @@
                     <group>
                         <field name="name"/>
                         <field name="description"/>
+                        <field name="level"/>
                     </group>
                 </sheet>
             </form>

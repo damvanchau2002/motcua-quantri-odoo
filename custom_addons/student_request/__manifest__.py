@@ -24,6 +24,7 @@
         'views/dormitory_views.xml',
         'views/request_review_views.xml',
         'views/roles_views.xml',
+        'views/department_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',

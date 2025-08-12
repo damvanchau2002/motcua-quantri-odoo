@@ -39,3 +39,21 @@ class UserApiController(http.Controller):
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
             ]
         )
+
+    # Lấy danh sách các department
+    @http.route('/api/department/forassign', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_departments(self):
+        
+        departments = request.env['student.activity.department'].sudo().search([])
+        data = [{'id': d.id, 'name': d.name} for d in departments]
+        return Response(
+            json.dumps({'success': True, 'message': 'Danh sách các department', 'data': data}),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ]
+        )
+    

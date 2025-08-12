@@ -149,41 +149,51 @@
     <record id="role_le_tan" model="student.activity.role">
         <field name="name">Lễ tân</field>
         <field name="description">Tiếp đón, hướng dẫn sinh viên và khách đến KTX.</field>
+        <field name="level">1</field>
     </record>
-    <record id="role_tap_vu" model="student.activity.role">
-        <field name="name">Tạp vụ</field>
-        <field name="description">Dọn dẹp, vệ sinh khu vực KTX.</field>
-    </record>
+
     <record id="role_hanh_chinh" model="student.activity.role">
         <field name="name">Hành chính</field>
         <field name="description">Quản lý hồ sơ, giấy tờ và các thủ tục hành chính.</field>
+        <field name="level">3</field>
     </record>
+
     <record id="role_ky_thuat" model="student.activity.role">
         <field name="name">Kỹ thuật</field>
         <field name="description">Bảo trì, sửa chữa các thiết bị, cơ sở vật chất KTX.</field>
+        <field name="level">3</field>
     </record>
+
     <record id="role_bao_ve" model="student.activity.role">
         <field name="name">Bảo vệ</field>
         <field name="description">Đảm bảo an ninh, trật tự trong khu KTX.</field>
+        <field name="level">3</field>
     </record>
-    <record id="role_tai_chinh" model="student.activity.role">
-        <field name="name">Tài chính</field>
-        <field name="description">Quản lý thu chi, các vấn đề tài chính của KTX.</field>
-    </record>
-    <record id="role_cong_nghe" model="student.activity.role">
-        <field name="name">Công nghệ</field>
-        <field name="description">Quản lý hệ thống CNTT, phần mềm, mạng trong KTX.</field>
-    </record>
-    <record id="role_y_te" model="student.activity.role">
-        <field name="name">Y tế</field>
-        <field name="description">Chăm sóc sức khỏe, sơ cứu, tư vấn y tế cho sinh viên.</field>
-    </record>
+
     <record id="role_quan_ly" model="student.activity.role">
-        <field name="name">Quản lý</field>
+        <field name="name">Trưởng phòng</field>
         <field name="description">Điều hành, quản lý chung các hoạt động của KTX.</field>
+        <field name="level">9</field>
     </record>
-    <record id="role_giam_doc" model="student.activity.role">
-        <field name="name">Giám đốc</field>
-        <field name="description">Chịu trách nhiệm cao nhất về hoạt động của KTX.</field>
+
+
+    <record id="department_hanh_chinh" model="student.activity.department">
+        <field name="name">Phòng Hành chính</field>
+        <field name="description">Phụ trách các công việc hành chính, giấy tờ và thủ tục cho KTX.</field>
     </record>
+    <record id="department_ky_thuat" model="student.activity.department">
+        <field name="name">Phòng Kỹ thuật</field>
+        <field name="description">Phụ trách bảo trì, sửa chữa, quản lý kỹ thuật trong KTX.</field>
+    </record>
+
+    <record id="department_ky_thuat" model="student.activity.department">
+        <field name="name">Phòng CTSV</field>
+        <field name="description">Phụ trách các công việc liên quan đến sinh viên trong KTX.</field>
+    </record>
+    <record id="department_ky_thuat" model="student.activity.department">
+        <field name="name">Ban QLCN</field>
+        <field name="description">Phụ trách các công việc liên quan đến cụm nhà trong KTX.</field>
+    </record>
+
 </odoo>
+    

@@ -11,7 +11,7 @@
                 <field name="nextstep"/>
                 <field name="state"/>
                 <field name="user_ids" widget="many2many_tags" />
-                <field name="role_ids" widget="many2many_tags"/>
+                <field name="department_id" />
                 <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa bước" confirm="Bạn có chắc chắn muốn xóa bước này?" invisible="state == 0"/>
             </list>
         </field>
@@ -22,15 +22,16 @@
         <field name="arch" type="xml">
             <form>
                 <sheet>
-                    <group>
+                    <group string="Định nghĩa bước duyệt">
                         <field name="name"/>
                         <field name="sequence"/>
                         <field name="nextstep"/>
                         <field name="description"/>
                         <field name="state"/>
-
+                    </group>
+                    <group string="Phân công">
                         <field name="user_ids" widget="many2many_tags"/>
-                        <field name="role_ids" widget="many2many_tags"/>
+                        <field name="department_id" />
                     </group>
                 </sheet>
             </form>

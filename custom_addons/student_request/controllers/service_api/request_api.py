@@ -22,20 +22,20 @@ def get_user_received_requests(env, cluster_id, service, step):
     received_users = []
     if service.users: # Nếu dịch vụ có gán user thì lấy luôn
         received_users += service.users.ids
-    try:
-        if step.assign_user_id: # Nếu bước có gán user thì lấy luôn
-            received_users += [step.assign_user_id.id]
-    except Exception as e:
-        pass # Nếu không có assign_user_id thì bỏ qua
+    # try:
+    #     if step.assign_user_id: # Nếu bước có gán user thì lấy luôn
+    #         received_users += [step.assign_user_id.id]
+    # except Exception as e:
+    #     pass # Nếu không có assign_user_id thì bỏ qua
 
-    if step.base_step_id.user_ids: # Nếu bước có gán user_ids thì lấy luôn
-        received_users += step.base_step_id.user_ids.ids
+    #if step.base_step_id.user_ids: # Nếu bước có gán user_ids thì lấy luôn
+    #    received_users += step.base_step_id.user_ids.ids
 
     # Lấy các user trong cụm KTX
     if cluster_id > 0:
         domain = [('dormitory_clusters', 'in', [cluster_id]), ('role_ids', 'in', step.base_step_id.role_ids.ids)]
-
         dormitory_admins = env['student.admin.profile'].sudo().search(domain)
+
         if dormitory_admins:  # Nếu có quản lý KTX thì lấy user_id của họ
             received_users += dormitory_admins.mapped('user_id.id')
 
@@ -200,7 +200,23 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, action duyệt, user được giao, file đính kèm, kết luận)
-def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data):
+def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data, department_id = 0):
+    """
+    Cập nhật bước yêu cầu dịch vụ (Update a service request step).
+    Args:
+        env (Environment): Đối tượng môi trường Odoo (Odoo environment object).
+        requestid (int): ID của yêu cầu dịch vụ (ID of the service request).
+        stepid (int): ID của bước hiện tại trong quy trình (ID of the current step in the process).
+        userid (int): ID của người thực hiện hành động (ID of the user performing the action).
+        note (str): Ghi chú hoặc nội dung phê duyệt (Approval note or comment).
+        act (str): Hành động thực hiện trên bước ('pending', 'approved', 'rejected', ...) (Action to perform on the step).
+        nextuserid (int): ID của người dùng tiếp theo sẽ xử lý (ID of the next user to process the step).
+        docs (list): Danh sách tài liệu đính kèm (List of attached documents).
+        final_data (str): Dữ liệu cuối cùng của yêu cầu (Final data of the request).
+        department_id (int, optional): ID của phòng ban liên quan (ID of the related department). Mặc định là 0.
+    Returns:
+        dict or bool: Trả về dict chứa thông tin cập nhật nếu thành công, False nếu không tìm thấy bước (Returns a dict with updated information if successful, False if the step is not found).
+    """
     request = env['student.service.request'].browse(requestid)
     step = request.step_ids.browse(stepid)
     # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
@@ -266,23 +282,22 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         vals['file_checkbox_ids'] = step.file_checkbox_ids
     if step.base_secquence == 99:
         vals['final_data'] = final_data
-    
-    next_step_users = [nextuserid]
+    next_step_users = []
+    # Chỗ này tìm người tiếp theo được phân công theo nextuserid hoặc department_id gán vào mảng next_step_users
+    if nextuserid > 0:
+        next_step_users.append(nextuserid)
+    if department_id:
+        department_users = env['student.admin.profile'].search([('department_id', '=', department_id), ('role_ids.level', 'in', [9])])
+        next_step_users.extend(department_users.ids)
+
     #Nếu chưa phải bước cuối cùng và duyệt đã hoàn thành
     if step.base_secquence != 99 and act == 'approved':
         #Tìm bước tiếp theo trong request.step_ids theo sequence
         next_step = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
         if next_step:
-            #Gán trạng thái cho bước tiếp theo là 'assigned' và gán user xử lý tiếp theo nếu có
             next_step = next_step[0]
-            #Lấy users trong base_step_id của bước tiếp theo
-            next_step_users = list(set(next_step_users) | set(next_step.base_step_id.user_ids.ids))
-            #quét các user trong base_step.role_ids để lấy user_id
-            admin_profiles = env['student.admin.profile'].sudo().search([('role_ids', 'in', next_step.base_step_id.role_ids.ids)])
-            next_step_users = list(set(next_step_users) | set([ap.user_id.id for ap in admin_profiles if ap.user_id]))
-
             next_step.sudo().write({
-                'state': 'pending',
+                'state': 'assigned',
                 'assign_user_id': nextuserid if nextuserid else 0,
                 'approve_date': Datetime.now(),
                 'approve_content': f'Đang chờ duyệt bước {next_step.base_step_id.name}',
@@ -298,9 +313,11 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'users': [(4, uid) for uid in next_step_users],
         'approve_content': note,
         'approve_date': Datetime.now(),
-        'approve_user_id': nextuserid if nextuserid else False,
+        'approve_user_id': userid,
+        'user_processing_id': nextuserid if nextuserid else False,
         'final_state': act,
         'final_data': final_data if step.base_step_id.sequence == 99 else '',
+        'department_id': department_id if department_id else False,
     })
 
     if step.base_secquence == 99 and act == 'approved':
@@ -666,6 +683,89 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
+     # Lấy danh sách các yêu cầu dịch vụ của user_id được giao
+    @http.route('/api/service/request/myasigned', type='http', auth='public', methods=['GET'], csrf=False)
+    def list_service_requests(self, **post):
+        domain = []
+        params = request.httprequest.get_json(force=True, silent=True) or {}
+        try:
+            user_id = int(params.get('user_id')) if params.get('user_id') else 0
+            aprofile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id)], limit=1) if user_id else None
+
+            domain.append(('user_processing_id', '==', user_id))
+
+            requests = request.env['student.service.request'].sudo().search(domain)
+
+            results = []
+            for req in requests:
+                steps = []
+                for step in req.step_ids:
+                    steps.append({
+                        'id': step.id,
+                        'name': step.base_step_id.name if step.base_step_id else '',
+                        'state': step.state,
+                        'base_secquence': step.base_secquence,
+                        'approve_content': step.approve_content,
+                        'approve_date': step.approve_date and step.approve_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                        'history_ids': [
+                            {
+                                'state': f.state,
+                                'note': f.note,
+                                'date': f.date and f.date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                                'user_id': f.user_id.name if f.user_id.name else '[Admin]',
+                            } for f in step.history_ids
+                        ],
+                    })
+                # Sắp xếp các bước theo sequence tăng dần
+                steps = sorted(steps, key=lambda x: x['base_secquence'])
+                results.append({
+                    'id': req.id,
+
+                    'name': req.name,
+                    'note': req.note,
+                    'request_date': format_datetime_local(req.create_date, user_id),
+                    'approve_user_id': req.approve_user_id.id if req.approve_user_id else None,
+                    'approve_user_name': req.approve_user_id.name if req.approve_user_id else '',
+                    'approve_content': req.approve_content,
+                    'approve_date': format_datetime_local(req.approve_date, user_id),
+                    'final_state': req.final_state,
+                    'finalfinal_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
+
+                    'service': {
+                        'id': req.service_id.id,
+                        'name': req.service_id.name,
+                        'description': req.service_id.description,
+                    } if req.service_id else {},
+
+                    'steps': steps,
+                })
+            # Trả về danh sách yêu cầu dịch vụ của user
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Thành công',
+                    'data': results
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e), 'data': []}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
     # Lấy chi tiết 1 yêu cầu dịch vụ
     @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_service_request_detail(self, request_id):
@@ -757,6 +857,7 @@ class ServiceApiController(http.Controller):
         note = params.get('note', '')            # Nội dung duyệt
         act = params.get('act', '')              # action: 'pending', 'assigned', 'ignored', 'approved', 'rejected'
         next_user_id = params.get('next_user_id')  # User tiếp theo xử lý yêu cầu
+        next_department_id = params.get('next_department_id')  # Phòng ban tiếp theo xử lý yêu cầu
         docs = params.get('docs')                # Danh sách file đính kèm nếu bước = 1
         final_data = params.get('final_data')    # Nếu duyệt bước 99 cuối
 
@@ -787,7 +888,7 @@ class ServiceApiController(http.Controller):
                 )
 
             # Xử lý logic duyệt bước ở đây
-            step_data = update_request_step(request.env, request_id, step_id, user_id, note, act, next_user_id, docs, final_data)
+            step_data = update_request_step(request.env, request_id, step_id, user_id, note, act, next_user_id, docs, final_data, next_department_id)
             request.env['student.service.request.step'].sudo().write(step_data)
 
             return Response(
@@ -812,86 +913,7 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
-    # Lấy danh sách thông báo của user
-    @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST'], csrf=False)
-    def approve_service_request(self, **post):
-        params = request.httprequest.get_json(force=True, silent=True) or {}
-        request_id = params.get('request_id')
-        user_id = params.get('user_id')
-        asign_user_id = params.get('asign_user_id')
-        step_id = params.get('step_id')
-        checked_ids = params.get('checked_ids')
-        state = params.get('state', '')
-        note = params.get('note', '')
-        final = params.get('final', '')
 
-        if not request_id or not user_id or not step_id:
-            return Response(
-                json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
-                content_type='application/json',
-                status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
-
-        req = request.env['student.service.request'].sudo().browse(int(request_id))
-        user = request.env['res.users'].sudo().browse(int(user_id))
-        step = request.env['student.service.request.step'].sudo().browse(int(step_id))
-
-        if not req.exists() or not user.exists() or not step.exists():
-            return Response(
-                json.dumps({'success': False, 'message': 'Request, user, or step not found'}),
-                content_type='application/json',
-                status=404,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
-
-        # Kiểm tra quyền duyệt
-        # if user not in req.users:
-        #     return Response(
-        #         json.dumps({'success': False, 'message': 'User does not have approval rights'}),
-        #         content_type='application/json',
-        #         status=403,
-        #         headers=[
-        #             ('Access-Control-Allow-Origin', '*'),
-        #             ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-        #             ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-        #         ]
-        #     )
-
-        try:
-            # Cập nhật bước duyệt
-            vals = update_request_step(request.env, request_id, step_id, user_id, note, state, asign_user_id, checked_ids, final)
-            step.sudo().write(vals)
-            return Response(
-                json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
-                content_type='application/json',
-                status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
-        except Exception as e:
-            return Response(
-                json.dumps({'success': False, 'message': str(e)}),
-                content_type='application/json',
-                status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
-    
     # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
     @http.route('/api/service/request/review/list', type='http', auth='public', methods=['GET'], csrf=False)
     def list_service_request_reviews(self, **kwargs):

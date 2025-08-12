@@ -26,7 +26,7 @@
             <form>
                 <sheet>
                     <group>
-                        <group string="Thông tin dịch vụ">
+                        <group string="Định nghĩa dịch vụ">
                             <field name="name" />
                             <field name="description" help="Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên"/>
                             <field name="titlenote" help="Ghi chú cho SV thông tin cần nhập như thế nào"/>
@@ -41,8 +41,10 @@
                                 context="{'default_sequence': 1, 'default_nextstep': 99}"
                                 options="{'no_create': true, 'no_create_edit': true}"
                             />
-                            <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Settings')]" />
-                            <field name="role_ids" widget="many2many_tags"/>
+                        </group>
+                        <group string="Phân công duyệt">
+                            <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Settings')]" help="Người cụ thể nhận được thông báo duyệt dịch vụ này"/>
+                            <field name="role_ids" widget="many2many_tags" help="Các vai trò nhận được thông báo duyệt dịch vụ này"/>
                         </group>
                     </group>
                 </sheet>

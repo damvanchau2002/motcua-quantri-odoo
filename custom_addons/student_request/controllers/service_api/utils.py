@@ -340,11 +340,20 @@ def send_fcm_batch(env, tokens, title, body, data=None, batch_size=500):
 # Gửi FCM với đầu vào là Request object, data sẽ là {'type': 'request', 'id': f'{request.id}'}
 # send_type = 0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt hoàn thành, 4: Đánh giá, 5: Khiếu nại  
 def send_fcm_request(env, request_obj, send_type=0):
+    """
+    Gửi thông báo FCM cho yêu cầu dịch vụ
+    
+    """
     data = {'type': 'request', 'id': str(request_obj.id)}
     # Nội dung thông báo cho người duyệt
-    title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.request_user_id.name}"
-    body = "Bạn có một yêu cầu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+    title = f"Bạn có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.request_user_id.name}"
+    body = f"Bạn nhận được trách nhiệm duyệt yêu cầu {request_obj.service_id.name} từ {request_obj.request_user_id.name}: " + (request_obj.note + ". Hay kiểm tra chi tiết trong ứng dụng.")
+    if request_obj.user_processing_id:
+        return send_fcm_users(env, [request_obj.user_processing_id.id], title, body, data)
+
     if send_type == 0:
+        title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.request_user_id.name}"
+        body = "Bạn có một yêu cầu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
         send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công', f'Yêu cầu của bạn đã được tạo thành công. {request_obj.note}', data)
     elif send_type == 1:
         send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được cập nhật', f'Yêu cầu của bạn đã được cập nhật. {request_obj.note}', data)

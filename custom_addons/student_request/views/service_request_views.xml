@@ -211,6 +211,9 @@
                             <field name="state"/>
                             <field name="approve_content"/>
                             <field name="assign_user_id" domain="[('groups_id.name', '=', 'Settings')]" />
+                            <field name="department_id" />
+                        </group>
+                        <group string="Nghiệm thu">
                             <field name="final_data" readonly="base_secquence != 99"/>
                         </group>
                         <group string="Thông tin đính kèm">
