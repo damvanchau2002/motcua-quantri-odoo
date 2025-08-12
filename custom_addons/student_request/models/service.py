@@ -102,8 +102,10 @@ class Service(models.Model):
     group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
 
     files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
-    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
+
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
+
+    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
     role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
 
 

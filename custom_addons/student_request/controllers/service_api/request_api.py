@@ -134,17 +134,21 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
         vals['step_ids'] = [(6, 0, step_ids)]
 
     # Gán role và người duyệt
-    # role_users = []
     if service.role_ids:
         vals['role_ids'] = [(6, 0, service.role_ids.ids)]
-    #   admin_profiles = env['student.admin.profile'].sudo().search([
-    #       ('role_ids', 'in', service.role_ids.ids)
-    #   ])
-    #   role_users += [ap.user_id.id for ap in admin_profiles if ap.user_id]
 
-    #if service.users: role_users = list(set(role_users) | set(service.users.ids))
+    # Tìm user quản lý sinh viên (level=1) trong cụm KTX
+    user_processing_id = 0
+    qlsv_profile = env['student.admin.profile'].sudo().search([
+        ('role_ids.level', '=', 1),
+        ('dormitory_clusters.qlsv_cluster_id', 'in', [cluster_id])
+    ], limit=1)
+    if qlsv_profile:
+        user_processing_id = qlsv_profile.user_id.id
 
-    #if role_users: vals['users'] = [(6, 0, role_users)]
+    if user_processing_id > 0:
+        vals['user_processing_id'] = user_processing_id
+
     try:
         if vals.id > 0:
             return vals
@@ -698,7 +702,7 @@ class ServiceApiController(http.Controller):
             user_id = int(params.get('user_id')) if params.get('user_id') else 0
             aprofile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id)], limit=1) if user_id else None
 
-            domain.append(('user_processing_id', '==', user_id))
+            domain.append(('user_processing_id', '=', user_id))
 
             requests = request.env['student.service.request'].sudo().search(domain)
 
