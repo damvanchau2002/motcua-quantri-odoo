@@ -145,11 +145,15 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     #if service.users: role_users = list(set(role_users) | set(service.users.ids))
 
     #if role_users: vals['users'] = [(6, 0, role_users)]
-
-    if 'id' not in vals or vals.get('id', 0) == 0:
-        # Tạo record
+    try:
+        if vals.id > 0:
+            return vals
+    
+        raise ValueError("Thiếu ID yêu cầu")
+    except Exception as e:
         vals = env['student.service.request'].sudo().create(vals)
         send_fcm_request(env, vals, 0)
+        pass
     return vals
 
 
@@ -283,11 +287,13 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     if step.base_secquence == 99:
         vals['final_data'] = final_data
     next_step_users = []
+    department_user_id = 0
     # Chỗ này tìm người tiếp theo được phân công theo nextuserid hoặc department_id gán vào mảng next_step_users
-    if nextuserid > 0:
+    if nextuserid and nextuserid > 0:
         next_step_users.append(nextuserid)
-    if department_id:
+    if department_id and department_id > 0:
         department_users = env['student.admin.profile'].search([('department_id', '=', department_id), ('role_ids.level', 'in', [9])])
+        department_user_id = department_users and department_users[0].id or 0
         next_step_users.extend(department_users.ids)
 
     #Nếu chưa phải bước cuối cùng và duyệt đã hoàn thành
@@ -314,10 +320,10 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'approve_content': note,
         'approve_date': Datetime.now(),
         'approve_user_id': userid,
-        'user_processing_id': nextuserid if nextuserid else False,
+        'user_processing_id': nextuserid if nextuserid else department_user_id if department_user_id else None,
         'final_state': act,
         'final_data': final_data if step.base_step_id.sequence == 99 else '',
-        'department_id': department_id if department_id else False,
+        'department_ids': [(4, department_id)] if department_id else [],
     })
 
     if step.base_secquence == 99 and act == 'approved':
