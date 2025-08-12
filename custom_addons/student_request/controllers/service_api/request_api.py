@@ -33,7 +33,7 @@ def get_user_received_requests(env, cluster_id, service, step):
 
     # Lấy các user trong cụm KTX
     if cluster_id > 0:
-        domain = [('dormitory_clusters', 'in', [cluster_id]), ('role_ids', 'in', step.base_step_id.role_ids.ids)]
+        domain = [('dormitory_clusters', 'in', [cluster_id]), ('role_ids', 'in', service.role_ids.ids)]
         dormitory_admins = env['student.admin.profile'].sudo().search(domain)
 
         if dormitory_admins:  # Nếu có quản lý KTX thì lấy user_id của họ
@@ -140,8 +140,9 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     # Tìm user quản lý sinh viên (level=1) trong cụm KTX
     user_processing_id = 0
     qlsv_profile = env['student.admin.profile'].sudo().search([
+        ('role_ids', 'in', service.role_ids.ids),
         ('role_ids.level', '=', 1),
-        ('dormitory_clusters.qlsv_cluster_id', 'in', [cluster_id])
+        ('dormitory_clusters.qlsv_cluster_id', '=', cluster_id)
     ], limit=1)
     if qlsv_profile:
         user_processing_id = qlsv_profile.user_id.id

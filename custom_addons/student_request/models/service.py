@@ -106,7 +106,7 @@ class Service(models.Model):
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
 
     users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
-    role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
+    role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
 
 
 # Định nghĩa bước duyệt của 1 dịch vụ
