@@ -853,68 +853,82 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-    # Submit 1 bước duyệt
-    @http.route('/api/service/request/step/submit', type='json', auth='public', methods=['POST'], csrf=False)
-    def submit_service_request_step(self, **post):
+       # Lấy danh sách thông báo của user
+    @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST'], csrf=False)
+    def approve_service_request(self, **post):
         params = request.httprequest.get_json(force=True, silent=True) or {}
         request_id = params.get('request_id')
-        step_id = params.get('step_id') 
-        user_id = params.get('user_id')          # User thực hiện duyệt
-        note = params.get('note', '')            # Nội dung duyệt
-        act = params.get('act', '')              # action: 'pending', 'assigned', 'ignored', 'approved', 'rejected'
-        next_user_id = params.get('next_user_id')  # User tiếp theo xử lý yêu cầu
-        next_department_id = params.get('next_department_id')  # Phòng ban tiếp theo xử lý yêu cầu
-        docs = params.get('docs')                # Danh sách file đính kèm nếu bước = 1
-        final_data = params.get('final_data')    # Nếu duyệt bước 99 cuối
+        user_id = params.get('user_id')
+        asign_user_id = params.get('asign_user_id', 0)
+        department_id = params.get('department_id', 0)
+        step_id = params.get('step_id')
+        checked_ids = params.get('checked_ids')
+        state = params.get('state', '')
+        note = params.get('note', '')
+        final = params.get('final', '')
 
-        if not step_id:
+        if not request_id or not user_id or not step_id:
             return Response(
-                json.dumps({'success': False, 'message': 'Missing step_id', 'data': []}),
+                json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
                 content_type='application/json',
                 status=400,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        if asign_user_id == 0 and department_id == 0:
+            return Response(
+                json.dumps({'success': False, 'message': 'Phải có 1 trong 2 asign_user_id hoặc department_id'}),
+                content_type='application/json',
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        req = request.env['student.service.request'].sudo().browse(int(request_id))
+        user = request.env['res.users'].sudo().browse(int(user_id))
+        step = request.env['student.service.request.step'].sudo().browse(int(step_id))
+
+        if not req.exists() or not user.exists() or not step.exists():
+            return Response(
+                json.dumps({'success': False, 'message': 'Request, user, or step not found'}),
+                content_type='application/json',
+                status=404,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
 
         try:
-            step = request.env['student.service.request.step'].sudo().browse(step_id)
-            if not step:
-                return Response(
-                    json.dumps({'success': False, 'message': 'Step not found', 'data': []}),
-                    content_type='application/json',
-                    status=404,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ]
-                )
-
-            # Xử lý logic duyệt bước ở đây
-            step_data = update_request_step(request.env, request_id, step_id, user_id, note, act, next_user_id, docs, final_data, next_department_id)
-            request.env['student.service.request.step'].sudo().write(step_data)
-
+            # Cập nhật bước duyệt
+            vals = update_request_step(request.env, request_id, step_id, user_id, note, state, asign_user_id, checked_ids, final, department_id)
+            step.sudo().write(vals)
             return Response(
-                json.dumps({'success': True, 'message': 'Bước duyệt thành công', 'data': step_data}),
+                json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
                 content_type='application/json',
                 status=200,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
         except Exception as e:
             return Response(
-                json.dumps({'success': False, 'message': str(e), 'data': []}),
+                json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=500,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
