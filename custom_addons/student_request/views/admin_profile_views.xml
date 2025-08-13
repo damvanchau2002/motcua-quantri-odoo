@@ -12,9 +12,10 @@
                 <field name="phone"/>
                 <field name="email"/>
                 <field name="dormitory_area_id"/>
-                <field name="dormitory_clusters"/>
+                <field name="dormitory_clusters"  widget="many2many_tags" options="{'field_string': 'name'}"/>
                 <field name="department_id" />
-                <field name="oauth_ids" />
+                <field name="role_ids" widget="many2many_tags" />
+                <field name="oauth_ids" widget="many2many_tags" options="{'field_string': 'provider'}"/>
             </list>
         </field>
     </record>

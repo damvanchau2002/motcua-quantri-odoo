@@ -122,11 +122,9 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
             # Nếu là bước đầu tiên thì gán file_ids từ service.files
             step_request.file_ids = [(6, 0, service.files.ids)]
             # Lấy user duyệt trong cấu hình step đầu tiên
-            if step.user_ids:
-                step_request.user_ids = [(6, 0, step.user_ids.ids)]
-            received_users = get_user_received_requests(env, cluster_id, service, step_request)
-            if received_users: 
-                vals['users'] = [(6, 0, received_users)] # Gán user nhận yêu cầu
+            #if step.user_ids: step_request.user_ids = [(6, 0, step.user_ids.ids)]
+            #received_users = get_user_received_requests(env, cluster_id, service, step_request)
+            #if received_users: vals['users'] = [(6, 0, received_users)] # Gán user nhận yêu cầu
 
         step_ids.append(step_request.id)
 
@@ -139,17 +137,21 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
 
     # Tìm user quản lý sinh viên (level=1) trong cụm KTX
     user_processing_id = 0
-    qlsv_profile = env['student.admin.profile'].sudo().search([
+    qlsv_profiles = env['student.admin.profile'].sudo().search([
         ('role_ids', 'in', service.role_ids.ids),
-        ('role_ids.level', '=', 1),
         ('dormitory_clusters.qlsv_cluster_id', '=', cluster_id)
-    ], limit=1)
-    if qlsv_profile:
-        user_processing_id = qlsv_profile.user_id.id
+    ])
+    if qlsv_profiles:
+        user_processing_id = qlsv_profiles[0].user_id.id
+        received_users += qlsv_profiles.mapped('user_id.id')
 
     if user_processing_id > 0:
         vals['user_processing_id'] = user_processing_id
+        received_users.append(user_processing_id)
 
+    if len(received_users) > 0:
+        vals['users'] = [(6, 0, received_users)]
+        
     try:
         if vals.id > 0:
             return vals
@@ -325,6 +327,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'approve_content': note,
         'approve_date': Datetime.now(),
         'approve_user_id': userid,
+        'is_new': False,
         'user_processing_id': nextuserid if nextuserid else department_user_id if department_user_id else None,
         'final_state': act,
         'final_data': final_data if step.base_step_id.sequence == 99 else '',
@@ -666,6 +669,7 @@ class ServiceApiController(http.Controller):
                     } if req.service_id else {},
 
                     'steps': steps,
+                    'is_new': req.is_new
                 })
             # Trả về danh sách yêu cầu dịch vụ của user
             return Response(
@@ -749,6 +753,7 @@ class ServiceApiController(http.Controller):
                     } if req.service_id else {},
 
                     'steps': steps,
+                    'is_new': req.is_new
                 })
             # Trả về danh sách yêu cầu dịch vụ của user
             return Response(
@@ -845,6 +850,7 @@ class ServiceApiController(http.Controller):
             'approve_content': req.approve_content,
             'approve_date': format_datetime_local(req.approve_date),
             'histories': sumhistories,
+            'is_new': req.is_new
         }
 
         return Response(
