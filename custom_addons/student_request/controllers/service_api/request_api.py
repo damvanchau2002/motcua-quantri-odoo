@@ -69,6 +69,10 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
 
     # ID của cụm KTX
     cluster_id = user_profile.dormitory_cluster_id if user_profile.dormitory_cluster_id else 0
+    cluster = env['student.dormitory.cluster'].sudo().search([('qlsv_cluster_id', '=', cluster_id)], limit=1)
+    if not cluster:
+        raise ValueError(f"Cluster không tồn tại: {cluster_id}")
+    cluster_id = cluster.id
 
     service = env['student.service'].sudo().browse(int(serviceid))
     if not service.exists():
@@ -151,7 +155,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
 
     if len(received_users) > 0:
         vals['users'] = [(6, 0, received_users)]
-        
+
     try:
         if vals.id > 0:
             return vals
