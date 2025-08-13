@@ -261,4 +261,82 @@ class NotificationApiController(http.Controller):
                 ]
             )
    
-   
+    # API lấy số lượng thông báo chưa đọc
+    @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_unread_notifications_count(self):
+        try:
+            params = request.params
+            user_id = params.get('user_id')
+
+            if not user_id:
+                return Response(
+                    json.dumps({
+                        'success': False, 
+                        'message': 'Missing user_id'
+                    }),
+                    content_type='application/json',
+                    status=400
+                )
+
+            profile = request.env['student.user.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
+            if not profile:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'User profile not found'
+                    }),
+                    content_type='application/json',
+                    status=404
+                )
+
+            # Tạo domain để tìm thông báo
+            if profile.dormitory_cluster_id:
+                domain = ['|',
+                         ('user_ids', 'in', [profile.user_id.id]),
+                         ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])]
+            else:
+                domain = [('user_ids', 'in', [profile.user_id.id])]
+
+            # Đếm tổng số thông báo
+            total_notifications = request.env['student.notify'].sudo().search_count(domain)
+            
+            # Đếm số thông báo đã đọc
+            read_domain = domain + [('read_user_ids', 'in', [profile.user_id.id])]
+            read_count = request.env['student.notify'].sudo().search_count(read_domain)
+            
+            # Tính số thông báo chưa đọc
+            unread_count = total_notifications - read_count
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Thành công',
+                    'data': {
+                        'total': total_notifications,
+                        'unread': unread_count,
+                        'read': read_count
+                    }
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e)
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
