@@ -99,25 +99,24 @@
             <kanban class="o_kanban_view" default_order="id desc">
                 <templates>
                     <t t-name="kanban-box">
-                        <div class="oe_kanban_card" t-att-class="'state-' + record.final_state.value">
-                            <div class="oe_kanban_details">
+                        <div class="card p-0" t-att-class="record.final_state.raw_value == 'rejected' ? 'bg-danger' : (record.final_state.raw_value == 'closed' ? 'bg-secondary' : '')">
+                            <div class="card-header oe_kanban_header">
+                                <strong>
+                                    <field name="service_id" options="{'no_create': True}"/>
+                                </strong>
+                                <span class="badge ms-2" t-att-class="record.final_state.raw_value == 'approved' ? 'bg-success' : (record.final_state.raw_value == 'rejected' ? 'bg-danger' : 'bg-warning')">
+                                    <field name="final_state"/>
+                                </span>
+                            </div>
+                            <div class="oe_kanban_details card-body">
                                 <div class="d-flex flex-column align-items-center" style="margin-right: 10px; float: right;">
                                     <field name="request_user_avatar" widget="image" options="{'size': [64, 64]}"/>
                                     <b class="mt-2"><field name="request_user_name"/></b>
                                 </div>
                                 <div class="oe_kanban_title">
-                                    <strong>
-                                        <field name="service_id"/>
-                                    </strong>
-                                    <br />
                                     <small><field name="note"/></small>
                                 </div>
-                                <div>
-                                    <i class="fa fa-hourglass-half"></i>
-                                    <span class="badge ms-2" t-att-class="record.final_state.raw_value == 'approved' ? 'bg-success' : (record.final_state.raw_value == 'rejected' ? 'bg-danger' : 'bg-warning')">
-                                        <field name="final_state"/>
-                                    </span>
-                                </div>
+
                                 <div class="oe_kanban_date">
                                     <i class="fa fa-calendar"></i>
                                     <field name="request_date" class="ms-2"/>
