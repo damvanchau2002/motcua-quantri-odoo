@@ -696,7 +696,8 @@ class ServiceApiController(http.Controller):
 
      # Lấy danh sách các yêu cầu dịch vụ của user_id được giao
     @http.route('/api/service/request/myasigned', type='http', auth='public', methods=['GET'], csrf=False)
-    def list_service_requests(self, **post):
+    def get_service_requests_asigned(self, **post):
+
         domain = []
         params = request.httprequest.get_json(force=True, silent=True) or {}
         try:
