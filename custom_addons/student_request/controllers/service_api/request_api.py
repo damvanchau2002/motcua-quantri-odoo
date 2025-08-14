@@ -427,9 +427,40 @@ class ServiceApiController(http.Controller):
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
+            
+            # Lấy dữ liệu từ form
+            form = httprequest.form
+            request_id = form.get('request_id')
+            request_user_id = form.get('request_user_id')
+            note = form.get('note', '')
+            removed_image_ids = form.get('removed_image_ids', '[]')  # Danh sách ID ảnh cần xóa
 
+            if not request_id:
+                raise ValueError("Thiếu request_id")
+            if not request_user_id:
+                raise ValueError("Thiếu request_user_id")
+
+            # Lấy request hiện tại
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not service_request.exists():
+                raise ValueError("Yêu cầu không tồn tại")
+
+            # Xử lý danh sách ảnh cần xóa
+            try:
+                removed_ids = json.loads(removed_image_ids)
+                if removed_ids and isinstance(removed_ids, list):
+                    attachments_to_remove = request.env['ir.attachment'].sudo().browse(removed_ids)
+                    # Chỉ xóa những ảnh thực sự thuộc về request này
+                    valid_attachments = attachments_to_remove.filtered(
+                        lambda a: a.res_model == 'student.service.request' and a.res_id == int(request_id)
+                    )
+                    if valid_attachments:
+                        valid_attachments.sudo().unlink()
+            except json.JSONDecodeError:
+                _logger.warning("Invalid removed_image_ids format")
+
+            # Upload và tạo attachments mới
             attachment_ids = []
-
             for file_storage in files:
                 file_data = file_storage.read()
                 base64_data = base64.b64encode(file_data).decode('utf-8')
@@ -437,31 +468,25 @@ class ServiceApiController(http.Controller):
                     'name': file_storage.filename,
                     'datas': base64_data,
                     'res_model': 'student.service.request',
-                    'res_id': 0,
+                    'res_id': int(request_id),
                     'type': 'binary',
                     'mimetype': file_storage.mimetype or 'application/octet-stream',
                 })
                 attachment_ids.append(attachment.id)
 
-            # Lấy dữ liệu từ form
-            form = httprequest.form
-            request_id = form.get('request_id')
-            request_user_id = form.get('request_user_id')
-            note = form.get('note', '')
+            # Lấy danh sách ảnh hiện tại (không bao gồm ảnh đã xóa)
+            current_attachments = service_request.image_attachment_ids - valid_attachments if 'valid_attachments' in locals() else service_request.image_attachment_ids
+            
+            # Gộp với ảnh mới
+            all_attachment_ids = current_attachments.ids + attachment_ids
 
-            if not request_id:
-                raise ValueError("Thiếu request_id")
-
-            if not request_user_id:
-                raise ValueError("Thiếu request_user_id")
-
-            # Gọi hàm cập nhật yêu cầu
+            # Cập nhật request với tất cả ảnh
             request_rec = update_request(
                 env=request.env,
                 requestid=request_id,
                 userid=request_user_id,
                 note=note,
-                attachments=attachment_ids
+                attachments=all_attachment_ids
             )
 
             return Response(
@@ -473,7 +498,12 @@ class ServiceApiController(http.Controller):
                         'service_id': request_rec.service_id.id,
                         'service_name': request_rec.service_id.name,
                         'content': request_rec.note,
-                        'request_date': format_datetime_local(request_rec.write_date or request_rec.create_date, request_user_id)
+                        'request_date': format_datetime_local(request_rec.write_date or request_rec.create_date, request_user_id),
+                        'attachments': [{
+                            'id': att.id,
+                            'name': att.name,
+                            'url': f'/api/download/image/{att.id}'
+                        } for att in request_rec.image_attachment_ids]
                     }
                 }),
                 content_type='application/json',
@@ -486,6 +516,7 @@ class ServiceApiController(http.Controller):
             )
 
         except Exception as e:
+            _logger.error(f"Error updating service request: {str(e)}")
             return Response(
                 json.dumps({
                     'success': False,
@@ -500,7 +531,6 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
-
 
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
