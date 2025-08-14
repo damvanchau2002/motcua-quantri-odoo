@@ -1220,3 +1220,167 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
+
+    @http.route('/api/service/request/images', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_request_images(self):
+        try:
+            params = request.params
+            request_id = params.get('request_id')
+
+            if not request_id:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Missing request_id'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not service_request.exists():
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Request not found'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Lấy thông tin các ảnh đính kèm
+            images = []
+            if service_request.image_attachment_ids:
+                for attachment in service_request.image_attachment_ids:
+                    if attachment.mimetype and 'image' in attachment.mimetype:
+                        images.append({
+                            'id': attachment.id,
+                            'name': attachment.name,
+                            'mimetype': attachment.mimetype,
+                            'file_size': attachment.file_size,
+                            'url': f'/api/download/image/{attachment.id}',
+                            'create_date': attachment.create_date.strftime('%Y-%m-%d %H:%M:%S') if attachment.create_date else '',
+                        })
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Success',
+                    'data': images
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            _logger.error(f"Error getting request images: {str(e)}")
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e)
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    @http.route('/api/download/image/<int:attachment_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    def download_image(self, attachment_id):
+        try:
+            # Tìm attachment
+            attachment = request.env['ir.attachment'].sudo().browse(int(attachment_id))
+            if not attachment.exists():
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Attachment not found'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Kiểm tra mimetype có phải là ảnh không
+            if not attachment.mimetype or 'image' not in attachment.mimetype:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'File is not an image'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Lấy dữ liệu ảnh
+            image_data = base64.b64decode(attachment.datas) if attachment.datas else None
+            if not image_data:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Image data not found'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Trả về file ảnh
+            return request.make_response(
+                image_data,
+                headers=[
+                    ('Content-Type', attachment.mimetype),
+                    ('Content-Disposition', f'inline; filename="{attachment.name}"'),
+                    ('Content-Length', len(image_data)),
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            _logger.error(f"Error downloading image: {str(e)}")
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e)
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
