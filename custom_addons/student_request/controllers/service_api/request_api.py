@@ -170,7 +170,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
 
 def update_request(env, requestid, userid, note=None, attachments=None, final_state='pending'):
     """
-    Cập nhật yêu cầu dịch vụ đã có
+    Cập nhật yêu cầu dịch vụ đã có, dùng trong Sửa yêu cầu từ SV
         :param env: Odoo environment
         :param requestid: ID của yêu cầu cần cập nhật
         :param userid: ID của người cập nhật
@@ -217,7 +217,7 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, action duyệt, user được giao, file đính kèm, kết luận)
 def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data, department_id = 0):
     """
-    Cập nhật bước yêu cầu dịch vụ (Update a service request step).
+    Duyệt 1 bước nào đó: Cập nhật bước yêu cầu dịch vụ (Update a service request step).
     Args:
         env (Environment): Đối tượng môi trường Odoo (Odoo environment object).
         requestid (int): ID của yêu cầu dịch vụ (ID of the service request).
@@ -239,6 +239,27 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     # step = step[0] if step else service.step_ids.browse(stepid)
     if not step.exists():
         return False
+
+    if step.base_secquence == 99:
+        if act == 'closed':
+            # Kiểm tra lại đã có đánh giá nghiệm thu từ SV và người nghiệm thu, chưa có thì báo lỗi
+            acceptance_result = env['student.service.request.result'].sudo().search([
+                ('request_id', '=', requestid),
+                ('action_user_id', '=', userid)
+            ], limit=1)
+            if not acceptance_result:
+                raise ValueError("Chưa có đánh giá nghiệm thu từ sinh viên hoặc người nghiệm thu.")
+                #return False
+
+            # Lấy nghiệm thu của Admin cho yêu cầu này
+            admin_acceptance = env['student.service.request.result'].sudo().search([
+                ('request_id', '=', requestid),
+                ('action_user_id', '!=', userid)
+            ], limit=1)
+            if not admin_acceptance:
+                raise ValueError("Chưa có đánh giá nghiệm thu từ Admin.")
+                return False
+
     # nếu act khác pending thì tìm các bước trước đó còn pending cập nhật nó thanh ignored
     if act != 'pending':
         prev_steps = request.step_ids.filtered(lambda s: s.base_secquence < step.base_secquence and (s.state == 'pending' or s.state == 'assigned' or s.state == 'rejected'))
@@ -261,6 +282,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 'assign_user_id': nextuserid if nextuserid else 0,
                 'history_ids': [(4, h.id)],
             })
+        # Mở lại các bước tiếp theo nếu sửa lại duyệt    
         next_steps = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence and (s.state != 'pending'))
         for s in next_steps:
             s.state = 'pending'
@@ -295,8 +317,20 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     if step.base_secquence == 1:
         vals['file_ids'] = step.file_ids
         vals['file_checkbox_ids'] = step.file_checkbox_ids
+
+    # Bước cuối:    
     if step.base_secquence == 99:
         vals['final_data'] = final_data
+        # Nếu là approve bước cuối: THông báo đến Acc nghiệm thu và Người gửi yêu cầu
+        if act == 'approved':
+            send_fcm_request(env, request, 7)
+        if act == 'rejected':
+            send_fcm_request(env, request, 8)
+        if act == 'closed':
+            # Kiểm tra lại đã có đánh giá nghiệm thu từ SV và người nghiệm thu
+            send_fcm_request(env, request, 5)
+
+
     next_step_users = []
     department_user_id = 0
     # Chỗ này tìm người tiếp theo được phân công theo nextuserid hoặc department_id gán vào mảng next_step_users
@@ -320,7 +354,8 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 'approve_content': f'Đang chờ duyệt bước {next_step.base_step_id.name}',
             })
             note = f'Đã duyệt bước {step.base_step_id.name}, đang chờ duyệt bước {next_step.base_step_id.name}'
-            act = 'pending'
+            act = 'assigned' # Update bước tiếp theo thành đã phân công
+            # Cập nhật danh sách người đã xử lý yêu cầu
             received_users = get_user_received_requests(env, request.dormitory_cluster_id.id, request.service_id, next_step)
             if received_users:
                 next_step_users += received_users
@@ -332,7 +367,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'approve_date': Datetime.now(),
         'approve_user_id': userid,
         'is_new': False,
-        'user_processing_id': nextuserid if nextuserid else department_user_id if department_user_id else None,
+        'user_processing_id': nextuserid if nextuserid else department_user_id if department_user_id else None, # Phân công
         'final_state': act,
         'final_data': final_data if step.base_step_id.sequence == 99 else '',
         'department_ids': [(4, department_id)] if department_id else [],
@@ -500,7 +535,6 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
-
 
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
@@ -869,7 +903,7 @@ class ServiceApiController(http.Controller):
             ]
         )
 
-       # Lấy danh sách thông báo của user
+    # Lấy danh sách thông báo của user
     @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST'], csrf=False)
     def approve_service_request(self, **post):
         params = request.httprequest.get_json(force=True, silent=True) or {}
@@ -1199,6 +1233,111 @@ class ServiceApiController(http.Controller):
                     'description': complaint.description,
                     'image_ids': complaint.image_ids.ids,
                     'complaint_date': format_datetime_local(complaint.complaint_date, complaint.user_id.id)
+
+                }}),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': str(e)}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    # Đánh giá nghiệm thu của SV
+    @http.route('/api/service/request/acceptance/create', type='http', auth='public', methods=['POST'], csrf=False)
+    def create_service_request_acceptance(self, **post):
+        """
+            Tạo đánh giá nghiệm thu cho yêu cầu dịch vụ
+            
+        """
+        try:
+            httprequest = request.httprequest
+
+            # Lấy dữ liệu từ form
+            form = httprequest.form
+            request_id = form.get('request_id') 
+            user_id = form.get('user_id')
+            content = form.get('content', '')       # Nội dung đánh giá
+            action = form.get('action', 'issue')    # Hành động 
+            stars = form.get('star', 0)            # Số sao đánh giá
+
+            request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not request:
+                return Response(
+                    json.dumps({'success': False, 'message': 'Yêu cầu dịch vụ không tồn tại'}),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            acceptance = request.env['student.service.request.result'].sudo().create({
+                'request_id': int(request_id),
+                'user_id': int(user_id),
+                'note': content,
+                'action': action,
+                'star': stars,
+                'action_user_id': int(user_id),
+                'acceptance_ids': [(6, 0, request.users.ids)]  # Gán tất cả người dùng liên quan đến yêu cầu dịch vụ này
+            })
+
+            # Xử lý file đính kèm
+            attachment_ids = []
+            try:
+                files = httprequest.files.getlist('attachment')
+                for file_storage in files:
+                    file_data = file_storage.read()
+                    base64_data = base64.b64encode(file_data).decode('utf-8')
+                    attachment = request.env['ir.attachment'].sudo().create({
+                        'name': file_storage.filename,
+                        'datas': base64_data,
+                        'res_model': 'student.service.request.result',
+                        'res_id': acceptance.id,
+                        'type': 'binary',
+                        'mimetype': file_storage.mimetype or 'application/octet-stream',
+                    })
+                    attachment_ids.append(attachment.id)
+                if attachment_ids:
+                    acceptance.sudo().write({'image_ids': [(6, 0, attachment_ids)]})
+            except Exception as e:
+                pass  # Nếu không tìm thấy user_id thì bỏ qua
+
+            # Cập nhật trạng thái cuối cho yêu cầu dịch vụ
+            if action == 'accept':
+                request.sudo().write({'final_state': 'approved'})
+                send_fcm_request(request.env, acceptance.request_id, 10)  # Gửi thông báo nghiệm thu từ SV 
+                
+            elif action == 'reject' or action == 'issue':
+                request.sudo().write({'final_state': 'repairing'})
+                send_fcm_request(
+                    request.env,
+                    acceptance.request_id,
+                    9  # Cần xử lý lại yêu cầu
+                )
+                
+            return Response(
+                json.dumps({'success': True, 'message': 'Gửi khiếu nại thành công', 'data': {
+                    'id': acceptance.id,
+                    'request_id': acceptance.request_id.id,
+                    'user_id': acceptance.user_id.id,
+                    'note': acceptance.note,
+                    'image_ids': acceptance.image_ids.ids,
+                    'timestamp': format_datetime_local(acceptance.complaint_date, acceptance.user_id.id)
 
                 }}),
                 content_type='application/json',

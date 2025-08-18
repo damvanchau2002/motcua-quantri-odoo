@@ -118,7 +118,7 @@ class ServiceStep(models.Model):
     name = fields.Char('Tên bước', required=True, help='Tên bước duyệt dịch vụ')
     sequence = fields.Integer('Thứ tự', default=1)
     description = fields.Text('Mô tả bước')
-    nextstep = fields.Integer('Thứ tự', default=99)
+    nextstep = fields.Integer('Bước tiếp theo', default=99)
     state = fields.Integer('Trạng thái', default=1)  # Trạng thái bước, mặc định là 1 (có thể chỉnh sửa)
 
     # tạm thời chưa dùng:
@@ -159,6 +159,7 @@ class ServiceRequestStepHistory(models.Model):
         ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
+
         ('rejected', 'Từ chối'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
@@ -183,7 +184,8 @@ class ServiceRequestStep(models.Model):
         ('assigned', 'Đã phân công'),
         ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
-        ('approved', 'Đã duyệt'),
+        ('approved', 'Đã duyệt'), # Trạng thái đã duyệt: Hoàn thành xử lý yêu cầu
+
         ('rejected', 'Từ chối'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
@@ -276,16 +278,19 @@ class ServiceRequest(models.Model):
     # TRẠNG THÁI KẾT LUẬN CUỐI
     # Trạng thái cuối cùng của yêu cầu dịch vụ
     final_state = fields.Selection([
-        ('repairing', 'Chờ sửa chữa'),
+        ('repairing', 'Chờ sửa chữa'),  # Trạng thái chờ sửa chữa (SV yêu cầu làm lại, nghiệm thu không đạt)
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
         ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
-        ('approved', 'Đã duyệt'),
-        ('rejected', 'Từ chối'),
-        ('closed', 'Đã đóng')
+        ('approved', 'Đã duyệt'), 
+
+        ('rejected', 'Từ chối'),    # Hủy bỏ yêu cầu
+        ('closed', 'Đã đóng')       # Là hoàn thành và đóng
       ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
+    # Đánh giá cuối cùng 
+    final_star = fields.Integer('Sao đánh giá cuối', help='Số sao cuối cùng sẽ hiển thị lên App') 
 
     # TRẠNG THÁI HIỆN TẠI
     # Thông tin duyệt mỗi bước cập nhật lên
@@ -294,8 +299,12 @@ class ServiceRequest(models.Model):
     approve_user_id = fields.Many2one('res.users', string='Người đang nhận duyệt', help='Người đang thụ lý yêu cầu dịch vụ này')
 
     # PHẢN HỒI, ĐÁNH GIÁ
+    acceptance = fields.Text('Phản hồi chấp nhận', help='Phản hồi của người yêu cầu về việc xử lý')
     complaint_ids = fields.One2many('student.service.request.complaint', 'request_id', string='Các khiếu nại', help='Các khiếu nại liên quan đến yêu cầu dịch vụ này')
     review_ids = fields.One2many('student.service.request.review', 'request_id', string='Các đánh giá', help='Các đánh giá liên quan đến yêu cầu dịch vụ này')
+
+    # GHI NHẬN KẾT QUẢ
+    result_ids = fields.One2many('student.service.request.result', 'request_id', string='Kết quả', help='Các kết quả liên quan đến yêu cầu dịch vụ này')
 
     def action_create_new(self):
         # Tạo mới yêu cầu dịch vụ
@@ -492,3 +501,34 @@ class StudentDormitoryCluster(models.Model):
     def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)
 
+
+# Model lịch sử nghiệm thu yêu cầu
+class StudentServiceRequestResult(models.Model):
+    _name = 'student.service.request.result'
+    _description = 'Lịch sử nghiệm thu yêu cầu dịch vụ'
+
+    # Thông tin yêu cầu
+    request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ', required=True)
+    user_id = fields.Many2one('res.users', string='Người thực hiện', required=True)
+
+    # Thông tin người đóng góp
+    acceptance_ids = fields.Many2many('res.users', string='Người đóng góp')
+
+    action = fields.Selection([
+        ('issue', 'Cần sửa lại'),   # Cần sửa lại
+        ('accept', 'Chấp nhận'),    # Hoàn thành
+        ('reject', 'Từ chối'),      # Không hoàn thành
+    ], string='Hành động', required=True)
+    timestamp = fields.Datetime('Thời gian', default=fields.Datetime.now)
+    note = fields.Text('Ghi chú', help='Ghi chú về hành động thực hiện trên yêu cầu dịch vụ này')
+    star = fields.Integer('Sao đánh giá', help='Số sao đánh giá cho yêu cầu dịch vụ này')
+    image_ids = fields.Many2many(
+        'ir.attachment',
+        'student_service_request_result_image_rel',
+        'complaint_id',
+        'attachment_id',
+        string='Complaint Images',
+        help='Upload and attach multiple images to this complaint'
+    )
+    # Thông tin người thực hiện hành động
+    action_user = fields.Many2one('res.users', string='Người thực hiện hành động', required=True)

@@ -342,7 +342,9 @@ def send_fcm_batch(env, tokens, title, body, data=None, batch_size=500):
 def send_fcm_request(env, request_obj, send_type=0):
     """
     Gửi thông báo FCM cho yêu cầu dịch vụ
-    
+        :param env: Odoo environment
+        :param request_obj: Đối tượng yêu cầu dịch vụ
+        :param send_type: Loại thông báo (0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt hoàn thành, 4: Đánh giá, 5: Khiếu nại, 6: Nhắc SV vào nghiệm thu, 7: Nhắc cán bộ nghiệm thu, 8: Hủy, 9: Cần làm lại, 10: Đóng yêu cầu )
     """
     data = {'type': 'request', 'id': str(request_obj.id)}
     # Nội dung thông báo cho người duyệt
@@ -350,6 +352,7 @@ def send_fcm_request(env, request_obj, send_type=0):
     body = f"Bạn nhận được trách nhiệm duyệt yêu cầu {request_obj.service_id.name} từ {request_obj.request_user_id.name}: " + (request_obj.note + ". Hay kiểm tra chi tiết trong ứng dụng.")
     if request_obj.user_processing_id:
         return send_fcm_users(env, [request_obj.user_processing_id.id], title, body, data)
+
 
     if send_type == 0:
         title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.request_user_id.name}"
@@ -381,6 +384,29 @@ def send_fcm_request(env, request_obj, send_type=0):
         title = f"Khiếu nại yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
         body = "Bạn có một yêu cầu đã được khiếu nại: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
+    elif send_type == 6:
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu đã hoàn thành cần nghiệm thu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
+        return None
+    elif send_type == 7:
+        #send_fcm_users(env, [request_obj.request_user_id.id], f'Nhắc nhở nghiệm thu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
+        send_fcm_users(env, [request_obj.users.ids], f'Yêu cầu đang nghiệm thu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
+        return None
+
+    elif send_type == 8:
+        send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn bị hủy', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} bị hủy: {request_obj.final_data}', data)
+        return None
+
+    elif send_type == 9:
+        #send_fcm_users(env, [request_obj.request_user_id.id], f'Nhắc nhở nghiệm thu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
+        send_fcm_users(env, [request_obj.users.ids], f'Không nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở sửa lại yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} do không được nghiệm thu', data)
+        return None
+
+    elif send_type == 10:
+        #send_fcm_users(env, [request_obj.request_user_id.id], f'Nhắc nhở nghiệm thu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
+        send_fcm_users(env, [request_obj.users.ids], f'Đã hoàn thành và Đóng yêu cầu dịch vụ {request_obj.service_id.name}', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã xử lý xong và đóng lại!', data)
+        return None
+
+   
     # Gửi tới các user được gán xử lý yêu cầu này
     user_ids = request_obj.users.ids if request_obj.users else []
     if user_ids:
