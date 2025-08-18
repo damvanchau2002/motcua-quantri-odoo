@@ -44,3 +44,53 @@ class RequestComplaint(models.Model):
         help='Upload and attach multiple images to this complaint'
     )
     description = fields.Text(string='Description')
+
+class TemporaryWizard(models.TransientModel):
+    _name = 'temporary.wizard'
+    _description = 'Wizard Tạm Thời'
+
+    request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ', required=True)
+    user_id = fields.Many2one('res.users', string='Người gửi yêu cầu')
+    note = fields.Text(string='Ghi chú')
+    action = fields.Selection([
+        ('issue', 'Cần sửa lại'),   # Cần sửa lại
+        ('accept', 'Chấp nhận'),    # Hoàn thành
+        ('reject', 'Từ chối'),      # Không hoàn thành
+    ], string='Hành động', required=True)
+    star = fields.Integer('Sao đánh giá (1-5)', help='Số sao đánh giá cho yêu cầu dịch vụ này', required=True)
+    user_accept = fields.Many2one('res.users', string='Người chấp nhận', default=lambda self: self.env.user)
+
+    
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        if res.get('request_id'):
+            request = self.env['student.service.request'].browse(res['request_id'])
+            res['user_id'] = request.request_user_id.id
+        return res
+
+    def action_confirm(self):
+        # Tạo bản ghi Result
+        self.env['student.service.request.result'].create({
+            'request_id': self.request_id.id,
+            'user_id': self.request_id.request_user_id.id,
+            'note': self.note,
+            'action': self.action,
+            'star': self.star,
+            'action_user': self.user_accept.id,
+            'acceptance_ids': [(6, 0, self.request_id.users.ids)]
+        })
+
+        # Lấy ra Request
+        request = self.env['student.service.request'].browse(self.request_id.id)
+        if self.action == 'issue':
+            request.final_state = 'repairing'
+        elif self.action == 'accept':
+            request.final_state = 'closed'
+        elif self.action == 'reject':
+            request.final_state = 'rejected'
+        # Cập nhật trạng thái cuối cùng của yêu cầu
+        request.write({'final_state': request.final_state})
+        # Xóa bản ghi tạm thời
+        self.unlink()
+        return { 'type': 'ir.actions.client', 'tag': 'reload' }
