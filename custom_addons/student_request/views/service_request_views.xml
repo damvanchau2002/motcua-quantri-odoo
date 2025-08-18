@@ -115,7 +115,7 @@
                                 <strong>
                                     <field name="service_id" options="{'no_create': True}"/>
                                 </strong>
-                                <span class="badge ms-2 float-right" t-att-class="record.final_state.raw_value == 'approved' ? 'bg-success' : (record.final_state.raw_value == 'rejected' ? 'bg-danger' : 'bg-warning')">
+                                <span style="float: right;" class="badge ms-2" t-att-class="record.final_state.raw_value == 'approved' ? 'bg-success' : (record.final_state.raw_value == 'rejected' ? 'bg-danger' : 'bg-warning')">
                                     <field name="final_state"/>
                                 </span>
                             </div>

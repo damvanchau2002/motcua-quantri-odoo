@@ -390,7 +390,7 @@ class ServiceApiController(http.Controller):
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
-
+    
             attachment_ids = []
 
             for file_storage in files:
@@ -462,7 +462,7 @@ class ServiceApiController(http.Controller):
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
-
+        
             attachment_ids = []
 
             for file_storage in files:
