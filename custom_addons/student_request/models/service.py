@@ -310,7 +310,7 @@ class ServiceRequest(models.Model):
         # Tạo mới yêu cầu dịch vụ
         vals = create_request(self.env, self.service_id.id, self.id if self.id else 0, self.request_user_id.id, self.note, self.image_attachment_ids.ids)
         return { 'type': 'ir.actions.client', 'tag': 'reload' }
-        
+
     @api.model
     def cron_check_timeout_requests(self):
         """Kiểm tra và cập nhật trạng thái timeout cho các request"""

@@ -21,3 +21,4 @@ access_service_request_step_history_user,access.service.request.step.history.use
 access_student_service_request_review_manager,student.service.request.review manager,model_student_service_request_review,,1,1,1,1
 access_student_service_request_complaint_manager,student.service.request.complaint manager,model_student_service_request_complaint,,1,1,1,1
 access_student_service_request_result,student.service.request.result,model_student_service_request_result,,1,1,1,1
+access_temporary_wizard,access.temporary.wizard,model_temporary_wizard,,1,1,1,1
