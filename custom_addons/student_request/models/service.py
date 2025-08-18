@@ -509,7 +509,7 @@ class StudentServiceRequestResult(models.Model):
 
     # Thông tin yêu cầu
     request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ', required=True)
-    user_id = fields.Many2one('res.users', string='Người thực hiện', required=True)
+    user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True)
 
     # Thông tin người đóng góp
     acceptance_ids = fields.Many2many('res.users', string='Người đóng góp')

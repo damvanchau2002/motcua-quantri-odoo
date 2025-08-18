@@ -1268,13 +1268,13 @@ class ServiceApiController(http.Controller):
             # Lấy dữ liệu từ form
             form = httprequest.form
             request_id = form.get('request_id') 
-            user_id = form.get('user_id')
+            accept_user_id = form.get('accept_user_id')
             content = form.get('content', '')       # Nội dung đánh giá
             action = form.get('action', 'issue')    # Hành động 
-            stars = form.get('star', 0)            # Số sao đánh giá
+            stars = int(form.get('star', 0))            # Số sao đánh giá
 
-            request = request.env['student.service.request'].sudo().browse(int(request_id))
-            if not request:
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not service_request.exists():
                 return Response(
                     json.dumps({'success': False, 'message': 'Yêu cầu dịch vụ không tồn tại'}),
                     content_type='application/json',
@@ -1288,12 +1288,12 @@ class ServiceApiController(http.Controller):
 
             acceptance = request.env['student.service.request.result'].sudo().create({
                 'request_id': int(request_id),
-                'user_id': int(user_id),
+                'user_id': int(service_request.request_user_id.id),
                 'note': content,
                 'action': action,
                 'star': stars,
-                'action_user_id': int(user_id),
-                'acceptance_ids': [(6, 0, request.users.ids)]  # Gán tất cả người dùng liên quan đến yêu cầu dịch vụ này
+                'action_user': int(accept_user_id),
+                'acceptance_ids': [(6, 0, service_request.users.ids)]  # Gán tất cả người dùng liên quan đến yêu cầu dịch vụ này
             })
 
             # Xử lý file đính kèm
@@ -1319,25 +1319,28 @@ class ServiceApiController(http.Controller):
 
             # Cập nhật trạng thái cuối cho yêu cầu dịch vụ
             if action == 'accept':
-                request.sudo().write({'final_state': 'approved'})
-                send_fcm_request(request.env, acceptance.request_id, 10)  # Gửi thông báo nghiệm thu từ SV 
+                service_request.sudo().write({'final_state': 'closed', 'final_star': stars })
+                send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
                 
             elif action == 'reject' or action == 'issue':
-                request.sudo().write({'final_state': 'repairing'})
+                service_request.sudo().write({'final_state': 'repairing', 'final_star': stars})
                 send_fcm_request(
                     request.env,
-                    acceptance.request_id,
+                    service_request,
                     9  # Cần xử lý lại yêu cầu
                 )
                 
             return Response(
-                json.dumps({'success': True, 'message': 'Gửi khiếu nại thành công', 'data': {
+                json.dumps({'success': True, 'message': 'Gửi nghiệm thu thành công', 'data': {
                     'id': acceptance.id,
                     'request_id': acceptance.request_id.id,
                     'user_id': acceptance.user_id.id,
                     'note': acceptance.note,
-                    'image_ids': acceptance.image_ids.ids,
-                    'timestamp': format_datetime_local(acceptance.complaint_date, acceptance.user_id.id)
+                    'action': acceptance.action,
+                    'star': acceptance.star,
+                    'action_user': acceptance.action_user.id,
+                    'image_ids': acceptance.image_ids.ids if acceptance.image_ids else [],
+                    'timestamp': format_datetime_local(acceptance.timestamp)
 
                 }}),
                 content_type='application/json',
@@ -1352,7 +1355,7 @@ class ServiceApiController(http.Controller):
             return Response(
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
-                status=500,
+                status=200,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),

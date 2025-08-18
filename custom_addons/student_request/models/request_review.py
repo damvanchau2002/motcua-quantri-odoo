@@ -63,12 +63,14 @@ class TemporaryWizard(models.TransientModel):
     
     @api.model
     def default_get(self, fields_list):
+        # load user kèm theo
         res = super().default_get(fields_list)
         if res.get('request_id'):
             request = self.env['student.service.request'].browse(res['request_id'])
             res['user_id'] = request.request_user_id.id
         return res
 
+    # Nghiệm thu yêu cầu
     def action_confirm(self):
         # Tạo bản ghi Result
         self.env['student.service.request.result'].create({
