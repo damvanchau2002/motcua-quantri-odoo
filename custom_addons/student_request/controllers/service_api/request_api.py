@@ -458,13 +458,44 @@ class ServiceApiController(http.Controller):
     # todo: cần kiểm tra trạng thái của yêu cầu trước khi cập nhật (chỉ cho cập nhật nếu là pending hoặc repairing )
     # Formdata: { request_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/update', type='http', auth='public', methods=['POST'], csrf=False)
-    def update_service_request(self, **post):
+    def update_service_request(self, **kw):
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
-        
-            attachment_ids = []
 
+            # Lấy dữ liệu từ form
+            form = httprequest.form
+            request_id = form.get('request_id')
+            request_user_id = form.get('request_user_id')
+            note = form.get('note', '')
+            removed_image_ids = form.get('removed_image_ids', '[]')  # Danh sách ID ảnh cần xóa
+
+            if not request_id:
+                raise ValueError("Thiếu request_id")
+            if not request_user_id:
+                raise ValueError("Thiếu request_user_id")
+
+            # Lấy request hiện tại
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not service_request.exists():
+                raise ValueError("Yêu cầu không tồn tại")
+
+            # Xử lý danh sách ảnh cần xóa
+            try:
+                removed_ids = json.loads(removed_image_ids)
+                if removed_ids and isinstance(removed_ids, list):
+                    attachments_to_remove = request.env['ir.attachment'].sudo().browse(removed_ids)
+                    # Chỉ xóa những ảnh thực sự thuộc về request này
+                    valid_attachments = attachments_to_remove.filtered(
+                        lambda a: a.res_model == 'student.service.request' and a.res_id == int(request_id)
+                    )
+                    if valid_attachments:
+                        valid_attachments.sudo().unlink()
+            except json.JSONDecodeError:
+                _logger.warning("Invalid removed_image_ids format")
+
+            # Upload và tạo attachments mới
+            attachment_ids = []
             for file_storage in files:
                 file_data = file_storage.read()
                 base64_data = base64.b64encode(file_data).decode('utf-8')
@@ -472,71 +503,54 @@ class ServiceApiController(http.Controller):
                     'name': file_storage.filename,
                     'datas': base64_data,
                     'res_model': 'student.service.request',
-                    'res_id': 0,
+                    'res_id': int(request_id),
                     'type': 'binary',
                     'mimetype': file_storage.mimetype or 'application/octet-stream',
                 })
                 attachment_ids.append(attachment.id)
 
-            # Lấy dữ liệu từ form
-            form = httprequest.form
-            request_id = form.get('request_id')
-            request_user_id = form.get('request_user_id')
-            note = form.get('note', '')
+            # Lấy danh sách ảnh hiện tại (không bao gồm ảnh đã xóa)
+            current_attachments = service_request.image_attachment_ids - valid_attachments if 'valid_attachments' in locals() else service_request.image_attachment_ids
 
-            if not request_id:
-                raise ValueError("Thiếu request_id")
+            # Gộp với ảnh mới
+            all_attachment_ids = current_attachments.ids + attachment_ids
 
-            if not request_user_id:
-                raise ValueError("Thiếu request_user_id")
-
-            # Gọi hàm cập nhật yêu cầu
+            # Cập nhật request với tất cả ảnh
             request_rec = update_request(
                 env=request.env,
                 requestid=request_id,
                 userid=request_user_id,
                 note=note,
-                attachments=attachment_ids
+                attachments=all_attachment_ids
             )
 
             return Response(
                 json.dumps({
                     'success': True,
-                    'message': 'Cập nhật yêu cầu dịch vụ thành công',
-                    'data': {
-                        'id': request_rec.id,
-                        'service_id': request_rec.service_id.id,
-                        'service_name': request_rec.service_id.name,
-                        'content': request_rec.note,
-                        'request_date': format_datetime_local(request_rec.write_date or request_rec.create_date, request_user_id)
-                    }
+                    'service_id': request_rec.service_id.id,
+                    'service_name': request_rec.service_id.name,
+                    'content': request_rec.note,
+                    'request_date': format_datetime_local(request_rec.write_date or request_rec.create_date, request_user_id),
+                    'attachments': [{
+                        'id': att.id,
+                        'name': att.name,
+                        'url': f'/api/download/image/{att.id}'
+                    } for att in request_rec.image_attachment_ids]
                 }),
                 content_type='application/json',
-                status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
             )
 
         except Exception as e:
+            _logger.error(f"Error updating service request: {str(e)}")
             return Response(
                 json.dumps({
                     'success': False,
-                    'message': 'Không thể cập nhật yêu cầu',
-                    'detail': str(e)
+                    'error': str(e),
                 }),
                 content_type='application/json',
-                status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
             )
 
-    # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
+        # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
     def list_requests_by_user(self):
         try:
@@ -1356,6 +1370,170 @@ class ServiceApiController(http.Controller):
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    @http.route('/api/service/request/images', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_request_images(self):
+        try:
+            params = request.params
+            request_id = params.get('request_id')
+
+            if not request_id:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Missing request_id'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not service_request.exists():
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Request not found'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Lấy thông tin các ảnh đính kèm
+            images = []
+            if service_request.image_attachment_ids:
+                for attachment in service_request.image_attachment_ids:
+                    if attachment.mimetype and 'image' in attachment.mimetype:
+                        images.append({
+                            'id': attachment.id,
+                            'name': attachment.name,
+                            'mimetype': attachment.mimetype,
+                            'file_size': attachment.file_size,
+                            'url': f'/api/download/image/{attachment.id}',
+                            'create_date': attachment.create_date.strftime('%Y-%m-%d %H:%M:%S') if attachment.create_date else '',
+                        })
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Success',
+                    'data': images
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            _logger.error(f"Error getting request images: {str(e)}")
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e)
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+    @http.route('/api/download/image/<int:attachment_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    def download_image(self, attachment_id):
+        try:
+            # Tìm attachment
+            attachment = request.env['ir.attachment'].sudo().browse(int(attachment_id))
+            if not attachment.exists():
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Attachment not found'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Kiểm tra mimetype có phải là ảnh không
+            if not attachment.mimetype or 'image' not in attachment.mimetype:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'File is not an image'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Lấy dữ liệu ảnh
+            image_data = base64.b64decode(attachment.datas) if attachment.datas else None
+            if not image_data:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Image data not found'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ]
+                )
+
+            # Trả về file ảnh
+            return request.make_response(
+                image_data,
+                headers=[
+                    ('Content-Type', attachment.mimetype),
+                    ('Content-Disposition', f'inline; filename="{attachment.name}"'),
+                    ('Content-Length', len(image_data)),
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            _logger.error(f"Error downloading image: {str(e)}")
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e)
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
