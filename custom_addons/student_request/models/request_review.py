@@ -25,6 +25,7 @@ class RequestReview(models.Model):
         help='Upload and attach multiple images to this review'
     )
     comments = fields.Text(string='Comments')
+    reply = fields.Text(string='Phản hồi ')
 
 
 class RequestComplaint(models.Model):
@@ -44,6 +45,7 @@ class RequestComplaint(models.Model):
         help='Upload and attach multiple images to this complaint'
     )
     description = fields.Text(string='Description')
+    reply = fields.Text(string='Trả lời ý kiến')
 
 class TemporaryWizard(models.TransientModel):
     _name = 'temporary.wizard'

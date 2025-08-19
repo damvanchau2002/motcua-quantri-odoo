@@ -341,83 +341,107 @@ def send_fcm_batch(env, tokens, title, body, data=None, batch_size=500):
 # send_type = 0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt hoàn thành, 4: Đánh giá, 5: Khiếu nại  
 def send_fcm_request(env, request_obj, send_type=0):
     """
-    Gửi thông báo FCM cho yêu cầu dịch vụ
+    Gửi thông báo FCM khi Yêu cầu dịch vụ có thay đổi (Sinh viên, Người được giao, Các đối tượng liên quan)
         :param env: Odoo environment
         :param request_obj: Đối tượng yêu cầu dịch vụ
-        :param send_type: Loại thông báo (0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt hoàn thành, 4: Đánh giá, 5: Khiếu nại, 6: Nhắc SV vào nghiệm thu, 7: Nhắc cán bộ nghiệm thu, 8: Hủy, 9: Cần làm lại, 10: Đóng yêu cầu )
+        :param send_type: Loại thông báo (
+            0: tạo mới,
+            1: cập nhật,
+            2: đang duyệt qua bước,
+            3: đã duyệt hoàn thành,
+            4: Đánh giá,
+            5: Khiếu nại,
+            6: Gửi nghiệm thu,
+            7: Yêu cầu đã được gia hạn,
+            8: Yêu cầu đã hủy,
+            9: Yêu cầu cần làm lại,
+           10: Đóng yêu cầu,
+        )
     """
     data = {'type': 'request', 'id': str(request_obj.id)}
-    # Nội dung thông báo cho người duyệt
-    title = f"Bạn có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.request_user_id.name}"
-    body = f"Bạn nhận được trách nhiệm duyệt yêu cầu {request_obj.service_id.name} từ {request_obj.request_user_id.name}: " + (request_obj.note + ". Hay kiểm tra chi tiết trong ứng dụng.")
+    title = ""
+    body = ""
+    action = ""
     try:
-        # Người được giao nhiệm vụ:
-        if request_obj.user_processing_id:
-            return send_fcm_users(env, [request_obj.user_processing_id.id], title, body, data)
-
-        # Gửi Sinh viên và Các Admin liên quan
         if send_type == 0: # Mới tạo yêu cầu
+            action = 'Tạo mới'
             send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công', f'Yêu cầu của bạn đã được tạo thành công. {request_obj.note}', data)
             # Tạo nội dung gửi Admin
-            title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ mới từ {request_obj.request_user_id.name}"
-            body = "Bạn có một yêu cầu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
-            
+            title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ {action} từ {request_obj.request_user_id.name}"
+            body = f"Bạn có một yêu cầu {action}: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+
         elif send_type == 1: # Sửa yêu cầu
-            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được cập nhật', f'Yêu cầu của bạn đã được cập nhật. {request_obj.note}', data)
+            action = 'Cập nhật'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được {action}', f'Yêu cầu của bạn đã được {action}. {request_obj.note}', data)
             #Nội dung thông báo cho người duyệt
             title = f"Cập nhật yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
             body = "Bạn có một yêu cầu đã chỉnh sửa: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
         elif send_type == 2:
-            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được duyệt', f'Yêu cầu của bạn đã được duyệt. {request_obj.note}', data)
+            action = 'Có cập nhật'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được cập nhật', f'Yêu cầu của bạn đã được cập nhật: {request_obj.note}', data)
             #Nội dung thông báo cho người duyệt
             title = f"Duyệt yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
-            body = "Bạn có một yêu cầu đã được duyệt: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+            body = "Yêu cầu đã được cập nhật: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
         elif send_type == 3:
-            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được hoàn thành', f'Yêu cầu của bạn đã được hoàn thành. {request_obj.note}', data)
+            action = 'Duyệt hoàn thành'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được hoàn thành cần nghiệm thu', f'Yêu cầu của bạn đã được hoàn thành. {request_obj.note}. Bạn hãy kiểm tra chi tiết và nghiệm thu trong ứng dụng.', data)
             #Nội dung thông báo cho người duyệt
             title = f"Hoàn thành yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
-            body = "Yêu cầu của bạn đã được hoàn thành: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+            body = f"Yêu cầu của {request_obj.name} đã được hoàn thành: {request_obj.note}. Hay kiểm tra chi tiết và nghiệm thu trong ứng dụng."
 
         elif send_type == 4: # Đánh giá
+            action = 'Đánh giá'
             send_fcm_users(env, [request_obj.request_user_id.id], f'Bạn đã gửi đánh giá {request_obj.service_id.name} ', f'Đánh giá cho yêu cầu {request_obj.service_id.name} của bạn đã được gửi.', data)
             #Nội dung thông báo cho người duyệt
             title = f"Đánh giá yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
-            body = "Bạn có một yêu cầu đã được đánh giá: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+            body = "Sinh viên gửi đánh giá: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
         elif send_type == 5:
+            action = 'Khiếu nại'
             send_fcm_users(env, [request_obj.request_user_id.id], f'Đã gửi khiếu nại dịch vụ {request_obj.service_id.name}', f'Bạn đã gửi khiếu nại yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
             #Nội dung thông báo cho người duyệt
             title = f"Khiếu nại yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
             body = "Bạn có một yêu cầu đã được khiếu nại: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
-        elif send_type == 6: # Nhắc nhở nghiệm thu
-            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu đã hoàn thành cần nghiệm thu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
+        elif send_type == 6: # Gửi nghiệm thu
+            action = 'Gửi nghiệm thu'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Bạn đã gửi nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}', f'Gửi nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} thành công', data)
+            title = f"Khiếu nại yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
+            body = "Bạn có một yêu cầu đã được khiếu nại: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
             return None #không gửi Admin nữa
 
-        elif send_type == 7: # Nhắc nhở nghiệm thu
-            #send_fcm_users(env, [request_obj.request_user_id.id], f'Nhắc nhở nghiệm thu dịch vụ {request_obj.service_id.name}', f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}', data)
-            title = f'Yêu cầu đang nghiệm thu dịch vụ {request_obj.service_id.name}'
-            body = f'Bạn đã được nhắc nhở nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}'
+        elif send_type == 7: 
+            action = 'Gia hạn'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được gia hạn', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã gia hạn', data)
+            title = f'Gia hạn yêu cầu dịch vụ {request_obj.service_id.name}'
+            body = f'Thông báo yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã gia hạn'
 
-        elif send_type == 8: # Hủy yêu cầu nhắn cho SV
+        elif send_type == 8: 
+            action = 'Hủy yêu cầu'
             send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn bị hủy', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} bị hủy: {request_obj.final_data}', data)
-            return None
+            title = f'Yêu cầu dịch vụ {request_obj.service_id.name} đã bị hủy'
+            body = f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã bị hủy: {request_obj.final_data}'
 
         elif send_type == 9:
-            title = f'Không nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}'
-            body = f'Bạn đã được nhắc nhở sửa lại yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} do không được nghiệm thu'
+            action = 'Yêu cầu làm lại'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn đang xử lý sửa lại', f'Sửa lại yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}: {request_obj.final_data}', data)
+            title = f'Sửa lại yêu cầu dịch vụ {request_obj.name}'
+            body = f'Sửa lại yêu cầu dịch vụ {request_obj.name}. {request_obj.note} do không được nghiệm thu'
 
-        elif send_type == 10: # Đã hoàn thành và Đóng yêu cầu
-            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã hoàn thành', f'Yêu cầu của Bạn: {request_obj.service_id.name}. {request_obj.note} đã được nghiệm thu và đóng lại', data)
+        elif send_type == 10:
+            action = 'Đóng yêu cầu'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã nghiệm thu hoàn thành', f'Yêu cầu của Bạn: {request_obj.service_id.name}. {request_obj.note} đã được nghiệm thu và đóng lại', data)
             title = f'Đã hoàn thành và Đóng yêu cầu dịch vụ {request_obj.service_id.name}'
             body = f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã xử lý xong và đóng lại!'
     
         # Gửi tới các user được gán xử lý yêu cầu này
-        user_ids = request_obj.users.ids if request_obj.users else []
-        if user_ids:
-            return send_fcm_users(env, user_ids, title, body, data)
+        other_user_ids = [u.id for u in request_obj.users if u.id != request_obj.user_processing_id.id] if request_obj.users else []
+        if request_obj.user_processing_id:
+            return send_fcm_users(env, request_obj.user_processing_id.id, f'Có yêu cầu bạn xử lý có cập nhật: {action} - {request_obj.name}', f'Yêu cầu {request_obj.name} được {action} nội dung: {request_obj.note}, cần bạn xử lý tiếp yêu cầu này', data)
+        if other_user_ids:
+            return send_fcm_users(env, other_user_ids, title, body, data)
     except Exception as e:
         pass
     return None

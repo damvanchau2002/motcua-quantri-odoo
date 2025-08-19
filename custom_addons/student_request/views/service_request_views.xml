@@ -6,7 +6,7 @@
         <field name="name">temporary.wizard.form</field>
         <field name="model">temporary.wizard</field>
         <field name="arch" type="xml">
-            <form string="Popup Tạm Thời">
+            <form string="Nghiệm thu Yêu cầu">
                 <group>
                     <field name="request_id" readonly="1"/>
                     <field name="user_id"  readonly="1" widget="many2one"/>
@@ -25,7 +25,7 @@
     </record>
 
     <record id="action_open_temporary_wizard" model="ir.actions.act_window">
-        <field name="name">Popup Tạm Thời</field>
+        <field name="name">Nghiệm thu Yêu cầu</field>
         <field name="res_model">temporary.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
@@ -55,19 +55,20 @@
                             <field name="request_date" readonly="1"/>
                         </group>
                         <group string="Trạng thái duyệt">
-                            <field name="final_state" />
-                            <field name="approve_content"/>
-                            <field name="approve_date"/>
+                            <field name="final_state" readonly="1"/>
+                            <field name="approve_content" readonly="1"/>
+                            <field name="approve_date" readonly="1"/>
+                            <field name="expired_date" help="Ngày hết hạn xử lý yêu cầu dịch vụ, sửa để gia hạn"/>
                         </group>
                          <group string="Thông tin người duyệt">
-                            <field name="users" widget="many2many_tags"/>
-                            <field name="role_ids" widget="many2many_tags"/>
-                            <field name="approve_user_id" />
+                            <field name="users" widget="many2many_tags" readonly="1"/>
+                            <field name="role_ids" widget="many2many_tags" readonly="1"/>
+                            <field name="approve_user_id" readonly="1"/>
                         </group>
                     </group>
 
-                    <group invisible="id == 0" string="Bước duyệt">
-                        <field name="step_ids" widget="kanban" nolabel="1" editable="true" no_create="True" options="{'no_create': true, 'no_open': true}">
+                    <group invisible="(id == 0 or final_state == 'closed')" string="Các bước duyệt">
+                        <field name="step_ids" widget="kanban" nolabel="1" no_create="true" options="{'no_create': true, 'no_open': true}">
                             <kanban>
                                 <templates>
                                     <t t-name="kanban-box">
@@ -112,10 +113,31 @@
                             </kanban>
                         </field>
                     </group>
-                    <group string="Nghiệm thu">
-                        <field name="result_ids" />
+                    <group invisible="(final_state != 'approved' and final_state != 'rejected' and final_state != 'closed')" string="Lịch sử nghiệm thu">
+                        <field name="result_ids" widget="kanban" nolabel="1" no_create="true" options="{'no_create': true, 'no_open': true}">
+                            <kanban>
+                                <templates>
+                                    <t t-name="kanban-box">
+                                        <div class="card mb-2 p-0">
+                                            <div class="card-header d-flex justify-content-between">
+                                                <b><field name="action"/></b>
+                                                <span class="badge">
+                                                    <field name="star"/><i class="fa fa-star text-warning"></i> 
+                                                </span>
+                                            </div>
+                                            <div class="card-body">
+                                                <div><b>Nội dung:</b> <field name="note"/></div>
+                                            </div>
+                                            <div class="card-footer">
+                                                <span class="text-muted">Người nghiệm thu: <field name="action_user" widget="many2one"/></span>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </templates>
+                            </kanban>
+                        </field>
                     </group>
-                    <group string="Đánh giá">
+                    <group>
                         <group string="Đánh giá">
                             <field name="review_ids" />
                         </group>

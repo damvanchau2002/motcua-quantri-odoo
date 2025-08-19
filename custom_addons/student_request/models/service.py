@@ -2,6 +2,7 @@ import os
 import json
 import requests
 from odoo import models, fields, api
+from datetime import timedelta 
 from odoo.addons.student_request.controllers.service_api.utils import send_fcm_notify, send_fcm_users
 from odoo.addons.student_request.controllers.service_api.request_api import create_request, update_request_step
 
@@ -261,6 +262,7 @@ class ServiceRequest(models.Model):
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
+    expired_date = fields.Datetime('Ngày hết hạn', default=fields.Datetime.now() + timedelta(days=7), help='Ngày và giờ hết hạn gửi yêu cầu dịch vụ')
     is_new = fields.Boolean('Yêu cầu mới', default=True, help='Đánh dấu yêu cầu này là mới')
 
     # THÔNG TIN CÁC BƯỚC
@@ -305,6 +307,23 @@ class ServiceRequest(models.Model):
 
     # GHI NHẬN KẾT QUẢ
     result_ids = fields.One2many('student.service.request.result', 'request_id', string='Kết quả', help='Các kết quả liên quan đến yêu cầu dịch vụ này')
+
+    @api.onchange('expired_date')
+    def _onchange_increase_expired(self):
+        """Tăng thời gian hết hạn của yêu cầu dịch vụ"""
+        if self.expired_date and self.expired_date < fields.Datetime.now():
+            return {
+                'warning': {
+                    'title': "Cảnh báo",
+                    'message': "Ngày hết hạn phải lớn hơn ngày hiện tại!"
+                }
+            }
+        self.sudo().write({
+            'expired_date': self.expired_date,
+            'final_state': 'extended'
+        })
+
+        
 
     def action_create_new(self):
         # Tạo mới yêu cầu dịch vụ
