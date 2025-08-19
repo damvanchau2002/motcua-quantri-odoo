@@ -3,8 +3,8 @@ import json
 import requests
 from odoo import models, fields, api
 from datetime import timedelta 
-from odoo.addons.student_request.controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
-from odoo.addons.student_request.controllers.service_api.request_api import create_request, update_request_step
+from ..controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
+from ..controllers.service_api.request_api import create_request, update_request_step
 
 # Đồng bộ khu vực và cụm KTX
 def action_sync_area_cluster(self):

@@ -1,5 +1,5 @@
 from odoo import models, fields, api
-from odoo.addons.student_request.controllers.service_api.utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
+from ..controllers.service_api.utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
 
 class RequestReview(models.Model):
     _name = 'student.service.request.review'

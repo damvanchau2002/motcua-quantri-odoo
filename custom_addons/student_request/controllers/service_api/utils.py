@@ -351,11 +351,12 @@ def send_fcm_request(env, request_obj, send_type=0):
             3: đã duyệt hoàn thành,
             4: Đánh giá,
             5: Khiếu nại,
-            6: Gửi nghiệm thu,
+            6: SV gửi nghiệm thu,
             7: Yêu cầu đã được gia hạn,
             8: Yêu cầu đã hủy,
             9: Yêu cầu cần làm lại,
            10: Đóng yêu cầu,
+           11: Nghiệm thu từ Admin
         )
     """
     data = {'type': 'request', 'id': str(request_obj.id)}
@@ -408,9 +409,8 @@ def send_fcm_request(env, request_obj, send_type=0):
         elif send_type == 6: # Gửi nghiệm thu
             action = 'Gửi nghiệm thu'
             send_fcm_users(env, [request_obj.request_user_id.id], f'Bạn đã gửi nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}', f'Gửi nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} thành công', data)
-            title = f"Khiếu nại yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
-            body = "Bạn có một yêu cầu đã được khiếu nại: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
-            return None #không gửi Admin nữa
+            title = f"Người yêu cầu đã gửi Nghiệm thu: {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
+            body = "Bạn có một yêu cầu đã được Sinh viên nghiệm thu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
         elif send_type == 7: 
             action = 'Gia hạn'
@@ -435,7 +435,13 @@ def send_fcm_request(env, request_obj, send_type=0):
             send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã nghiệm thu hoàn thành', f'Yêu cầu của Bạn: {request_obj.service_id.name}. {request_obj.note} đã được nghiệm thu và đóng lại', data)
             title = f'Đã hoàn thành và Đóng yêu cầu dịch vụ {request_obj.service_id.name}'
             body = f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã xử lý xong và đóng lại!'
-    
+        
+        elif send_type == 11: # Gửi nghiệm thu
+            action = 'Người duyệt nghiệm thu'
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Cán bộ quản lý đã nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name} của bạn', f'Đã nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} thành công', data)
+            title = f"{action}: {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
+            body = f"Yêu cầu {request_obj.name} đã được duyệt nghiệm thu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+
         # Gửi tới các user được gán xử lý yêu cầu này
         other_user_ids = [u.id for u in request_obj.users if u.id != request_obj.user_processing_id.id] if request_obj.users else []
         if request_obj.user_processing_id:
