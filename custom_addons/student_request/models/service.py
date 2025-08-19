@@ -322,7 +322,7 @@ class ServiceRequest(models.Model):
             'expired_date': self.expired_date,
             'final_state': 'extended'
         })
-        send_fcm_request(env, self, send_type=7)  # Gửi thông báo gia hạn yêu cầu
+        send_fcm_request(self.env, self, send_type=7)  # Gửi thông báo gia hạn yêu cầu
 
 
     def action_create_new(self):
