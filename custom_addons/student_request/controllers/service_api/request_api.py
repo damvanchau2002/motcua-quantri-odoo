@@ -1381,7 +1381,104 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
             )
+    @http.route('/api/service/request/acceptance/list', type='http', auth='public', methods=['GET'], csrf=False)
+    def list_service_request_acceptances(self, **kwargs):
+        try:
+            params = request.httprequest.args or request.params
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            page = int(params.get('page', 1))
+            limit = int(params.get('limit', 10))
+            
+            domain = []
+            if request_id:
+                domain.append(('request_id', '=', int(request_id)))
+            if user_id:
+                domain.append(('user_id', '=', int(user_id)))
 
+            # Tính total và offset
+            total = request.env['student.service.request.result'].sudo().search_count(domain)
+            offset = (page - 1) * limit
+
+            # Lấy danh sách nghiệm thu
+            acceptances = request.env['student.service.request.result'].sudo().search(
+                domain, 
+                offset=offset, 
+                limit=limit, 
+                order='timestamp desc'
+            )
+
+            result = []
+            for acceptance in acceptances:
+                result.append({
+                    'id': acceptance.id,
+                    'request_id': acceptance.request_id.id if acceptance.request_id else None,
+                    'request_name': acceptance.request_id.name if acceptance.request_id else '',
+                    'service_name': acceptance.request_id.service_id.name if acceptance.request_id.service_id else '',
+                    
+                    'user_id': acceptance.user_id.id if acceptance.user_id else None,
+                    'user_name': acceptance.user_id.name if acceptance.user_id else '',
+                    
+                    'action_user': acceptance.action_user.id if acceptance.action_user else None,
+                    'action_user_name': acceptance.action_user.name if acceptance.action_user else '',
+                    
+                    'note': acceptance.note,
+                    'action': acceptance.action,
+                    'star': acceptance.star,
+                    
+                    'image_ids': [{
+                        'id': img.id,
+                        'name': img.name,
+                        'url': f'/api/download/image/{img.id}'
+                    } for img in acceptance.image_ids] if acceptance.image_ids else [],
+                    
+                    'timestamp': format_datetime_local(acceptance.timestamp),
+                    
+                    # Thông tin thêm về request
+                    'request_info': {
+                        'final_state': acceptance.request_id.final_state if acceptance.request_id else '',
+                        'final_star': acceptance.request_id.final_star if acceptance.request_id else 0,
+                        'request_date': format_datetime_local(acceptance.request_id.request_date) if acceptance.request_id else '',
+                    }
+                })
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Thành công',
+                    'meta': {
+                        'page': page,
+                        'limit': limit,
+                        'total': total,
+                        'total_pages': (total + limit - 1) // limit
+                    },
+                    'data': result
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            _logger.error(f"Error getting acceptances list: {str(e)}")
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e),
+                    'data': []
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
     @http.route('/api/service/request/images', type='http', auth='public', methods=['GET'], csrf=False)
     def get_request_images(self):
         try:
