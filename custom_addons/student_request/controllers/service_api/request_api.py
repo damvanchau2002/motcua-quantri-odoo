@@ -1340,7 +1340,16 @@ class ServiceApiController(http.Controller):
             if action == 'accept':
                 service_request.sudo().write({'final_state': 'closed', 'final_star': stars })
                 send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
-                
+                # Kiểm tra đã có nghiệm thu accept của Admin thì đóng yêu cầu
+                # Lấy nghiệm thu của User khác
+                other_acceptance = request.env['student.service.request.result'].sudo().search([
+                    ('request_id', '=', service_request.id),
+                    ('user_id', '!=', service_request.request_user_id.id)
+                ], order='timestamp desc', limit=1)
+                if other_acceptance and other_acceptance.action == 'accept':
+                    service_request.sudo().write({'final_state': 'closed', 'final_star': stars})
+                    send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ Admin
+
             elif action == 'reject' or action == 'issue':
                 service_request.sudo().write({'final_state': 'repairing', 'final_star': stars})
                 send_fcm_request(

@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.addons.student_request.controllers.service_api.utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
 
 class RequestReview(models.Model):
     _name = 'student.service.request.review'
@@ -89,12 +90,27 @@ class TemporaryWizard(models.TransientModel):
         request = self.env['student.service.request'].browse(self.request_id.id)
         if self.action == 'issue':
             request.final_state = 'repairing'
+            request.final_star = self.star
+            request.final_data = self.note
+
+            send_fcm_request(request.env, request, 9)
         elif self.action == 'accept':
-            request.final_state = 'closed'
+            other_acceptance = request.env['student.service.request.result'].sudo().search([
+                ('request_id', '=', self.request_id.id),
+                ('user_id', '=', self.request_id.request_user_id.id)
+            ], order='timestamp desc', limit=1)
+            if other_acceptance and other_acceptance.action == 'accept':
+                request.final_state = 'closed'
+                send_fcm_request(request.env, request, 10)
+
         elif self.action == 'reject':
-            request.final_state = 'rejected'
+            request.final_state = 'repairing'
         # Cập nhật trạng thái cuối cùng của yêu cầu
-        request.write({'final_state': request.final_state})
+        request.write({
+            'final_state': request.final_state,
+            'final_star': request.final_star,
+            'final_data': request.final_data
+        })
         # Xóa bản ghi tạm thời
         self.unlink()
         return { 'type': 'ir.actions.client', 'tag': 'reload' }
