@@ -3,7 +3,7 @@ import json
 import requests
 from odoo import models, fields, api
 from datetime import timedelta 
-from odoo.addons.student_request.controllers.service_api.utils import send_fcm_notify, send_fcm_users
+from odoo.addons.student_request.controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
 from odoo.addons.student_request.controllers.service_api.request_api import create_request, update_request_step
 
 # Đồng bộ khu vực và cụm KTX
@@ -322,8 +322,8 @@ class ServiceRequest(models.Model):
             'expired_date': self.expired_date,
             'final_state': 'extended'
         })
+        send_fcm_request(env, self, send_type=7)  # Gửi thông báo gia hạn yêu cầu
 
-        
 
     def action_create_new(self):
         # Tạo mới yêu cầu dịch vụ

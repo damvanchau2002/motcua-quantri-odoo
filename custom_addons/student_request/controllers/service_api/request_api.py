@@ -552,7 +552,7 @@ class ServiceApiController(http.Controller):
                 content_type='application/json',
             )
 
-        # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
+    # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
     def list_requests_by_user(self):
         try:
@@ -625,7 +625,8 @@ class ServiceApiController(http.Controller):
                     'approve_content': req.approve_content,
                     'approve_date': format_datetime_local(req.approve_date, user_id),
                     'final_state': req.final_state,
-                    'finalfinal_data': req.final_data,
+                    'final_data': req.final_data,
+                    'expired_date': format_datetime_local(req.expired_date, user_id),
                     'histories': sorted(sumhistories, key=lambda x: x['date'], reverse=True),
                 })
 
@@ -714,7 +715,8 @@ class ServiceApiController(http.Controller):
                     'approve_content': req.approve_content,
                     'approve_date': format_datetime_local(req.approve_date, user_id),
                     'final_state': req.final_state,
-                    'finalfinal_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
+                    'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
+                    'expired_date': format_datetime_local(req.expired_date, user_id),
 
                     'service': {
                         'id': req.service_id.id,
@@ -799,7 +801,8 @@ class ServiceApiController(http.Controller):
                     'approve_content': req.approve_content,
                     'approve_date': format_datetime_local(req.approve_date, user_id),
                     'final_state': req.final_state,
-                    'finalfinal_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
+                    'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
+                    'expired_date': format_datetime_local(req.expired_date, user_id),
 
                     'service': {
                         'id': req.service_id.id,
