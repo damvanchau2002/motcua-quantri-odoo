@@ -58,7 +58,7 @@
                             <field name="final_state" readonly="1"/>
                             <field name="approve_content" readonly="1"/>
                             <field name="approve_date" readonly="1"/>
-                            <field name="expired_date" help="Ngày hết hạn xử lý yêu cầu dịch vụ, sửa để gia hạn"/>
+                            <field name="expired_date" readonly="(final_state == 'closed' or final_state == 'approved' or final_state == 'rejected')" help="Ngày hết hạn xử lý yêu cầu dịch vụ, sửa để gia hạn"/>
                         </group>
                          <group string="Thông tin người duyệt">
                             <field name="users" widget="many2many_tags" readonly="1"/>
