@@ -177,16 +177,32 @@
                                     <b class="mt-2"><field name="request_user_name"/></b>
                                 </div>
                                 <div class="oe_kanban_title">
-                                    <small><field name="note"/></small>
+                                    <i><b><field name="note"/></b></i>
                                 </div>
 
                                 <div class="oe_kanban_date">
-                                    <i class="fa fa-calendar"></i>
-                                    <field name="request_date" class="ms-2"/>
+                                    <small>
+                                        <i class="fa fa-calendar"></i>
+                                        <field name="request_date" class="ms-2"/>
+                                    </small>
+                                </div>
+                                <div class="oe_kanban_date">
+                                    <small>
+                                        <i class="fa fa-calendar"></i>
+                                        <field name="expired_date" class="ms-2 text-warning"/>
+                                    </small>
                                 </div>
                                 <div class="oe_kanban_note">
-                                    <i class="fa fa-sticky-note"></i>
-                                    <field name="approve_content" class="ms-2"/>
+                                    <small>
+                                        <i class="fa fa-sticky-note"></i>
+                                        <field name="approve_content" class="ms-2"/>
+                                    </small>
+                                </div>
+                                <div class="oe_kanban_note">
+                                    <small>
+                                        <i class="fa fa-archive"></i>
+                                        <field name="final_state" class="ms-2 bold"/>
+                                    </small>
                                 </div>
                                 <div class="oe_kanban_images">
                                     <b><i> Quyền duyệt: </i><br /></b>
@@ -194,8 +210,8 @@
                                     <field name="role_ids"/>
                                 </div>
                                 <div class="oe_kanban_images">
-                                    <b><i> Người đang xử lý: </i><br /></b>
-                                    <field class="badge bg-secondary" name="approve_user_id"/>
+                                    <b><i> Người xử lý: </i></b>
+                                    <field class="badge bg-secondary" name="user_processing_id"/>
                                 </div>
                             </div>
                             <t t-if="record.final_state.raw_value == 'approved'">

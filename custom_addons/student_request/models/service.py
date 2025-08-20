@@ -177,6 +177,7 @@ class ServiceRequestStep(models.Model):
     request_id = fields.Many2one('student.service.request', string='Dịch vụ')
     base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt')
     base_secquence = fields.Integer('Thứ tự', related='base_step_id.sequence', help='Thứ tự của bước duyệt trong quy trình')
+    activated = fields.Boolean('Đã kích hoạt', default=False)
 
     # TÌNH TRẠNG XỬ LÝ
     state = fields.Selection([

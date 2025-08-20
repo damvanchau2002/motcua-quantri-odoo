@@ -123,7 +123,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
             'base_step_id': step.id,
             'state': 'pending',
         }
-        step_request = env['student.service.request.step'].create(step_vals)
+        step_request = env['student.service.request.step'].sudo().create(step_vals)
         if step == service.step_ids.sorted('sequence')[0] and service.files:
             # Nếu là bước đầu tiên thì gán file_ids từ service.files
             step_request.file_ids = [(6, 0, service.files.ids)]
