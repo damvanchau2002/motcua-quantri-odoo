@@ -29,6 +29,7 @@ class NotificationApiController(http.Controller):
                 )
 
             domain = []
+            # Query các thông báo gửi cho User hoặc Cluster của user đó
             profile = request.env['student.user.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
             if not profile:
                 profile = request.env['student.admin.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
@@ -39,6 +40,7 @@ class NotificationApiController(http.Controller):
             else:
                 domain = ['|', ('user_ids', 'in', [profile.user_id.id]), ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])]
 
+            # Đếm phân trang
             total = request.env['student.notify'].sudo().search_count(domain)
             offset = (page - 1) * limit
             notifications = request.env['student.notify'].sudo().search(domain, order='create_date desc', offset=offset, limit=limit)
