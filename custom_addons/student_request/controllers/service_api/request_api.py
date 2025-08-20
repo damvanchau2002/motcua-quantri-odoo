@@ -1003,7 +1003,117 @@ class ServiceApiController(http.Controller):
             )
 
 
-    # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
+    # API: Thống kê yêu cầu dịch vụ
+    @http.route('/api/service/request/statistics', type='http', auth='public', methods=['GET'], csrf=False)
+    def get_request_statistics(self, **post):
+        try:
+            params = request.params
+            user_id = params.get('user_id')
+            # Số ngày cảnh báo sắp đến hạn (mặc định 2 ngày)
+            warning_days = int(params.get('warning_days', 2))
+            
+            if not user_id:
+                raise ValueError("Thiếu user_id")
+            
+            # Thời điểm hiện tại
+            now = fields.Datetime.now()
+            warning_date = now + timedelta(days=warning_days)
+
+            # Base domain cho yêu cầu
+            base_domain = []
+            if user_id:
+                base_domain += ['|', ('request_user_id', '=', int(user_id)), 
+                              '|', ('user_processing_id', '=', int(user_id)),
+                              ('users', 'in', [int(user_id)])]
+
+            # 1. Thống kê yêu cầu mới (created trong 24h qua)
+            new_requests_domain = base_domain + [
+                ('create_date', '>=', now - timedelta(days=1))
+            ]
+            new_requests_count = request.env['student.service.request'].sudo().search_count(new_requests_domain)
+            new_requests = request.env['student.service.request'].sudo().search(new_requests_domain)
+
+            # 2. Thống kê yêu cầu đang xử lý
+            processing_domain = base_domain + [
+                ('final_state', 'in', ['pending', 'assigned'])
+            ]
+            processing_count = request.env['student.service.request'].sudo().search_count(processing_domain)
+            processing_requests = request.env['student.service.request'].sudo().search(processing_domain)
+
+            # 3. Thống kê yêu cầu quá hạn
+            overdue_domain = base_domain + [
+                ('expired_date', '<', now),
+                ('final_state', 'in', ['pending', 'assigned'])
+            ]
+            overdue_count = request.env['student.service.request'].sudo().search_count(overdue_domain)
+            overdue_requests = request.env['student.service.request'].sudo().search(overdue_domain)
+
+            # 4. Thống kê yêu cầu sắp đến hạn
+            warning_domain = base_domain + [
+                ('expired_date', '>=', now),
+                ('expired_date', '<=', warning_date),
+                ('final_state', 'in', ['pending', 'assigned'])
+            ]
+            warning_count = request.env['student.service.request'].sudo().search_count(warning_domain)
+            warning_requests = request.env['student.service.request'].sudo().search(warning_domain)
+
+            # Format dữ liệu chi tiết cho từng yêu cầu
+            def format_request_data(reqs):
+                return [{
+                    'id': req.id,
+                    'name': req.name,
+                    'service_name': req.service_id.name if req.service_id else '',
+                    'request_date': format_datetime_local(req.create_date, user_id),
+                    'expired_date': format_datetime_local(req.expired_date, user_id),
+                    'final_state': req.final_state,
+                    'request_user_name': req.request_user_id.name if req.request_user_id else '',
+                    'processing_user_name': req.user_processing_id.name if req.user_processing_id else ''
+                } for req in reqs]
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'data': {
+                        'summary': {
+                            'new_requests': new_requests_count,
+                            'processing_requests': processing_count,
+                            'overdue_requests': overdue_count,
+                            'warning_requests': warning_count,
+                        },
+                        'details': {
+                            'new_requests': format_request_data(new_requests),
+                            'processing_requests': format_request_data(processing_requests),
+                            'overdue_requests': format_request_data(overdue_requests),
+                            'warning_requests': format_request_data(warning_requests)
+                        }
+                    },
+                    'message': 'Thống kê thành công'
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+
+        except Exception as e:
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e),
+                    'data': {}
+                }),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ]
+            )
+ # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
     @http.route('/api/service/request/review/list', type='http', auth='public', methods=['GET'], csrf=False)
     def list_service_request_reviews(self, **kwargs):
         try:
