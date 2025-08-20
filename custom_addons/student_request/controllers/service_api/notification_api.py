@@ -28,25 +28,20 @@ class NotificationApiController(http.Controller):
                     status=400
                 )
 
+            domain = []
             profile = request.env['student.user.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
             if not profile:
-                return Response(
-                    json.dumps({'success': False, 'message': 'User profile not found'}),
-                    content_type='application/json',
-                    status=404
-                )
-
-            if profile.dormitory_cluster_id:
-                domain = ['|',
-                          ('user_ids', 'in', [profile.user_id.id]),
-                          ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])]
+                profile = request.env['student.admin.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
+                if not profile:
+                    domain = [('user_ids', 'in', [profile.user_id.id])]
+                else:
+                    domain = ['|', ('user_ids', 'in', [profile.user_id.id]), ('dormitory_cluster_ids', 'in', profile.dormitory_clusters.ids)]
             else:
-                domain = [('user_ids', 'in', [profile.user_id.id])]
+                domain = ['|', ('user_ids', 'in', [profile.user_id.id]), ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])]
 
             total = request.env['student.notify'].sudo().search_count(domain)
             offset = (page - 1) * limit
-            notifications = request.env['student.notify'].sudo().search(
-                domain, order='create_date desc', offset=offset, limit=limit)
+            notifications = request.env['student.notify'].sudo().search(domain, order='create_date desc', offset=offset, limit=limit)
 
             data = [{
                 'id': n.id,
