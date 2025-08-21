@@ -345,18 +345,19 @@ def send_fcm_request(env, request_obj, send_type=0):
         :param env: Odoo environment
         :param request_obj: Đối tượng yêu cầu dịch vụ
         :param send_type: Loại thông báo (
-            0: tạo mới,
-            1: cập nhật,
-            2: đang duyệt qua bước,
-            3: đã duyệt hoàn thành,
-            4: Đánh giá,
-            5: Khiếu nại,
+            0: Yêu cầu đã tạo mới,
+            1: Yêu cầu đã cập nhật,
+            2: Yêu cầu đang duyệt qua bước,
+            3: Yêu cầu đã duyệt hoàn thành,
+            4: Yêu cầu có đánh giá,
+            5: Yêu cầu có khiếu nại,
             6: SV gửi nghiệm thu,
-            7: Yêu cầu đã được gia hạn,
+            7: Yêu cầu được gia hạn,
             8: Yêu cầu đã hủy,
-            9: Yêu cầu cần làm lại,
-           10: Đóng yêu cầu,
-           11: Nghiệm thu từ Admin
+            9: Yêu cầu cần duyệt lại,
+           10: Đã hoàn thành và đóng yêu cầu,
+           11: Quản lý gửi nghiệm thu,
+           12: Yêu cầu cần được sửa lại
         )
     """
     data = {'type': 'request', 'id': str(request_obj.id)}
@@ -366,7 +367,7 @@ def send_fcm_request(env, request_obj, send_type=0):
     try:
         if send_type == 0: # Mới tạo yêu cầu
             action = 'Tạo mới'
-            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công', f'Yêu cầu của bạn đã được tạo thành công. {request_obj.note}', data)
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công', f'Yêu cầu của bạn đã được tạo thành công. Nội dung {request_obj.note}', data)
             # Tạo nội dung gửi Admin
             title = f"Có yêu cầu dịch vụ {request_obj.service_id.name} từ {request_obj.request_user_id.name}" if request_obj.service_id else f"Yêu cầu dịch vụ {action} từ {request_obj.request_user_id.name}"
             body = f"Bạn có một yêu cầu {action}: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
@@ -445,7 +446,7 @@ def send_fcm_request(env, request_obj, send_type=0):
         # Gửi tới các user được gán xử lý yêu cầu này
         other_user_ids = [u.id for u in request_obj.users if u.id != request_obj.user_processing_id.id] if request_obj.users else []
         if request_obj.user_processing_id:
-            send_fcm_users(env, request_obj.user_processing_id.id, f'Có yêu cầu bạn xử lý có cập nhật: {action} - {request_obj.name}', f'Yêu cầu {request_obj.name} được {action} nội dung: {request_obj.note}, cần bạn xử lý tiếp yêu cầu này', data)
+            send_fcm_users(env, request_obj.user_processing_id.id, f'Có cập nhật yêu cầu bạn được giao: {action} - {request_obj.name}', f'Yêu cầu {request_obj.name} được {action} nội dung: {request_obj.note}, cần bạn xử lý tiếp yêu cầu này', data)
         if other_user_ids:
             send_fcm_users(env, other_user_ids, title, body, data)
     except Exception as e:
