@@ -240,7 +240,7 @@ def send_fcm_users(env, user_ids, title, body, data):
         'title': title,
         'body': body,
         'data': data,
-        'user_ids': user_ids,
+        'user_ids': [(6, 0, user_ids)],
         'fcm_success_count': 0,
         'fcm_failure_count': 0,
         'fcm_responses': '',
