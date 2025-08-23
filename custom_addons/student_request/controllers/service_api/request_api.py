@@ -320,19 +320,6 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         vals['file_ids'] = step.file_ids
         vals['file_checkbox_ids'] = step.file_checkbox_ids
 
-    # Bước cuối:    
-    if step.base_secquence == 99:
-        vals['final_data'] = final_data
-        # Nếu là approve bước cuối: THông báo đến Acc nghiệm thu và Người gửi yêu cầu
-        if act == 'approved':
-            send_fcm_request(env, request, 7)
-        if act == 'rejected':
-            send_fcm_request(env, request, 8)
-        if act == 'closed':
-            # Kiểm tra lại đã có đánh giá nghiệm thu từ SV và người nghiệm thu
-            send_fcm_request(env, request, 5)
-
-
     next_step_users = []
     department_user_id = 0
     # Chỗ này tìm người tiếp theo được phân công theo nextuserid hoặc department_id gán vào mảng next_step_users
@@ -375,10 +362,21 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'department_ids': [(4, department_id)] if department_id else [],
     })
 
-    if step.base_secquence == 99 and act == 'approved':
-        send_fcm_request(env, request, 3)
+    if step.base_secquence == 99:
+        vals['final_data'] = final_data
+        # Nếu là approve bước cuối: THông báo đến Acc nghiệm thu và Người gửi yêu cầu
+        if act == 'approved':
+            send_fcm_request(env, request, 3) # Thông báo hoàn thành
+            send_fcm_request(env, request, 7) # Thông báo đến Acc nghiệm thu
+        if act == 'rejected':
+            send_fcm_request(env, request, 8) # Thông báo đến Người gửi yêu cầu
+        if act == 'repairing':
+            send_fcm_request(env, request, 12) # Thông báo đến Người gửi yêu cầu
+        if act == 'closed':
+            # Kiểm tra lại đã có đánh giá nghiệm thu từ SV và người nghiệm thu
+            send_fcm_request(env, request, 10) # Thông báo đóng yêu cầu
     else:
-        send_fcm_request(env, request, 2)
+        send_fcm_request(env, request, 2) # Thông báo có cập nhật
 
     return vals
 
