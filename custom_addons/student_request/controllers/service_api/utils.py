@@ -446,7 +446,7 @@ def send_fcm_request(env, request_obj, send_type=0):
         # Gửi tới các user được gán xử lý yêu cầu này
         other_user_ids = [u.id for u in request_obj.users if u.id != request_obj.user_processing_id.id] if request_obj.users else []
         if request_obj.user_processing_id:
-            send_fcm_users(env, request_obj.user_processing_id.id, f'Có cập nhật yêu cầu bạn được giao: {action} - {request_obj.name}', f'Yêu cầu {request_obj.name} được {action} nội dung: {request_obj.note}, cần bạn xử lý tiếp yêu cầu này', data)
+            send_fcm_users(env, [request_obj.user_processing_id.id], f'Có cập nhật yêu cầu bạn được giao: {action} - {request_obj.name}', f'Yêu cầu {request_obj.name} được {action} nội dung: {request_obj.note}, cần bạn xử lý tiếp yêu cầu này', data)
         if other_user_ids:
             send_fcm_users(env, other_user_ids, title, body, data)
     except Exception as e:
