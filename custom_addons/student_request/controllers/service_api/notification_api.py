@@ -1,6 +1,7 @@
 from odoo import http, models, fields
 from odoo.http import request, Response
 from odoo.fields import Datetime
+from odoo.osv import expression
 from firebase_admin import messaging, credentials, initialize_app
 from firebase_admin import _apps
 import requests as py_requests
@@ -28,30 +29,53 @@ class NotificationApiController(http.Controller):
                     status=400
                 )
 
-            domain = []
-            # Query các thông báo gửi cho User hoặc Cluster của user đó
-            profile = request.env['student.user.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
+            user_id_int = int(user_id)
+
+            # Lấy profile của user, có thể là student, admin, hoặc staff
+            student_profile = request.env['student.user.profile'].sudo().search([('user_id', '=', user_id_int)], limit=1)
+            admin_profile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id_int)], limit=1)
+            staff_profile = None
+            try:
+                staff_profile = request.env['hr.employee'].sudo().search([('user_id', '=', user_id_int)], limit=1)
+            except KeyError:
+                pass  # hr.employee model might not exist
+
+            profile = student_profile or admin_profile or staff_profile
+
             if not profile:
-                profile = request.env['student.admin.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
-                if not profile:
-                    domain = [('user_ids', 'in', [profile.user_id.id])]
-                else:
-                    domain = ['|', ('user_ids', 'in', [profile.user_id.id]), ('dormitory_cluster_ids', 'in', profile.dormitory_clusters.ids)]
-            else:
-                domain = ['|', ('user_ids', 'in', [profile.user_id.id]), ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])]
+                return Response(
+                    json.dumps({'success': False, 'message': 'User profile not found'}),
+                    content_type='application/json',
+                    status=404
+                )
 
-            # Đếm phân trang
-            total = request.env['student.notify'].sudo().search_count(domain)
+            # Xây dựng domain để query thông báo
+            # 1. Thông báo gửi trực tiếp cho user
+            base_domain = [('user_ids', 'in', [user_id_int])]
+            
+            # 2. Thông báo gửi cho khu KTX của user
+            if student_profile and student_profile.dormitory_cluster_id:
+                base_domain = expression.OR([base_domain, [('dormitory_cluster_ids', 'in', [student_profile.dormitory_cluster_id])]])
+            elif admin_profile and admin_profile.dormitory_clusters:
+                base_domain = expression.OR([base_domain, [('dormitory_cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]])
+
+            # Domain cho thông báo chưa đọc
+            unread_domain = expression.AND([base_domain, [('read_user_ids', 'not in', [user_id_int])]])
+
+            # Đếm tổng số thông báo
+            total_all = request.env['student.notify'].sudo().search_count(base_domain)
+            total_unread = request.env['student.notify'].sudo().search_count(unread_domain)
+            
+            # Lấy danh sách TẤT CẢ thông báo (phân trang)
             offset = (page - 1) * limit
-            notifications = request.env['student.notify'].sudo().search(domain, order='create_date desc', offset=offset, limit=limit)
+            notifications = request.env['student.notify'].sudo().search(base_domain, order='create_date desc', offset=offset, limit=limit)
 
-            data = [{
-                'id': n.id,
+            data = [{'id': n.id,
                 'title': n.title,
                 'body': n.body,
                 'image': n.image or '',
                 'article': n.article or '',
-                'is_read': profile.user_id.id in n.read_user_ids.ids if n.read_user_ids else False,
+                'is_read': user_id_int in n.read_user_ids.ids,
                 'create_date': n.create_date.strftime('%Y-%m-%d %H:%M:%S') if n.create_date else '',
                 'data': safe_json_parse(n.data),
             } for n in notifications]
@@ -62,10 +86,11 @@ class NotificationApiController(http.Controller):
                     'message': 'Danh sách thông báo',
                     'data': data,
                     'meta': {
-                        'total': total,
+                        'total_all': total_all,
+                        'total_unread': total_unread,
                         'page': page,
                         'limit': limit,
-                        'has_next': offset + limit < total,
+                        'has_next': offset + limit < total_all,
                     }
                 }),
                 content_type='application/json',
@@ -81,9 +106,6 @@ class NotificationApiController(http.Controller):
                 content_type='application/json',
                 status=500
             )
-
-        except Exception as e:
-            return {'success': False, 'message': str(e)}
 
 
     # lấy chi tiết thông báo
@@ -274,8 +296,20 @@ class NotificationApiController(http.Controller):
                     content_type='application/json',
                     status=400
                 )
+            
+            user_id_int = int(user_id)
+            
+            # Lấy profile của user, có thể là student, admin, hoặc staff
+            student_profile = request.env['student.user.profile'].sudo().search([('user_id', '=', user_id_int)], limit=1)
+            admin_profile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id_int)], limit=1)
+            staff_profile = None
+            try:
+                staff_profile = request.env['hr.employee'].sudo().search([('user_id', '=', user_id_int)], limit=1)
+            except KeyError:
+                pass # hr.employee model might not exist
+            
+            profile = student_profile or admin_profile or staff_profile
 
-            profile = request.env['student.user.profile'].sudo().search([('user_id', '=', int(user_id))], limit=1)
             if not profile:
                 return Response(
                     json.dumps({
@@ -286,30 +320,32 @@ class NotificationApiController(http.Controller):
                     status=404
                 )
 
-            # Tạo domain để tìm thông báo
-            if profile.dormitory_cluster_id:
-                domain = ['|',
-                         ('user_ids', 'in', [profile.user_id.id]),
-                         ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])]
-            else:
-                domain = [('user_ids', 'in', [profile.user_id.id])]
+            # Xây dựng domain để query thông báo
+            # 1. Thông báo gửi trực tiếp cho user
+            domain = [('user_ids', 'in', [user_id_int])]
+            
+            # 2. Thông báo gửi cho khu KTX của user
+            if student_profile and student_profile.dormitory_cluster_id:
+                domain = ['|'] + domain + [('dormitory_cluster_ids', 'in', [student_profile.dormitory_cluster_id.id])]
+            elif admin_profile and admin_profile.dormitory_clusters:
+                domain = ['|'] + domain + [('dormitory_cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]
 
-            # Đếm tổng số thông báo
-            total_notifications = request.env['student.notify'].sudo().search_count(domain)
+            # Đếm tổng số thông báo theo domain
+            total_count = request.env['student.notify'].sudo().search_count(domain)
             
             # Đếm số thông báo đã đọc
-            read_domain = domain + [('read_user_ids', 'in', [profile.user_id.id])]
+            read_domain = domain + [('read_user_ids', 'in', [user_id_int])]
             read_count = request.env['student.notify'].sudo().search_count(read_domain)
             
             # Tính số thông báo chưa đọc
-            unread_count = total_notifications - read_count
+            unread_count = total_count - read_count
 
             return Response(
                 json.dumps({
                     'success': True,
                     'message': 'Thành công',
                     'data': {
-                        'total': total_notifications,
+                        'total': total_count,
                         'unread': unread_count,
                         'read': read_count
                     }
