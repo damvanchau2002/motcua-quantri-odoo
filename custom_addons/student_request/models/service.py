@@ -264,6 +264,7 @@ class ServiceRequest(models.Model):
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
     expired_date = fields.Datetime('Ngày hết hạn', default=fields.Datetime.now() + timedelta(days=7), help='Ngày và giờ hết hạn gửi yêu cầu dịch vụ')
+    send_expired_warning = fields.Boolean('Đã gửi cảnh báo hết hạn', default=False, help='Đánh dấu đã gửi cảnh báo yêu cầu sắp hết hạn cho sinh viên')
     is_new = fields.Boolean('Yêu cầu mới', default=True, help='Đánh dấu yêu cầu này là mới')
 
     # THÔNG TIN CÁC BƯỚC
@@ -336,12 +337,15 @@ class ServiceRequest(models.Model):
         """Kiểm tra và cập nhật trạng thái timeout cho các request"""
         try:
             # Tìm các request đã quá thời gian xử lý
-            timeout_date = fields.Datetime.now() - timedelta(days=7)
-            timeout_requests = self.search([('final_state', '=', 'pending'), ('request_date', '<', timeout_date)])
-            
+            timeout_date = fields.Datetime.now() - timedelta(days=6)
+            timeout_requests = self.search([('final_state', '=', 'pending'), ('send_expired_warning', '=', False), ('request_date', '<', timeout_date)])
+
             for request in timeout_requests:
                 # Cập nhật trạng thái timeout
                 print(f"Updating request {request.id} to timeout status")
+                send_fcm_request(self.env, self, 13)
+                request.sudo().send_expired_warning = True
+
 
             print(f"Updated {len(timeout_requests)} requests to timeout status")
             

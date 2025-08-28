@@ -357,7 +357,8 @@ def send_fcm_request(env, request_obj, send_type=0):
             9: Yêu cầu cần duyệt lại,
            10: Đã hoàn thành và đóng yêu cầu,
            11: Quản lý gửi nghiệm thu,
-           12: Yêu cầu cần được sửa lại
+           12: Yêu cầu cần được sửa lại,
+           13: Yêu cầu sắp hết hạn 
         )
     """
     data = {'type': 'request', 'id': str(request_obj.id)}
@@ -443,9 +444,15 @@ def send_fcm_request(env, request_obj, send_type=0):
             title = f"{action}: {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
             body = f"Yêu cầu {request_obj.name} đã được duyệt nghiệm thu: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 
+        elif send_type == 13: # Gửi thông báo yêu cầu sắp hết hạn
+            action = 'Thông báo yêu cầu sắp hết hạn'
+            send_fcm_users(env, [request_obj.user_processing_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn sắp hết hạn', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} sắp hết hạn, cần bạn xử lý gấp hoặc gia hạn yêu cầu này', data)
+            title = f"{action}: {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
+            body = f"Yêu cầu {request_obj.name} sắp hết hạn xử lý: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
+
         # Gửi tới các user được gán xử lý yêu cầu này
         other_user_ids = [u.id for u in request_obj.users if u.id != request_obj.user_processing_id.id] if request_obj.users else []
-        if request_obj.user_processing_id:
+        if request_obj.user_processing_id and send_type != 13:
             send_fcm_users(env, [request_obj.user_processing_id.id], f'Có cập nhật yêu cầu bạn được giao: {action} - {request_obj.name}', f'Yêu cầu {request_obj.name} được {action} nội dung: {request_obj.note}, cần bạn xử lý tiếp yêu cầu này', data)
         if other_user_ids:
             send_fcm_users(env, other_user_ids, title, body, data)
