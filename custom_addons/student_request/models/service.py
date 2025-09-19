@@ -158,6 +158,7 @@ class ServiceRequestStepHistory(models.Model):
         ('pending', 'Chờ duyệt'),
         ('assigned', 'Đã phân công'),
         ('extended', 'Đã gia hạn'),
+        ('cancelled', 'Đã hủy'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
 
@@ -187,7 +188,7 @@ class ServiceRequestStep(models.Model):
         ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'), # Trạng thái đã duyệt: Hoàn thành xử lý yêu cầu
-
+        ('cancelled', 'Đã hủy'),
         ('rejected', 'Từ chối'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
@@ -267,6 +268,11 @@ class ServiceRequest(models.Model):
     send_expired_warning = fields.Boolean('Đã gửi cảnh báo hết hạn', default=False, help='Đánh dấu đã gửi cảnh báo yêu cầu sắp hết hạn cho sinh viên')
     is_new = fields.Boolean('Yêu cầu mới', default=True, help='Đánh dấu yêu cầu này là mới')
 
+    # Thông tin hủy yêu cầu
+    cancel_reason = fields.Text('Lý do hủy')
+    cancel_date = fields.Datetime('Ngày hủy')
+    cancel_user_id = fields.Many2one('res.users', string='Người hủy')
+
     # THÔNG TIN CÁC BƯỚC
     # Tạo tự động theo setup Service:
     step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
@@ -287,11 +293,11 @@ class ServiceRequest(models.Model):
         ('assigned', 'Đã phân công'),
         ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
+        ('cancelled', 'Đã hủy'),
         ('approved', 'Đã duyệt'), 
-
         ('rejected', 'Từ chối'),    # Hủy bỏ yêu cầu
         ('closed', 'Đã đóng')       # Là hoàn thành và đóng
-      ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
+    ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
     # Đánh giá cuối cùng 
     final_star = fields.Integer('Sao đánh giá cuối', help='Số sao cuối cùng sẽ hiển thị lên App') 

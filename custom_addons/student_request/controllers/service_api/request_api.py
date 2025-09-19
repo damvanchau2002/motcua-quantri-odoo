@@ -8,6 +8,9 @@ import json
 import base64
 import os
 import jwt
+import logging
+
+_logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 from .utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
 
@@ -382,6 +385,13 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
 # Controller cho API dịch vụ
 class ServiceApiController(http.Controller):
+
+    def _get_cors_headers(self):
+        return [
+            ('Access-Control-Allow-Origin', '*'),
+            ('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        ]
 
     # Tạo yêu cầu dịch vụ mới
     # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
@@ -1155,6 +1165,123 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                 ]
+            )
+
+    # API: Hủy yêu cầu dịch vụ
+    @http.route('/api/service/request/cancel', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def cancel_service_request(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+            return self._handle_options_request()
+
+        try:
+            params = request.httprequest.get_json(force=True, silent=True) or {}
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            cancel_reason = params.get('cancel_reason', '')
+
+            if not request_id or not user_id:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Thiếu request_id hoặc user_id'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=self._get_cors_headers()
+                )
+
+            # Kiểm tra yêu cầu tồn tại và thuộc về user
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not service_request.exists():
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Không tìm thấy yêu cầu'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=self._get_cors_headers()
+                )
+
+            # Kiểm tra quyền hủy yêu cầu
+            if service_request.request_user_id.id != int(user_id):
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Bạn không có quyền hủy yêu cầu này'
+                    }),
+                    content_type='application/json',
+                    status=403,
+                    headers=self._get_cors_headers()
+                )
+
+            # Kiểm tra trạng thái yêu cầu - chỉ cho phép hủy khi ở trạng thái pending
+            if service_request.final_state != 'pending':
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Chỉ có thể hủy yêu cầu ở trạng thái chờ duyệt'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=self._get_cors_headers()
+                )
+
+            # Cập nhật trạng thái yêu cầu thành "cancelled"
+            service_request.write({
+                'final_state': 'cancelled',
+                'cancel_reason': cancel_reason,
+                'cancel_date': fields.Datetime.now(),
+                'cancel_user_id': int(user_id)
+            })
+
+            # Tạo history cho việc hủy yêu cầu
+            current_step = service_request.step_ids.filtered(lambda s: s.state in ['pending', 'assigned'])
+            if current_step:
+                current_step[0].history_ids.sudo().create({
+                    'step_id': current_step[0].id,
+                    'user_id': int(user_id),
+                    'state': 'cancelled',
+                    'note': cancel_reason or 'Yêu cầu đã bị hủy bởi người dùng',
+                    'date': fields.Datetime.now()
+                })
+
+            # Gửi thông báo cho admin/staff nếu cần
+            try:
+                send_fcm_request(
+                    request.env,
+                    service_request,
+                    send_type=8  # Định nghĩa type cho thông báo hủy yêu cầu
+                )
+            except Exception as e:
+                _logger.error(f"Error sending FCM notification: {str(e)}")
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Yêu cầu đã được hủy thành công',
+                    'data': {
+                        'request_id': service_request.id,
+                        'final_state': 'cancelled',
+                        'cancel_date': fields.Datetime.to_string(service_request.cancel_date),
+                        'cancel_reason': service_request.cancel_reason
+                    }
+                }),
+                content_type='application/json',
+                status=200,
+                headers=self._get_cors_headers()
+            )
+
+        except Exception as e:
+            _logger.error(f"Error cancelling service request: {str(e)}")
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': str(e)
+                }),
+                content_type='application/json',
+                status=500,
+                headers=self._get_cors_headers()
             )
 
     # API: Tạo đánh giá cho yêu cầu dịch vụ
