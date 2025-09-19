@@ -298,7 +298,7 @@
                         <group string="Thông tin duyệt">
                             <field name="state"/>
                             <field name="approve_content"/>
-                            <field name="assign_user_id" domain="[ '|', ('groups_id.name', '=', 'Settings'), ('groups_id.name', '=', 'Administration') ]" />
+                            <field name="assign_user_id" /> <!-- domain="[ '|', ('groups_id.name', '=', 'Settings'), ('groups_id.name', '=', 'Administration') ]" -->
                             <field name="department_id" />
                         </group>
                         <group string="Nghiệm thu">

@@ -71,6 +71,18 @@ class AuthApiController(http.Controller):
             ]
         )
 
+    @http.route('/api/<path:any>', type='http', auth='public', methods=['OPTIONS'], csrf=False)
+    def catch_all_options(self, any):
+        return Response(
+            '',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
+            ]
+        )
     # Đăng nhập public user 
     @http.route('/api/public_user/login', type='http', auth='public', methods=['POST'], csrf=False)
     def public_user_login(self):
@@ -84,11 +96,12 @@ class AuthApiController(http.Controller):
             return Response(
                 json.dumps({'success': False, 'message': 'Thiếu tên đăng nhập.'}),
                 content_type='application/json',
-                status=400,
+                status=200,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -115,6 +128,7 @@ class AuthApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
 
@@ -128,6 +142,7 @@ class AuthApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
 
@@ -150,6 +165,7 @@ class AuthApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
             # Thành công: xử lý dữ liệu từ external API
@@ -365,6 +381,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -382,6 +399,7 @@ class AuthApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
         except Exception as e:
@@ -393,6 +411,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
