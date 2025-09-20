@@ -25,6 +25,7 @@ class UserApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
         users = group.users
@@ -37,6 +38,7 @@ class UserApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true'),
             ]
         )
 
@@ -54,6 +56,7 @@ class UserApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true'),
             ]
         )
     

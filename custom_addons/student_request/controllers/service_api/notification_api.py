@@ -122,6 +122,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -136,6 +137,7 @@ class NotificationApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
             data = {
@@ -156,6 +158,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         except Exception as e:
@@ -167,6 +170,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -185,6 +189,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         try:
@@ -199,6 +204,7 @@ class NotificationApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
             notify.sudo().write({'read_user_ids': [(4, user.id)]})
@@ -210,6 +216,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         except Exception as e:
@@ -221,6 +228,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
     
@@ -238,6 +246,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         try:
@@ -251,6 +260,7 @@ class NotificationApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
             profile = request.env['student.user.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
@@ -266,6 +276,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         except Exception as e:
@@ -277,6 +288,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
    
@@ -356,6 +368,7 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -371,5 +384,6 @@ class NotificationApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )

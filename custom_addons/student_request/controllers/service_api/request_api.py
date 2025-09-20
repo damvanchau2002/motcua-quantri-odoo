@@ -434,6 +434,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -450,6 +451,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -647,6 +649,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -659,6 +662,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -738,6 +742,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         except Exception as e:
@@ -749,6 +754,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -824,6 +830,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         except Exception as e:
@@ -835,6 +842,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -851,6 +859,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -917,6 +926,7 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
             ]
         )
 
@@ -943,6 +953,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -955,6 +966,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -971,6 +983,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -986,6 +999,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
         except Exception as e:
@@ -997,6 +1011,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1093,6 +1108,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1109,6 +1125,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
  # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
@@ -1143,6 +1160,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
         except Exception as e:
@@ -1154,6 +1172,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1176,6 +1195,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1193,6 +1213,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1227,6 +1248,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
         except Exception as e:
@@ -1238,6 +1260,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1281,6 +1304,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
         except Exception as e:
@@ -1292,6 +1316,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1316,6 +1341,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1368,6 +1394,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
         except Exception as e:
@@ -1379,6 +1406,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1410,6 +1438,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1485,6 +1514,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
         except Exception as e:
@@ -1496,6 +1526,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
     @http.route('/api/service/request/acceptance/list', type='http', auth='public', methods=['GET'], csrf=False)
@@ -1577,6 +1608,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1594,6 +1626,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
     @http.route('/api/service/request/images', type='http', auth='public', methods=['GET'], csrf=False)
@@ -1614,6 +1647,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1630,6 +1664,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1659,6 +1694,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1675,6 +1711,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1695,6 +1732,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1711,6 +1749,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1728,6 +1767,7 @@ class ServiceApiController(http.Controller):
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
                     ]
                 )
 
@@ -1741,6 +1781,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
 
@@ -1757,5 +1798,6 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )

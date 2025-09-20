@@ -33,6 +33,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         payload = decode_jwt_token(token, SECRET_KEY)
@@ -45,6 +46,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         uid = payload.get('uid')
@@ -57,6 +59,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         new_token = generate_jwt_token(uid, SECRET_KEY)
@@ -68,9 +71,11 @@ class AuthApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
             ]
         )
 
+    # Bắt tất cả các request OPTIONS để hỗ trợ CORS preflight
     @http.route('/api/<path:any>', type='http', auth='public', methods=['OPTIONS'], csrf=False)
     def catch_all_options(self, any):
         return Response(
@@ -441,6 +446,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -572,6 +578,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 
@@ -584,6 +591,7 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
 

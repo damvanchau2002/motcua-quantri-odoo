@@ -46,6 +46,21 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
+            ]
+        )
+
+    # Bắt tất cả các request OPTIONS để hỗ trợ CORS preflight
+    @http.route('/student_service/<path:any>', type='http', auth='public', methods=['OPTIONS'], csrf=False)
+    def catch_all_st_options(self, any):
+        return Response(
+            '',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
             ]
         )
 
@@ -73,6 +88,7 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
             ]
         )
 
@@ -89,6 +105,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
         data = {
@@ -116,6 +133,7 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
             ]
         )
 
@@ -132,5 +150,6 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Origin', '*'),
                 ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                 ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
             ]
         )
