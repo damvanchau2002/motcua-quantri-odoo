@@ -422,7 +422,7 @@ def send_fcm_request(env, request_obj, send_type=0):
 
         elif send_type == 8: 
             action = 'Hủy yêu cầu'
-            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn bị hủy', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} bị hủy: {request_obj.final_data}', data)
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn đã hủy', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã hủy', data)
             title = f'Yêu cầu dịch vụ {request_obj.service_id.name} đã bị hủy'
             body = f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã bị hủy: {request_obj.final_data}'
 
