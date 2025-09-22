@@ -15,8 +15,19 @@ from .utils import *
 class AuthApiController(http.Controller):
 
     #API làm mới JWT token
-    @http.route('/api/public_user/refresh_token', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/public_user/refresh_token', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def refresh_token(self):
+        if request.httprequest.method == 'OPTIONS':
+                    return Response(
+                        status=200,
+                        headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                        ]
+                    )          
         params = request.httprequest.get_json(force=True, silent=True) or {}
         auth_header = request.httprequest.headers.get('Authorization')
         token = None
@@ -37,6 +48,17 @@ class AuthApiController(http.Controller):
                 ]
             )
         payload = decode_jwt_token(token, SECRET_KEY)
+        if request.httprequest.method == 'OPTIONS':
+         return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )  
         if 'error' in payload:
             return Response(
                 json.dumps({'success': False, 'message': payload['error']}),
@@ -63,6 +85,17 @@ class AuthApiController(http.Controller):
                 ]
             )
         new_token = generate_jwt_token(uid, SECRET_KEY)
+        if request.httprequest.method == 'OPTIONS':
+                            return Response(
+                                status=200,
+                                headers=[
+                                    ('Access-Control-Allow-Origin', '*'),
+                                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                    ('Access-Control-Allow-Credentials', 'true'),
+                                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                                ]
+                            )   
         return Response(
             json.dumps({'success': True, 'message': 'Token refreshed', 'token_auth': new_token}),
             content_type='application/json',
@@ -78,6 +111,17 @@ class AuthApiController(http.Controller):
     # Bắt tất cả các request OPTIONS để hỗ trợ CORS preflight
     @http.route('/api/<path:any>', type='http', auth='public', methods=['OPTIONS'], csrf=False)
     def catch_all_options(self, any):
+        if request.httprequest.method == 'OPTIONS':
+                            return Response(
+                                status=200,
+                                headers=[
+                                    ('Access-Control-Allow-Origin', '*'),
+                                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                    ('Access-Control-Allow-Credentials', 'true'),
+                                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                                ]
+                            )      
         return Response(
             '',
             status=200,
@@ -89,8 +133,19 @@ class AuthApiController(http.Controller):
             ]
         )
     # Đăng nhập public user 
-    @http.route('/api/public_user/login', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/public_user/login', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def public_user_login(self):
+        if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )   
         params = request.httprequest.get_json(force=True, silent=True) or {}
         username = params.get('username')
         password = params.get('password')
@@ -421,8 +476,19 @@ class AuthApiController(http.Controller):
             )
 
     # Đăng nhập Oauth (Odoo)
-    @http.route('/api/public_user/oauth', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/public_user/oauth', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def oauth_login(self):
+        if request.httprequest.method == 'OPTIONS':
+                    return Response(
+                        status=200,
+                        headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                        ]
+                    )            
         params = request.httprequest.get_json(force=True, silent=True) or {}
         user_id = params.get('user_id')
 

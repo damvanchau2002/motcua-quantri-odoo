@@ -390,13 +390,33 @@ class ServiceApiController(http.Controller):
         return [
             ('Access-Control-Allow-Origin', '*'),
             ('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'),
-            ('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ('Access-Control-Allow-Credentials', 'true'),
+            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
         ]
+        
+    def _handle_options_request(self):
+        return Response(
+            status=200,
+            headers=self._get_cors_headers()
+        )
 
     # Tạo yêu cầu dịch vụ mới
     # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
-    @http.route('/api/service/request/create', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def create_service_request(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                ]
+            )
+            
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
@@ -469,8 +489,20 @@ class ServiceApiController(http.Controller):
     # Cập nhật yêu cầu dịch vụ
     # todo: cần kiểm tra trạng thái của yêu cầu trước khi cập nhật (chỉ cho cập nhật nếu là pending hoặc repairing )
     # Formdata: { request_id, request_user_id, note, files: [file1, file2, ...] }
-    @http.route('/api/service/request/update', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/update', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def update_service_request(self, **kw):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                ]
+            )
+
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
@@ -550,6 +582,12 @@ class ServiceApiController(http.Controller):
                     } for att in request_rec.image_attachment_ids]
                 }),
                 content_type='application/json',
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
         except Exception as e:
@@ -560,6 +598,12 @@ class ServiceApiController(http.Controller):
                     'error': str(e),
                 }),
                 content_type='application/json',
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
@@ -769,9 +813,10 @@ class ServiceApiController(http.Controller):
             )
 
      # Lấy danh sách các yêu cầu dịch vụ của user_id được giao
-    @http.route('/api/service/request/myasigned', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/myasigned', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_service_requests_asigned(self, **post):
-
+        if request.httprequest.method == 'OPTIONS':
+                return self._handle_options_request()
         domain = []
         params = request.httprequest.get_json(force=True, silent=True) or {}
         try:
@@ -836,28 +881,18 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
     # Lấy chi tiết 1 yêu cầu dịch vụ
-    @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_service_request_detail(self, request_id):
         req = request.env['student.service.request'].sudo().browse(request_id)
         if not req.exists():
@@ -941,8 +976,10 @@ class ServiceApiController(http.Controller):
         )
 
     # Lấy danh sách thông báo của user
-    @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def approve_service_request(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+                return self._handle_options_request()   
         params = request.httprequest.get_json(force=True, silent=True) or {}
         request_id = params.get('request_id')
         user_id = params.get('user_id')
@@ -959,12 +996,7 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
             )
 
         if asign_user_id == 0 and department_id == 0:
@@ -972,13 +1004,8 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Phải có 1 trong 2 asign_user_id hoặc department_id'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
-            )
+                headers=self._get_cors_headers()
+          )
 
         req = request.env['student.service.request'].sudo().browse(int(request_id))
         user = request.env['res.users'].sudo().browse(int(user_id))
@@ -989,12 +1016,8 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Request, user, or step not found'}),
                 content_type='application/json',
                 status=404,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
+
             )
 
         try:
@@ -1005,30 +1028,24 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
+
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
+
             )
 
 
     # API: Thống kê yêu cầu dịch vụ
-    @http.route('/api/service/request/statistics', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/statistics', type='http', auth='public', methods=['GET','OPT'], csrf=False)
     def get_request_statistics(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+                return self._handle_options_request()   
         try:
             params = request.params
             user_id = params.get('user_id')
@@ -1114,12 +1131,8 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
+
             )
 
         except Exception as e:
@@ -1131,16 +1144,14 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
+
             )
  # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
     @http.route('/api/service/request/review/list', type='http', auth='public', methods=['GET'], csrf=False)
     def list_service_request_reviews(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+                return self._handle_options_request()   
         try:
             params = request.httprequest.args or request.params
             request_id = params.get('request_id')
@@ -1166,24 +1177,14 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
             )
 
     # API: Hủy yêu cầu dịch vụ
@@ -1304,8 +1305,11 @@ class ServiceApiController(http.Controller):
             )
 
     # API: Tạo đánh giá cho yêu cầu dịch vụ
-    @http.route('/api/service/request/review/create', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/review/create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def create_service_request_review(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+              return self._handle_options_request()    
+                       
         try:
             params = request.httprequest.get_json(force=True, silent=True) or {}
             request_id = params.get('request_id')
@@ -1318,12 +1322,7 @@ class ServiceApiController(http.Controller):
                     json.dumps({'success': False, 'message': 'Thiếu request_id, user_id hoặc rating'}),
                     content_type='application/json',
                     status=400,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true'),
-                    ]
+                    headers=self._get_cors_headers()
                 )
 
             # Kiểm tra đã đánh giá chưa (1 user chỉ được đánh giá 1 lần cho 1 request)
@@ -1656,9 +1655,21 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
-    @http.route('/api/service/request/acceptance/list', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/acceptance/list', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_service_request_acceptances(self, **kwargs):
         try:
+            if request.httprequest.method == 'OPTIONS':
+                    return Response(
+                        status=200,
+                        headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                        ]
+                    )
+             # Lấy tham số lọc và phân trang
             params = request.httprequest.args or request.params
             request_id = params.get('request_id')
             user_id = params.get('user_id')
@@ -1756,9 +1767,21 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
-    @http.route('/api/service/request/images', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/images', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_request_images(self):
         try:
+            if request.httprequest.method == 'OPTIONS':
+                    return Response(
+                        status=200,
+                        headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                        ]
+                    )
+             # Lấy request_id từ tham số
             params = request.params
             request_id = params.get('request_id')
 
@@ -1842,9 +1865,20 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
-    @http.route('/api/download/image/<int:attachment_id>', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/download/image/<int:attachment_id>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def download_image(self, attachment_id):
         try:
+            if request.httprequest.method == 'OPTIONS':
+                    return Response(
+                        status=200,
+                        headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                        ]
+                    )
             # Tìm attachment
             attachment = request.env['ir.attachment'].sudo().browse(int(attachment_id))
             if not attachment.exists():
