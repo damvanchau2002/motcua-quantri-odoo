@@ -525,9 +525,7 @@ def remove_user_from_all_firebase_topics(env, user_id):
         
 import pytz
 def format_datetime_local(dt, user_id=None):
-    """
-    Chuyển đổi datetime từ UTC sang timezone local của user
-    """
+
     if not dt:
         return ''
     

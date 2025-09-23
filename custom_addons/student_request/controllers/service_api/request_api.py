@@ -609,6 +609,17 @@ class ServiceApiController(http.Controller):
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
     def list_requests_by_user(self):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                ]
+            )
         try:
             # params = request.httprequest.get_json(force=True, silent=True) or {}
             params = request.params
@@ -724,6 +735,18 @@ class ServiceApiController(http.Controller):
     # Lấy danh sách các yêu cầu dịch vụ theo: Quyền duyệt của user_id
     @http.route('/api/service/request/list', type='http', auth='public', methods=['GET'], csrf=False)
     def list_service_requests(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                ]
+            )
+
         domain = []
         params = request.httprequest.get_json(force=True, silent=True) or {}
         try:
@@ -978,8 +1001,6 @@ class ServiceApiController(http.Controller):
     # Lấy danh sách thông báo của user
     @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def approve_service_request(self, **post):
-        if request.httprequest.method == 'OPTIONS':
-                return self._handle_options_request()   
         params = request.httprequest.get_json(force=True, silent=True) or {}
         request_id = params.get('request_id')
         user_id = params.get('user_id')
@@ -990,7 +1011,8 @@ class ServiceApiController(http.Controller):
         state = params.get('state', '')
         note = params.get('note', '')
         final = params.get('final', '')
-
+        if request.httprequest.method == 'OPTIONS':
+                    return self._handle_options_request()   
         if not request_id or not user_id or not step_id:
             return Response(
                 json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
@@ -1394,6 +1416,8 @@ class ServiceApiController(http.Controller):
     # API: Lấy danh sách khiếu nại cho yêu cầu dịch vụ
     @http.route('/api/service/request/complaint/list', type='http', auth='public', methods=['GET'], csrf=False)
     def list_service_request_complaints(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+                return self._handle_options_request()
         try:
             params = request.httprequest.args or request.params
             request_id = params.get('request_id')
