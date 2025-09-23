@@ -26,7 +26,13 @@ class NotificationApiController(http.Controller):
                 return Response(
                     json.dumps({'success': False, 'message': 'Missing user_id'}),
                     content_type='application/json',
-                    status=400
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
+                    ]
                 )
 
             user_id_int = int(user_id)
@@ -46,7 +52,13 @@ class NotificationApiController(http.Controller):
                 return Response(
                     json.dumps({'success': False, 'message': 'User profile not found'}),
                     content_type='application/json',
-                    status=404
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
+                    ]
                 )
 
             # Xây dựng domain để query thông báo
@@ -94,7 +106,13 @@ class NotificationApiController(http.Controller):
                     }
                 }),
                 content_type='application/json',
-                status=200
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
         except Exception as e:
@@ -104,7 +122,13 @@ class NotificationApiController(http.Controller):
                     "message": str(e)
                 }),
                 content_type='application/json',
-                status=500
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
 

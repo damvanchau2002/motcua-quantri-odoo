@@ -95,7 +95,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
                 'note': note,
                 'image_attachment_ids': [(6, 0, attachments)],
                 'request_date': Datetime.now(),
-                'expired_date': Datetime.now() + timedelta(days=service.duration or 7),  # Mặc định là 7 ngày nếu không có expired_duration
+                'expired_date': Datetime.now() + timedelta(hours=service.duration or 168),  # Mặc định là 168 giờ nếu không có expired_duration
                 'final_state': 'pending',
                 'dormitory_cluster_id': cluster_id,  # Gán cụm KTX nếu có
             })
@@ -114,7 +114,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
             'request_date': Datetime.now(),
             'final_state': 'pending',
             'dormitory_cluster_id': cluster_id,  # Gán cụm KTX nếu có
-            'expired_date': Datetime.now() + timedelta(days=service.duration or 7),  # Mặc định là 7 ngày nếu không có expired_duration
+            'expired_date': Datetime.now() + timedelta(hours=service.duration or 168),  # Mặc định là 168 giờ nếu không có expired_duration
         }
 
     # Tạo mới yêu cầu các bước xử lý

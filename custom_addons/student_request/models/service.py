@@ -93,7 +93,7 @@ class Service(models.Model):
     description = fields.Text('Mô tả chi tiết', help='Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên')
     titlenote = fields.Char('Tiêu đề gửi nội dung yêu cầu', help='Ghi chú cho SV thông tin cần nhập như thế nào')
 
-    duration = fields.Integer('Thời gian xử lý (ngày)', default=7, help='Thời gian dự kiến để xử lý yêu cầu dịch vụ này, tính bằng ngày')
+    duration = fields.Integer('Thời gian xử lý (giờ)', default=168, help='Thời gian dự kiến để xử lý yêu cầu dịch vụ này, tính bằng giờ')
     per_week = fields.Integer('Số lượng yêu cầu tối đa mỗi tuần', default=1, help='Số lượng yêu cầu tối đa User được phép gửi mỗi tuần')
 
     state = fields.Selection([
