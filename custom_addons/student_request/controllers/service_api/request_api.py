@@ -917,6 +917,17 @@ class ServiceApiController(http.Controller):
     # Lấy chi tiết 1 yêu cầu dịch vụ
     @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_service_request_detail(self, request_id):
+        if request.httprequest.method == 'OPTIONS':
+                            return Response(
+                                status=200,
+                                headers=[
+                                    ('Access-Control-Allow-Origin', '*'),
+                                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                    ('Access-Control-Allow-Credentials', 'true'),
+                                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                                ]
+                            )
         req = request.env['student.service.request'].sudo().browse(request_id)
         if not req.exists():
             return Response(
@@ -1001,6 +1012,17 @@ class ServiceApiController(http.Controller):
     # Lấy danh sách thông báo của user
     @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def approve_service_request(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+                    return Response(
+                        status=200,
+                        headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                        ]
+                    )
         params = request.httprequest.get_json(force=True, silent=True) or {}
         request_id = params.get('request_id')
         user_id = params.get('user_id')
@@ -1011,14 +1033,18 @@ class ServiceApiController(http.Controller):
         state = params.get('state', '')
         note = params.get('note', '')
         final = params.get('final', '')
-        if request.httprequest.method == 'OPTIONS':
-                    return self._handle_options_request()   
         if not request_id or not user_id or not step_id:
             return Response(
                 json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
                 content_type='application/json',
                 status=400,
-                headers=self._get_cors_headers()
+                      headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                        ]
             )
 
         if asign_user_id == 0 and department_id == 0:
@@ -1026,7 +1052,13 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Phải có 1 trong 2 asign_user_id hoặc department_id'}),
                 content_type='application/json',
                 status=400,
-                headers=self._get_cors_headers()
+                      headers=[
+                            ('Access-Control-Allow-Origin', '*'),
+                            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                            ('Access-Control-Allow-Credentials', 'true'),
+                            ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                        ]
           )
 
         req = request.env['student.service.request'].sudo().browse(int(request_id))

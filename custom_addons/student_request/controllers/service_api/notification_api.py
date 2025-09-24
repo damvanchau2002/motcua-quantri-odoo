@@ -279,6 +279,17 @@ class NotificationApiController(http.Controller):
     # API đánh dấu đã đọc tất cả thông báo của user
     @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST'], csrf=False)
     def mark_all_notifications_as_read(self):
+        if request.httprequest.method == 'OPTIONS':
+                return Response(
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                        ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                    ]
+                )
         params = request.httprequest.get_json(force=True, silent=True) or {}
         user_id = params.get('user_id')
         if not user_id:
