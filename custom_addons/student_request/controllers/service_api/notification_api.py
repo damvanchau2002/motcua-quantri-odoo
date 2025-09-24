@@ -11,6 +11,7 @@ import os
 import jwt
 from datetime import datetime, timedelta
 from .utils import *
+import pytz
 
 class NotificationApiController(http.Controller):
     
@@ -88,7 +89,7 @@ class NotificationApiController(http.Controller):
                 'image': n.image or '',
                 'article': n.article or '',
                 'is_read': user_id_int in n.read_user_ids.ids,
-                'create_date': n.create_date.strftime('%Y-%m-%d %H:%M:%S') if n.create_date else '',
+                'create_date': format_datetime_local(n.create_date, user_id_int),
                 'data': safe_json_parse(n.data),
             } for n in notifications]
 
@@ -171,7 +172,7 @@ class NotificationApiController(http.Controller):
                 'image': notify.image or '',
                 'article': notify.article or '',
                 'is_read': request.env.user.id in notify.read_user_ids.ids if notify.read_user_ids else False,
-                'create_date': notify.create_date.strftime('%Y-%m-%d %H:%M:%S') if notify.create_date else '',
+                'create_date': format_datetime_local(notify.create_date, request.env.user.id),
                 'data': safe_json_parse(notify.data),
             }
             return Response(
