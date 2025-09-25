@@ -13,6 +13,17 @@ from datetime import datetime, timedelta
 
 # Hàm để parse JSON an toàn, trả về dict nếu là dict, hoặc cố gắng chuyển đổi từ string
 def safe_json_parse(data):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     if isinstance(data, dict):
         return data
     if isinstance(data, str):
@@ -24,6 +35,17 @@ def safe_json_parse(data):
 
 # Chuyển đổi định dạng ngày từ dd/MM/yyyy sang yyyy-MM-dd
 def convert_date(date_str):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     if not date_str:
         return False
     try:
@@ -46,6 +68,17 @@ _firebase_lock = threading.Lock()
 
 # Tạo JWT token với uid và secretkey, thời hạn 30 ngày
 def generate_jwt_token(uid, secretkey):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     payload = {
         'uid': uid,
         'exp': Datetime.now() + timedelta(days=30),
@@ -56,6 +89,17 @@ def generate_jwt_token(uid, secretkey):
 
 # Giải mã JWT token, trả về payload nếu hợp lệ, hoặc trả về lỗi nếu không hợp lệ
 def decode_jwt_token(token, secretkey):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     try:
         payload = jwt.decode(token, secretkey, algorithms=['HS256'])
         return payload
@@ -66,6 +110,17 @@ def decode_jwt_token(token, secretkey):
 
 # Kiểm tra JWT token từ request, trả về True nếu hợp lệ, hoặc trả về Response lỗi nếu không hợp lệ
 def check_jwt_token(request, secretkey):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     try:
         auth_header = request.httprequest.headers.get('Authorization')
         token = None
@@ -106,10 +161,17 @@ def check_jwt_token(request, secretkey):
 
 # Lấy Firebase app - Thread Safe Version with Lock
 def get_firebase_app():
-    """
-    Thread-safe Firebase app initialization with lock
-    Prevents race conditions when multiple threads initialize simultaneously
-    """
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     try:
         # Use lock to prevent race conditions during initialization
         with _firebase_lock:
@@ -138,6 +200,17 @@ def send_fcm_notify(env, notify, data):
     """
     Send FCM notification with improved error handling and thread safety
     """
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     try:
         firebase_app = get_firebase_app()
     except Exception as e:
@@ -205,9 +278,7 @@ def send_fcm_notify(env, notify, data):
 
 # Gửi FCM đến danh sách users - Improved with better error handling
 def send_fcm_users(env, user_ids, title, body, data):
-    """
-    Send FCM to specific users with improved error handling
-    """
+    
     try:
         firebase_app = get_firebase_app()
     except Exception as e:
@@ -340,6 +411,17 @@ def send_fcm_batch(env, tokens, title, body, data=None, batch_size=500):
 # Gửi FCM với đầu vào là Request object, data sẽ là {'type': 'request', 'id': f'{request.id}'}
 # send_type = 0: tạo mới, 1: cập nhật, 2: đang duyệt qua bước, 3: đã duyệt hoàn thành, 4: Đánh giá, 5: Khiếu nại  
 def send_fcm_request(env, request_obj, send_type=0):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     """
     Gửi thông báo FCM khi Yêu cầu dịch vụ có thay đổi (Sinh viên, Người được giao, Các đối tượng liên quan)
         :param env: Odoo environment
@@ -462,6 +544,17 @@ def send_fcm_request(env, request_obj, send_type=0):
 
 # Thêm người dùng vào topic Firebase - Fixed static app issue
 def add_user_to_firebase_topic(env, user_id, topic_area, topic_cluster):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     """
     Add user to Firebase topics with improved error handling
     """
@@ -489,6 +582,17 @@ def add_user_to_firebase_topic(env, user_id, topic_area, topic_cluster):
 
 # Gỡ người dùng khỏi tất cả các topic Firebase - Fixed static app issue  
 def remove_user_from_all_firebase_topics(env, user_id):
+    if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
     """
     Remove user from all Firebase topics with improved error handling
     """

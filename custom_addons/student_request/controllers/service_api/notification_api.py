@@ -277,7 +277,7 @@ class NotificationApiController(http.Controller):
             )
     
     # API đánh dấu đã đọc tất cả thông báo của user
-    @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def mark_all_notifications_as_read(self):
         if request.httprequest.method == 'OPTIONS':
                 return Response(
@@ -348,8 +348,19 @@ class NotificationApiController(http.Controller):
             )
    
     # API lấy số lượng thông báo chưa đọc
-    @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_unread_notifications_count(self):
+        if request.httprequest.method == 'OPTIONS':
+                return Response(
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                        ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                    ]
+                )
         try:
             params = request.params
             user_id = params.get('user_id')

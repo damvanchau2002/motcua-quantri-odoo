@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 class UserApiController(http.Controller):
     
     # Lấy danh sách users có group_id.name == 'Settings'
-    @http.route('/api/users/forassign', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/users/forassign', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_settings_users(self):
         if request.httprequest.method == 'OPTIONS':
                         return Response(
@@ -54,7 +54,7 @@ class UserApiController(http.Controller):
         )
 
     # Lấy danh sách các department
-    @http.route('/api/department/forassign', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/department/forassign', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_departments(self):
         if request.httprequest.method == 'OPTIONS':
                         return Response(

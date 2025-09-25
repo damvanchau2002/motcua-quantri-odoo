@@ -607,7 +607,7 @@ class ServiceApiController(http.Controller):
             )
 
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
-    @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/user', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_requests_by_user(self):
         if request.httprequest.method == 'OPTIONS':
             return Response(
@@ -733,7 +733,7 @@ class ServiceApiController(http.Controller):
 
 
     # Lấy danh sách các yêu cầu dịch vụ theo: Quyền duyệt của user_id
-    @http.route('/api/service/request/list', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/list', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_service_requests(self, **post):
         if request.httprequest.method == 'OPTIONS':
             return Response(
@@ -839,7 +839,16 @@ class ServiceApiController(http.Controller):
     @http.route('/api/service/request/myasigned', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_service_requests_asigned(self, **post):
         if request.httprequest.method == 'OPTIONS':
-                return self._handle_options_request()
+                return Response(
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                        ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                    ]
+                )
         domain = []
         params = request.httprequest.get_json(force=True, silent=True) or {}
         try:
@@ -904,14 +913,24 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
     # Lấy chi tiết 1 yêu cầu dịch vụ
@@ -1070,7 +1089,12 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Request, user, or step not found'}),
                 content_type='application/json',
                 status=404,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
 
@@ -1082,7 +1106,12 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
         except Exception as e:
@@ -1090,7 +1119,12 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
 
@@ -1185,7 +1219,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
 
@@ -1198,7 +1237,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
  # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
@@ -1231,14 +1275,24 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
     # API: Hủy yêu cầu dịch vụ
@@ -1261,7 +1315,12 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=400,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Kiểm tra yêu cầu tồn tại và thuộc về user
@@ -1274,7 +1333,12 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=404,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Kiểm tra quyền hủy yêu cầu
@@ -1286,7 +1350,12 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=403,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Kiểm tra trạng thái yêu cầu - chỉ cho phép hủy khi ở trạng thái pending
@@ -1298,7 +1367,12 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=400,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Cập nhật trạng thái yêu cầu thành "cancelled"
@@ -1343,7 +1417,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
         except Exception as e:
@@ -1355,7 +1434,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
     # API: Tạo đánh giá cho yêu cầu dịch vụ
@@ -1595,6 +1679,7 @@ class ServiceApiController(http.Controller):
     # Đánh giá nghiệm thu của SV
     @http.route('/api/service/request/acceptance/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request_acceptance(self, **post):
+        
         """
             Tạo đánh giá nghiệm thu cho yêu cầu dịch vụ
             
@@ -1712,9 +1797,8 @@ class ServiceApiController(http.Controller):
                 ]
             )
     @http.route('/api/service/request/acceptance/list', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
-    def list_service_request_acceptances(self, **kwargs):
-        try:
-            if request.httprequest.method == 'OPTIONS':
+    def list_service_request_acceptances(self, **kwargs):    
+        if request.httprequest.method == 'OPTIONS':
                     return Response(
                         status=200,
                         headers=[
@@ -1725,6 +1809,7 @@ class ServiceApiController(http.Controller):
                             ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
                         ]
                     )
+        try:
              # Lấy tham số lọc và phân trang
             params = request.httprequest.args or request.params
             request_id = params.get('request_id')
