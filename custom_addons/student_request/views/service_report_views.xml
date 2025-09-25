@@ -13,9 +13,8 @@
                     <field name="from_date" invisible="mode != 'day'"/>
                     <field name="to_date" invisible="mode != 'day'"/>
 
-                    <field name="from_month" widget="month_selection"/>
-                    <field name="to_month" widget="month_selection"/>
-
+                    <field name="from_month" widget="month_selection" invisible="mode != 'month'"/>
+                    <field name="to_month" widget="month_selection" invisible="mode != 'month'"/>
 
                     <field name="from_year" invisible="mode != 'year'"/>
                     <field name="to_year" invisible="mode != 'year'"/>
