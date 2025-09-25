@@ -161,7 +161,7 @@
             <kanban class="o_kanban_view" default_order="id desc">
                 <templates>
                     <t t-name="kanban-box">
-                        <div t-att-style="!record.user_can_view.raw_value ? 'pointer-events: none !important; opacity: 0.12;' : ''" class="card p-0" t-att-class="record.final_state.raw_value == 'rejected' ? 'bg-danger' : (record.final_state.raw_value == 'closed' ? 'bg-secondary disabled' : '')">
+                        <div class="card p-0" t-att-class="record.final_state.raw_value == 'rejected' ? 'bg-danger' : (record.final_state.raw_value == 'closed' ? 'bg-secondary disabled' : '')">
                             <div class="card-header oe_kanban_header">
                                 <strong>
                                     <field name="service_id" options="{'no_create': True}"/>
@@ -205,7 +205,7 @@
                                     </small>
                                 </div>
                                 <div class="oe_kanban_images">
-                                    <b><i> Quyền duyệt: <field name="user_can_view" /> </i><br /></b>
+                                    <b><i> Quyền duyệt: </i><br /></b>
                                     <field name="users" />
                                     <field name="role_ids"/>
                                 </div>
@@ -268,19 +268,7 @@
         <field name="res_model">student.service.request</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="view_student_service_request_search"/>
-        <field name="domain">[('user_can_view', '=', True)]</field>
     </record>
-
-    <!-- <record id="student_service_request_user_rule" model="ir.rule">
-        <field name="name">ServiceRequest: User Access Rule</field>
-        <field name="model_id" ref="model_student_service_request"/>
-        <field name="domain_force">[('user_can_view', '=', True)]</field>
-        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
-        <field name="perm_read" eval="True"/>
-        <field name="perm_write" eval="True"/>
-        <field name="perm_create" eval="True"/>
-        <field name="perm_unlink" eval="True"/>
-    </record> -->
     
     <record id="view_student_service_request_step_history_tree" model="ir.ui.view">
         <field name="name">student.service.request.step.history.tree</field>
