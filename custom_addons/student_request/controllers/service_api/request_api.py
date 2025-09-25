@@ -852,7 +852,7 @@ class ServiceApiController(http.Controller):
         domain = []
         params = request.httprequest.get_json(force=True, silent=True) or {}
         try:
-            user_id = int(params.get('user_id')) if params.get('user_id') else 0
+            user_id = int(request.params.get('user_id') or 0)
             aprofile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id)], limit=1) if user_id else None
 
             domain.append(('user_processing_id', '=', user_id))
