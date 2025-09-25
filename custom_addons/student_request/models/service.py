@@ -201,7 +201,11 @@ class ServiceRequestStep(models.Model):
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
 
     # Phân công
-    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
+    assign_user_id = fields.Many2one(
+        'res.users',
+        string='Người được phân công',
+        domain=lambda self: [('groups_id', 'in', [self.env['res.groups'].search([('name','=','Settings')], limit=1).id])],
+    )
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này')
     # Lịch sử xử lý yêu cầu
     history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
