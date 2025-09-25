@@ -5,7 +5,7 @@
         <field name="name">student.service.report.wizard.form</field>
         <field name="model">student.service.report.wizard</field>
         <field name="arch" type="xml">
-            <form string="Chọn chế độ báo cáo">
+            <form string="Tìm kiếm báo cáo">
                 <group>
                     <field name="mode"/>
                 </group>
@@ -13,8 +13,9 @@
                     <field name="from_date" invisible="mode != 'day'"/>
                     <field name="to_date" invisible="mode != 'day'"/>
 
-                    <field name="from_month" invisible="mode != 'month'" widget="date"/>
-                    <field name="to_month" invisible="mode != 'month'" widget="date"/>
+                    <field name="from_month" widget="month_selection"/>
+                    <field name="to_month" widget="month_selection"/>
+
 
                     <field name="from_year" invisible="mode != 'year'"/>
                     <field name="to_year" invisible="mode != 'year'"/>
@@ -43,7 +44,8 @@
         <field name="model">student.service.report</field>
         <field name="arch" type="xml">
             <list string="Báo cáo"
-                  create="false" edit="false" delete="false">
+                    create="false" edit="false" delete="false"
+                    class="no-checkbox-list">
                 <field name="period"/>
                 <field name="area_name"/>
                 <field name="cluster_name"/>

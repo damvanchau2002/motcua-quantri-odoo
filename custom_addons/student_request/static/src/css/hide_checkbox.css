@@ -1,0 +1,4 @@
+/* Ẩn checkbox chỉ cho list view có class no-checkbox-list */
+.o_list_view.no-checkbox-list .o_list_record_selector {
+    display: none !important;
+}

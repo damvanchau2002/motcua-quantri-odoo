@@ -579,8 +579,8 @@ class StudentServiceReportWizard(models.TransientModel):
     from_date = fields.Date(string="Từ ngày")
     to_date = fields.Date(string="Đến ngày")
 
-    from_month = fields.Date(string="Từ tháng")
-    to_month = fields.Date(string="Đến tháng")
+    from_month = fields.Char(string="Từ tháng")
+    to_month = fields.Char(string="Đến tháng")
 
     from_year = fields.Integer(string="Từ năm")
     to_year = fields.Integer(string="Đến năm")
@@ -595,7 +595,7 @@ class StudentServiceReportWizard(models.TransientModel):
         if self.mode == 'day':
             return f"Báo cáo thống kê số lượng yêu cầu theo Ngày (Từ {self.from_date} đến {self.to_date})"
         elif self.mode == 'month':
-            return f"Báo cáo thống kê số lượng yêu cầu theo Tháng (Từ {self.from_month.strftime('%m/%Y')} đến {self.to_month.strftime('%m/%Y')})"
+            return f"Báo cáo thống kê số lượng yêu cầu theo Tháng (Từ {self.from_month} đến {self.to_month})"
         elif self.mode == 'year':
             return f"Báo cáo thống kê số lượng yêu cầu theo Năm (Từ {self.from_year} đến {self.to_year})"
         return "Báo cáo"
@@ -627,15 +627,15 @@ class StudentServiceReportWizard(models.TransientModel):
             if not (self.from_month and self.to_month):
                 raise UserError("Vui lòng nhập khoảng từ tháng đến tháng.")
 
-            to_month_plus = self.to_month + relativedelta(months=1)
-
+            # where_clause dùng TO_DATE để convert 'MM/YYYY' -> date
             where_clause = """
-                WHERE r.request_date >= DATE_TRUNC('month', %(from_month)s)
-                  AND r.request_date < DATE_TRUNC('month', %(to_month_plus)s)
+                WHERE r.request_date >= DATE_TRUNC('month', TO_DATE(%(from_month)s, 'MM/YYYY'))
+                AND r.request_date < DATE_TRUNC('month', TO_DATE(%(to_month)s, 'MM/YYYY') + INTERVAL '1 month')
             """
+
             params.update({
-                "from_month": self.from_month,
-                "to_month_plus": to_month_plus
+                "from_month": self.from_month,   # dạng '09/2025'
+                "to_month": self.to_month,       # dạng '12/2025'
             })
 
         # --- YEAR ---
@@ -686,7 +686,7 @@ class StudentServiceReportWizard(models.TransientModel):
                     WHEN %(mode)s = 'month' THEN TO_CHAR(r.request_date, 'MM/YYYY')
                     WHEN %(mode)s = 'year'  THEN TO_CHAR(r.request_date, 'YYYY')
                 END
-            ORDER BY min_request_date DESC, group_name
+            ORDER BY period DESC, group_name,service_name
         """
         self.env.cr.execute(query, params)
         rows = self.env.cr.dictfetchall()
