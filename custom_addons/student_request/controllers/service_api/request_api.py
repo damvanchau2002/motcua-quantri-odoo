@@ -1587,8 +1587,10 @@ class ServiceApiController(http.Controller):
             )
 
     # API: Tạo khiếu nại cho yêu cầu dịch vụ
-    @http.route('/api/service/request/complaint/create', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/complaint/create', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def create_service_request_complaint(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+                        return self._handle_options_request()    
         try:
             httprequest = request.httprequest
 
