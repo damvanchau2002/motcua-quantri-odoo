@@ -1,8 +1,11 @@
 import os
 import json
+from dateutil.relativedelta import relativedelta
 import requests
 from odoo import models, fields, api
-from datetime import timedelta 
+from datetime import timedelta
+
+from odoo.exceptions import UserError 
 from ..controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
 from ..controllers.service_api.request_api import create_request, update_request_step
 
@@ -93,7 +96,7 @@ class Service(models.Model):
     description = fields.Text('Mô tả chi tiết', help='Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên')
     titlenote = fields.Char('Tiêu đề gửi nội dung yêu cầu', help='Ghi chú cho SV thông tin cần nhập như thế nào')
 
-    duration = fields.Integer('Thời gian xử lý (ngày)', default=7, help='Thời gian dự kiến để xử lý yêu cầu dịch vụ này, tính bằng ngày')
+    duration = fields.Integer('Thời gian xử lý (giờ)', default=168, help='Thời gian dự kiến để xử lý yêu cầu dịch vụ này, tính bằng giờ')
     per_week = fields.Integer('Số lượng yêu cầu tối đa mỗi tuần', default=1, help='Số lượng yêu cầu tối đa User được phép gửi mỗi tuần')
 
     state = fields.Selection([
@@ -198,7 +201,11 @@ class ServiceRequestStep(models.Model):
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
 
     # Phân công
-    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
+    assign_user_id = fields.Many2one(
+        'res.users',
+        string='Người được phân công',
+        domain=lambda self: [('groups_id', 'in', [self.env['res.groups'].search([('name','=','Settings')], limit=1).id])],
+    )
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này')
     # Lịch sử xử lý yêu cầu
     history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
@@ -562,3 +569,197 @@ class StudentServiceRequestResult(models.Model):
     )
     # Thông tin người thực hiện hành động
     action_user = fields.Many2one('res.users', string='Người thực hiện hành động', required=True)
+
+class StudentServiceReportWizard(models.TransientModel):
+    _name = "student.service.report.wizard"
+    _description = "Báo cáo"
+
+    mode = fields.Selection([
+        ('day', 'Ngày'),
+        ('month', 'Tháng'),
+        ('year', 'Năm')
+    ], string="Chế độ", default='month', required=True)
+
+    from_date = fields.Date(string="Từ ngày")
+    to_date = fields.Date(string="Đến ngày")
+
+    from_month = fields.Char(string="Từ tháng")
+    to_month = fields.Char(string="Đến tháng")
+
+    from_year = fields.Integer(string="Từ năm")
+    to_year = fields.Integer(string="Đến năm")
+
+    @api.onchange('mode')
+    def _onchange_mode(self):
+        self.from_date = self.to_date = False
+        self.from_month = self.to_month = False
+        self.from_year = self.to_year = False
+
+    def _get_report_title(self):
+        if self.mode == 'day':
+            return f"Báo cáo thống kê số lượng yêu cầu theo Ngày (Từ {self.from_date} đến {self.to_date})"
+        elif self.mode == 'month':
+            return f"Báo cáo thống kê số lượng yêu cầu theo Tháng (Từ {self.from_month} đến {self.to_month})"
+        elif self.mode == 'year':
+            return f"Báo cáo thống kê số lượng yêu cầu theo Năm (Từ {self.from_year} đến {self.to_year})"
+        return "Báo cáo"
+
+    def action_generate_report(self):
+        self.ensure_one()
+        params = {"mode": self.mode}
+        where_clause = ""
+
+        # --- DAY ---
+        if self.mode == 'day':
+            if not (self.from_date and self.to_date):
+                raise UserError("Vui lòng nhập khoảng từ ngày đến ngày.")
+
+            # cộng thêm 1 ngày để lọc đến 23:59:59
+            to_date_plus = self.to_date + relativedelta(days=1)
+
+            where_clause = """
+                WHERE r.request_date >= %(from_date)s
+                  AND r.request_date < %(to_date_plus)s
+            """
+            params.update({
+                "from_date": self.from_date,
+                "to_date_plus": to_date_plus
+            })
+
+        # --- MONTH ---
+        elif self.mode == 'month':
+            if not (self.from_month and self.to_month):
+                raise UserError("Vui lòng nhập khoảng từ tháng đến tháng.")
+
+            # where_clause dùng TO_DATE để convert 'MM/YYYY' -> date
+            where_clause = """
+                WHERE r.request_date >= DATE_TRUNC('month', TO_DATE(%(from_month)s, 'MM/YYYY'))
+                AND r.request_date < DATE_TRUNC('month', TO_DATE(%(to_month)s, 'MM/YYYY') + INTERVAL '1 month')
+            """
+
+            params.update({
+                "from_month": self.from_month,   # dạng '09/2025'
+                "to_month": self.to_month,       # dạng '12/2025'
+            })
+
+        # --- YEAR ---
+        elif self.mode == 'year':
+            if not (self.from_year and self.to_year):
+                raise UserError("Vui lòng nhập khoảng từ năm đến năm.")
+
+            to_year_plus = self.to_year + 1
+
+            where_clause = """
+                WHERE r.request_date >= MAKE_DATE(%(from_year)s, 1, 1)
+                  AND r.request_date < MAKE_DATE(%(to_year_plus)s, 1, 1)
+            """
+            params.update({
+                "from_year": self.from_year,
+                "to_year_plus": to_year_plus
+            })
+
+        query = f"""
+            SELECT 
+                a.name AS area_name,
+                cl.name AS cluster_name,
+                s.name AS service_name,
+                g.name AS group_name,
+                CASE 
+                    WHEN %(mode)s = 'day'   THEN TO_CHAR(r.request_date, 'DD/MM/YYYY')
+                    WHEN %(mode)s = 'month' THEN TO_CHAR(r.request_date, 'MM/YYYY')
+                    WHEN %(mode)s = 'year'  THEN TO_CHAR(r.request_date, 'YYYY')
+                END AS period,
+                MIN(r.request_date)::date AS min_request_date,
+                COUNT(r.id) AS total_requests,
+                COUNT(CASE WHEN r.final_state NOT IN ('pending','assigned') THEN 1 END) AS processed_requests,
+                COUNT(CASE WHEN r.final_state IN ('pending','assigned') THEN 1 END) AS pending_requests,
+                COUNT(DISTINCT CASE 
+                        WHEN r.expired_date < NOW() 
+                            AND r.final_state IN ('pending','assigned') 
+                        THEN r.id 
+                    END) AS overdue_requests
+            FROM student_service_request r
+            JOIN student_dormitory_cluster cl ON r.dormitory_cluster_id = cl.id
+            JOIN student_dormitory_area a     ON cl.area_id = a.id
+            JOIN student_service s            ON r.service_id = s.id
+            JOIN student_service_group g      ON s.group_id = g.id
+            {where_clause}
+            GROUP BY a.id, a.name, cl.id, cl.name, g.id, g.name, s.id, 
+                CASE 
+                    WHEN %(mode)s = 'day'   THEN TO_CHAR(r.request_date, 'DD/MM/YYYY')
+                    WHEN %(mode)s = 'month' THEN TO_CHAR(r.request_date, 'MM/YYYY')
+                    WHEN %(mode)s = 'year'  THEN TO_CHAR(r.request_date, 'YYYY')
+                END
+            ORDER BY period DESC, group_name,service_name
+        """
+        self.env.cr.execute(query, params)
+        rows = self.env.cr.dictfetchall()
+
+        # Xóa dữ liệu cũ
+        self.env['student.service.report'].search([]).unlink()
+
+        # Biến tổng
+        total_requests = 0
+        total_processed = 0
+        total_pending = 0
+        total_overdue = 0
+
+        for row in rows:
+            row.pop("min_request_date", None)
+            total_requests += row.get("total_requests", 0)
+            total_processed += row.get("processed_requests", 0)
+            total_pending += row.get("pending_requests", 0)
+            total_overdue += row.get("overdue_requests", 0)
+            self.env['student.service.report'].create(row)
+
+        # Thêm dòng tổng cộng
+        if rows:
+            percent = (total_processed * 100.0 / total_requests) if total_requests else 0.0
+            self.env['student.service.report'].create({
+                "period": "Tổng cộng",
+                "area_name": "",
+                "cluster_name": "",
+                "group_name": "",
+                "service_name": "",
+                "total_requests": total_requests,
+                "processed_requests": total_processed,
+                "pending_requests": total_pending,
+                "overdue_requests": total_overdue,
+                "processed_percent": percent,
+            })
+
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Báo cáo',
+            'res_model': 'student.service.report',
+            'view_mode': 'list',
+            'target': 'current',
+            'context': {
+                'report_title': self._get_report_title(),
+            }
+        }
+
+class StudentServiceReport(models.Model): 
+    _name = "student.service.report" 
+    _description = "Báo cáo" 
+    _rec_name = "period" 
+    _auto = False
+    # Model báo cáo không có bảng thật 
+    report_title = fields.Char( string="Tiêu đề báo cáo", compute="_compute_report_title", store=False ) 
+    period = fields.Char(string='Ngày/Tháng/Năm') 
+    area_name = fields.Char(string='Khu ký túc xá') 
+    cluster_name = fields.Char(string='Cụm') 
+    group_name = fields.Char(string='Nhóm') 
+    service_name = fields.Char(string='Dịch vụ') 
+    total_requests = fields.Integer(string='Tổng yêu cầu') 
+    processed_requests = fields.Integer(string='Đã xử lý') 
+    pending_requests = fields.Integer(string='Chưa xử lý') 
+    overdue_requests = fields.Integer(string='Quá hạn') 
+    processed_percent = fields.Float( string='% Xử lý', compute="_compute_processed_percent", store=False ) 
+    @api.depends('processed_requests', 'total_requests') 
+    def _compute_processed_percent(self): 
+        for rec in self: 
+            if rec.total_requests: 
+                rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests 
+            else: 
+                rec.processed_percent = 0.0

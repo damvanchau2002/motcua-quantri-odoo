@@ -25,17 +25,18 @@
         'views/request_review_views.xml',
         'views/roles_views.xml',
         'views/department_views.xml',
+        'views/service_report_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',
     ],
     'installable': True,
     'application': True,
-    # 'assets': {
-    #     'web.assets_backend': [
-    #         'student_request/static/src/css/kanban.css',
-    #     ],
-    # },
+    'assets': {
+        'web.assets_backend': [
+            'student_request/static/src/css/hide_checkbox.css',
+        ],
+    },
 }
 
 # Các loại view phổ biến trong Odoo:
