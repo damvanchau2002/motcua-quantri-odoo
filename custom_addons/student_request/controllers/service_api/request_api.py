@@ -566,6 +566,7 @@ class ServiceApiController(http.Controller):
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
     def list_requests_by_user(self):
         try:
+            system_user = request.env['res.users'].sudo().browse(1)
             # params = request.httprequest.get_json(force=True, silent=True) or {}
             params = request.params
             user_id = params.get('user_id')
@@ -583,8 +584,8 @@ class ServiceApiController(http.Controller):
 
             offset = (page - 1) * limit
 
-            total = request.env['student.service.request'].sudo().search_count(domain)
-            requests_data = request.env['student.service.request'].sudo().search(domain, offset=offset, limit=limit, order='request_date desc')
+            total = request.env['student.service.request'].sudo().with_user(system_user).search_count(domain)
+            requests_data = request.env['student.service.request'].sudo().with_user(system_user).search(domain, offset=offset, limit=limit, order='request_date desc')
             result = []
             for req in requests_data:
                 sumhistories_dict = {}
@@ -799,8 +800,9 @@ class ServiceApiController(http.Controller):
             aprofile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id)], limit=1) if user_id else None
 
             domain.append(('user_processing_id', '=', user_id))
+            user = request.env['res.users'].sudo().browse(user_id)
 
-            requests = request.env['student.service.request'].sudo().search(domain)
+            requests = request.env['student.service.request'].sudo().with_user(user).search(domain)
 
             results = []
             for req in requests:
@@ -1058,6 +1060,9 @@ class ServiceApiController(http.Controller):
             if not user_id:
                 raise ValueError("Thiếu user_id")
             
+            # System user
+            system_user = request.env['res.users'].sudo().browse(1)
+
             # Thời điểm hiện tại
             now = fields.Datetime.now()
             warning_date = now + timedelta(days=warning_days)
@@ -1073,23 +1078,23 @@ class ServiceApiController(http.Controller):
             new_requests_domain = base_domain + [
                 ('create_date', '>=', now - timedelta(days=1))
             ]
-            new_requests_count = request.env['student.service.request'].sudo().search_count(new_requests_domain)
-            new_requests = request.env['student.service.request'].sudo().search(new_requests_domain)
+            new_requests_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(new_requests_domain)
+            new_requests = request.env['student.service.request'].sudo().with_user(system_user).search(new_requests_domain)
 
             # 2. Thống kê yêu cầu đang xử lý
             processing_domain = base_domain + [
                 ('final_state', 'in', ['pending', 'assigned'])
             ]
-            processing_count = request.env['student.service.request'].sudo().search_count(processing_domain)
-            processing_requests = request.env['student.service.request'].sudo().search(processing_domain)
+            processing_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(processing_domain)
+            processing_requests = request.env['student.service.request'].sudo().with_user(system_user).search(processing_domain)
 
             # 3. Thống kê yêu cầu quá hạn
             overdue_domain = base_domain + [
                 ('expired_date', '<', now),
                 ('final_state', 'in', ['pending', 'assigned'])
             ]
-            overdue_count = request.env['student.service.request'].sudo().search_count(overdue_domain)
-            overdue_requests = request.env['student.service.request'].sudo().search(overdue_domain)
+            overdue_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(overdue_domain)
+            overdue_requests = request.env['student.service.request'].sudo().with_user(system_user).search(overdue_domain)
 
             # 4. Thống kê yêu cầu sắp đến hạn
             warning_domain = base_domain + [
@@ -1097,8 +1102,8 @@ class ServiceApiController(http.Controller):
                 ('expired_date', '<=', warning_date),
                 ('final_state', 'in', ['pending', 'assigned'])
             ]
-            warning_count = request.env['student.service.request'].sudo().search_count(warning_domain)
-            warning_requests = request.env['student.service.request'].sudo().search(warning_domain)
+            warning_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(warning_domain)
+            warning_requests = request.env['student.service.request'].sudo().with_user(system_user).search(warning_domain)
 
             # Format dữ liệu chi tiết cho từng yêu cầu
             def format_request_data(reqs):
