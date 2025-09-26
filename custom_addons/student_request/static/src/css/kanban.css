@@ -7,3 +7,10 @@
 .oe_kanban_user { margin-bottom: 4px; }
 .oe_kanban_date, .oe_kanban_note { font-size: 13px; color: #666; margin-bottom: 2px; }
 .oe_kanban_images img { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+.disabled-card {
+    pointer-events: none;
+    /* Ngăn tương tác */
+    opacity: 0.6;
+    /* Làm mờ */
+}

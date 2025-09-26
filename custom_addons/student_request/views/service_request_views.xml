@@ -268,7 +268,6 @@
         <field name="res_model">student.service.request</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="view_student_service_request_search"/>
-        <field name="domain">[ '|', ("service_id.users", "in", [uid]), ("approve_user_id", "=", uid) ]</field>
     </record>
     
     <record id="view_student_service_request_step_history_tree" model="ir.ui.view">
