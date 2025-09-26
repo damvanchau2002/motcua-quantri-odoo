@@ -25,6 +25,7 @@
         'views/request_review_views.xml',
         'views/roles_views.xml',
         'views/department_views.xml',
+        'views/email_template.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',

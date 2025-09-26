@@ -1,14 +1,28 @@
 from odoo import models, fields
+import smtplib  
+from email.mime.text import MIMEText  
+from email.mime.multipart import MIMEMultipart 
 
-class StudentEmailTemplate(models.Model):
+
+class StudentEmailmngTemplate(models.Model):
     _name = 'student.emailmng.template'
     _description = 'Student Email Template'
 
     name = fields.Char(string='Template Name', required=True)
     subject = fields.Char(string='Subject', required=True)
     body_html = fields.Html(string='Body (HTML)', required=True)
-    active = fields.Boolean(string='Active', default=True)
-
+    status = fields.Selection([
+        ('soon_expired', 'Sắp hết hạn'),
+        ('expired', 'Đã quá hạn'),
+        ('cancelled', 'Bị hủy'),
+        ('done', 'Hoàn thành')
+    ], string='Gửi lúc', required=True)
+    mailto = fields.Many2many(
+        'res.users',
+        string='Gửi tới',
+        ondelete='cascade',
+        domain="[('active', '=', True)]"
+    )
 
 def send_email_request(env, request_obj, send_type=0, to_emails=None):
     """
