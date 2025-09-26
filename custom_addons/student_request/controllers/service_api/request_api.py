@@ -687,12 +687,32 @@ class ServiceApiController(http.Controller):
             aprofile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id)], limit=1) if user_id else None
             
             # Lọc các yêu cầu dịch vụ mà user_id nằm trong users hoặc một trong các role_id của aprofile nằm trong role_ids
+            # domain = ['|',
+            #     ('approve_user_id', '=', user_id),
+            #     ('users', 'in', [user_id])
+            # ]
+            # if aprofile and aprofile.department_id and aprofile.dormitory_clusters:
+            #     if aprofile.role_ids:
+            #         domain = ['|'] + domain + [
+            #             '&',
+            #             ('service_id.role_ids', 'in', aprofile.role_ids.ids),
+            #             ('dormitory_cluster_id', 'in', aprofile.dormitory_clusters.ids)
+            #         ]
+            user = request.env['res.users'].sudo().browse(user_id)
+            if not user.exists():
+                return Response(
+                    json.dumps({'success': False, 'message': 'User không tồn tại'}),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
+                    ]
+                )
 
-            #domain.append('|')
-            domain.append(('users', 'in', [user_id]))
-            #domain.append(('role_ids', 'in', aprofile.role_ids.ids))
-
-            requests = request.env['student.service.request'].sudo().search(domain)
+            requests = request.env['student.service.request'].sudo().with_user(user).search([])
 
             results = []
             for req in requests:
