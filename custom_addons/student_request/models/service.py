@@ -376,15 +376,6 @@ class ServiceRequest(models.Model):
     #             # Nếu có lỗi khi truy vấn, mặc định là False
     #             record.user_can_view = False
 
-    def _invalidate_cache(self):
-        self.invalidate_cache(['user_can_view'])
-
-    def search(self, args, offset=0, limit=None, order=None, count=False):
-        import logging
-        _logger = logging.getLogger(__name__)
-        _logger.info("=== search() called ===")
-        return super().search(args, offset=offset, limit=limit, order=order, count=count)
-
     def _search(self, args, offset=0, limit=None, order=None):
         uid = self.env.user.id
         admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
@@ -408,12 +399,6 @@ class ServiceRequest(models.Model):
         # Bỏ tham số count - không có trong _search()
         return super()._search(final_args, offset=offset, limit=limit, order=order)
 
-    @api.model
-    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
-        import logging
-        _logger = logging.getLogger(__name__)
-        _logger.info("=== search_read() called ===")
-        return super().search_read(domain, fields, offset, limit, order)
 
     # Cron job kiểm tra các request sắp hết hạn và gửi cảnh báo
     @api.model
