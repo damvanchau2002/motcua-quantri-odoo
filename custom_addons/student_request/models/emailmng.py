@@ -12,6 +12,7 @@ class StudentEmailmngTemplate(models.Model):
     subject = fields.Char(string='Subject', required=True)
     body_html = fields.Html(string='Body (HTML)', required=True)
     status = fields.Selection([
+        ('created', 'Mới tạo'),
         ('soon_expired', 'Sắp hết hạn'),
         ('expired', 'Đã quá hạn'),
         ('cancelled', 'Bị hủy'),
@@ -24,7 +25,7 @@ class StudentEmailmngTemplate(models.Model):
         domain="[('active', '=', True)]"
     )
 
-def send_email_request(env, request_obj, send_type=0, to_emails=None):
+def send_email_request(env, request_obj, uids=None, send_type=0):
     """
     Gửi email thông báo khi Yêu cầu dịch vụ có thay đổi (tương tự send_fcm_request)
     :param env: Odoo environment
@@ -38,6 +39,11 @@ def send_email_request(env, request_obj, send_type=0, to_emails=None):
     SMTP_USER = 'your_email@gmail.com'  # Thay bằng email gửi
     SMTP_PASSWORD = 'your_app_password' # Thay bằng app password
 
+    # Lấy danh sách email người nhận
+    to_emails = []
+    if uids:
+        users = env['res.users'].browse(uids)
+        to_emails = users.mapped('email')
     # Xác định nội dung email
     subject = ""
     body = ""
@@ -45,6 +51,27 @@ def send_email_request(env, request_obj, send_type=0, to_emails=None):
         if send_type == 0:
             subject = f"Yêu cầu dịch vụ {request_obj.service_id.name} đã được tạo thành công"
             body = f"Yêu cầu của bạn đã được tạo thành công. Nội dung: {request_obj.note}"
+            # Query email template with status 'soon_expired'
+            template = env['student.emailmng.template'].search([('status', '=', 'soon_expired')], limit=1)
+            if template:
+                subject = template.subject.replace('${student_name}', request_obj.request_user_name or '')
+                subject = subject.replace('${receiver_name}', ', '.join(to_emails))
+                subject = subject.replace('${service_name}', request_obj.service_id.name or '')
+
+                body = template.body_html or ""
+                body = body.replace('${student_name}', request_obj.request_user_name or '')
+                body = body.replace('${receiver_name}', ', '.join(to_emails))
+                body = body.replace('${service_name}', request_obj.service_id.name or '')
+                body = body.replace('${request_name}', request_obj.name or '')
+                body = body.replace('${request_expired}', str(request_obj.expired) or '')
+
+                # Lấy danh sách email từ trường mailto của template và dồn vào to_emails
+                template_emails = template.mailto.mapped('email')
+                for email in template_emails:
+                    if email and email not in to_emails:
+                        to_emails.append(email)
+
+
         elif send_type == 1:
             subject = f"Yêu cầu dịch vụ {request_obj.service_id.name} đã được cập nhật"
             body = f"Yêu cầu của bạn đã được cập nhật. Nội dung: {request_obj.note}"
@@ -69,18 +96,73 @@ def send_email_request(env, request_obj, send_type=0, to_emails=None):
         elif send_type == 8:
             subject = f"Yêu cầu dịch vụ {request_obj.service_id.name} của bạn đã hủy"
             body = f"Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} đã hủy"
+            # Query email template with status 'cancelled'
+            template = env['student.emailmng.template'].search([('status', '=', 'cancelled')], limit=1)
+            if template:
+                subject = template.subject.replace('${student_name}', request_obj.request_user_name or '')
+                subject = subject.replace('${receiver_name}', ', '.join(to_emails))
+                subject = subject.replace('${service_name}', request_obj.service_id.name or '')
+
+                body = template.body_html or ""
+                body = body.replace('${student_name}', request_obj.request_user_name or '')
+                body = body.replace('${receiver_name}', ', '.join(to_emails))
+                body = body.replace('${service_name}', request_obj.service_id.name or '')
+                body = body.replace('${request_name}', request_obj.name or '')
+                body = body.replace('${request_expired}', str(request_obj.expired) or '')
+                template_emails = template.mailto.mapped('email')
+                for email in template_emails:
+                    if email and email not in to_emails:
+                        to_emails.append(email)
+
         elif send_type == 9:
             subject = f"Yêu cầu dịch vụ {request_obj.service_id.name} đang xử lý sửa lại"
             body = f"Sửa lại yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note}: {request_obj.final_data}"
         elif send_type == 10:
             subject = f"Yêu cầu dịch vụ {request_obj.service_id.name} đã nghiệm thu hoàn thành"
             body = f"Yêu cầu của Bạn: {request_obj.service_id.name}. {request_obj.note} đã được nghiệm thu và đóng lại"
+            # Query email template with status 'soon_expired'
+            template = env['student.emailmng.template'].search([('status', '=', 'soon_expired')], limit=1)
+            if template:
+                subject = template.subject.replace('${student_name}', request_obj.request_user_name or '')
+                subject = subject.replace('${receiver_name}', ', '.join(to_emails))
+                subject = subject.replace('${service_name}', request_obj.service_id.name or '')
+
+                body = template.body_html or ""
+                body = body.replace('${student_name}', request_obj.request_user_name or '')
+                body = body.replace('${receiver_name}', ', '.join(to_emails))
+                body = body.replace('${service_name}', request_obj.service_id.name or '')
+                body = body.replace('${request_name}', request_obj.name or '')
+                body = body.replace('${request_expired}', str(request_obj.expired) or '')
+                template_emails = template.mailto.mapped('email')
+                for email in template_emails:
+                    if email and email not in to_emails:
+                        to_emails.append(email)
+
         elif send_type == 11:
             subject = f"Cán bộ quản lý đã nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name} của bạn"
             body = f"Đã nghiệm thu yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} thành công"
         elif send_type == 13:
             subject = f"Yêu cầu dịch vụ {request_obj.service_id.name} của bạn sắp hết hạn"
             body = f"Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} sắp hết hạn, cần bạn xử lý gấp hoặc gia hạn yêu cầu này"
+            
+            # Query email template with status 'done'
+            template = env['student.emailmng.template'].search([('status', '=', 'done')], limit=1)
+            if template:
+                subject = template.subject.replace('${student_name}', request_obj.request_user_name or '')
+                subject = subject.replace('${receiver_name}', ', '.join(to_emails))
+                subject = subject.replace('${service_name}', request_obj.service_id.name or '')
+
+                body = template.body_html or ""
+                body = body.replace('${student_name}', request_obj.request_user_name or '')
+                body = body.replace('${receiver_name}', ', '.join(to_emails))
+                body = body.replace('${service_name}', request_obj.service_id.name or '')
+                body = body.replace('${request_name}', request_obj.name or '')
+                body = body.replace('${request_expired}', str(request_obj.expired) or '')
+                template_emails = template.mailto.mapped('email')
+                for email in template_emails:
+                    if email and email not in to_emails:
+                        to_emails.append(email)
+
         else:
             subject = "Thông báo yêu cầu dịch vụ"
             body = f"Yêu cầu dịch vụ có thay đổi: {request_obj.note}"

@@ -21,7 +21,12 @@
                         <field name="name"/>
                         <field name="status"/>
                         <field name="subject"/>
+                        <i>
+                            Các thẻ Replace subject: ${student_name}, ${service_name}, ${receiver_name}
+                        </i>
+                        <hr/>
                         <field name="body_html" widget="html"/>
+                        <i> Các thẻ Replace body: ${student_name}, ${service_name}, ${receiver_name}, ${request_name}, ${request_expired} </i>
                         <field name="mailto" widget="many2many_tags" />
                     </group>
                 </sheet>
