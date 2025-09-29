@@ -881,7 +881,8 @@ class ServiceApiController(http.Controller):
     # Lấy chi tiết 1 yêu cầu dịch vụ
     @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_service_request_detail(self, request_id):
-        req = request.env['student.service.request'].sudo().browse(request_id)
+        sysuser = request.env['res.users'].sudo().browse(1)
+        req = request.env['student.service.request'].sudo().with_user(sysuser).browse(request_id)
         if not req.exists():
             return Response(
                 json.dumps({'success': False, 'message': 'Service request not found', 'data': {}}),
