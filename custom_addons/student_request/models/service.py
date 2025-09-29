@@ -396,7 +396,6 @@ class ServiceRequest(models.Model):
                 ]
         
         final_args = domain + args
-        
         # Bỏ tham số count - không có trong _search()
         return super()._search(final_args, offset=offset, limit=limit, order=order)
 
