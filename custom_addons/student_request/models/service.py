@@ -409,11 +409,12 @@ class ServiceRequest(models.Model):
             timeout_date = fields.Datetime.now() - timedelta(days=6)
             timeout_requests = self.search([('final_state', '=', 'pending'), ('send_expired_warning', '=', False), ('request_date', '<', timeout_date)])
 
+            system_user = self.env['res.users'].browse(1)  # Giả sử user hệ thống có ID là 1
             for request in timeout_requests:
                 # Cập nhật trạng thái timeout
                 print(f"Updating request {request.id} to timeout status")
                 send_fcm_request(self.env, self, 13)
-                request.sudo().send_expired_warning = True
+                request.sudo().with_user(system_user).send_expired_warning = True
 
 
             print(f"Updated {len(timeout_requests)} requests to timeout status")

@@ -81,12 +81,13 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     if not service.exists():
         raise ValueError(f"Service không tồn tại: {serviceid}")
     
+    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
 
     attachments = attachments or []
     vals = {}
     # Nếu có request_id => cập nhật (chô này nếu tạo trên Web sẽ luôn có request_id và không có step_ids)
     if requestid and str(requestid).isdigit() and int(requestid) > 0:
-        vals = env['student.service.request'].sudo().browse(int(requestid))
+        vals = env['student.service.request'].sudo().with_user(sysuser).browse(int(requestid))
         if vals.exists():
             vals.sudo().write({
                 'name': f'{user.name}: {service.name}',
@@ -167,7 +168,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     
         raise ValueError("Thiếu ID yêu cầu")
     except Exception as e:
-        vals = env['student.service.request'].sudo().create(vals)
+        vals = env['student.service.request'].sudo().with_user(sysuser).create(vals)
         send_fcm_request(env, vals, 0)
         pass
     return vals
@@ -211,7 +212,8 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 
 
     # Cập nhật
-    request.sudo().write(vals)
+    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
+    request.sudo().with_user(sysuser).write(vals)
 
     # Gửi FCM thông báo cập nhật yêu cầu
     send_fcm_request(env, request, 1)
@@ -353,7 +355,8 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 next_step_users += received_users
 
     #Update database: request các field: approve_content approve_date final_state final_data
-    request.sudo().write({
+    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
+    request.sudo().with_user(sysuser).write({
         'users': [(4, uid) for uid in next_step_users],
         'approve_content': note,
         'approve_date': Datetime.now(),
@@ -1769,8 +1772,9 @@ class ServiceApiController(http.Controller):
                 pass  # Nếu không tìm thấy user_id thì bỏ qua
 
             # Cập nhật trạng thái cuối cho yêu cầu dịch vụ
+            system_user = request.env['res.users'].sudo().browse(1)
             if action == 'accept':
-                service_request.sudo().write({'final_state': 'closed', 'final_star': stars })
+                service_request.sudo().with_user(system_user).write({'final_state': 'closed', 'final_star': stars })
                 send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
                 # Kiểm tra đã có nghiệm thu accept của Admin thì đóng yêu cầu
                 # Lấy nghiệm thu của User khác
@@ -1779,11 +1783,11 @@ class ServiceApiController(http.Controller):
                     ('user_id', '!=', service_request.request_user_id.id)
                 ], order='timestamp desc', limit=1)
                 if other_acceptance and other_acceptance.action == 'accept':
-                    service_request.sudo().write({'final_state': 'closed', 'final_star': stars})
+                    service_request.sudo().with_user(system_user).write({'final_state': 'closed', 'final_star': stars})
                     send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ Admin
 
             elif action == 'reject' or action == 'issue':
-                service_request.sudo().write({'final_state': 'repairing', 'final_star': stars})
+                service_request.sudo().with_user(system_user).write({'final_state': 'repairing', 'final_star': stars})
                 send_fcm_request(
                     request.env,
                     service_request,
