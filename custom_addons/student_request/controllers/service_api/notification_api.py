@@ -15,8 +15,20 @@ import pytz
 
 class NotificationApiController(http.Controller):
     
-    @http.route('/api/notifications/my', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/notifications/my', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
     def get_my_notifications(self):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                ]
+            )
+
         try:
             params = request.params
             user_id = params.get('user_id')
@@ -134,8 +146,20 @@ class NotificationApiController(http.Controller):
 
 
     # lấy chi tiết thông báo
-    @http.route('/api/notifications/detail', type='http', methods=['POST'], auth='public', csrf=False)
+    @http.route('/api/notifications/detail', type='http', methods=['POST', 'OPTIONS'], auth='public', csrf=False)
     def get_notification_detail(self):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                ]
+            )
+
         params = request.httprequest.get_json(force=True, silent=True) or {}
         notify_id = params.get('notify_id')
         if not notify_id:
@@ -145,7 +169,7 @@ class NotificationApiController(http.Controller):
                 status=400,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                     ('Access-Control-Allow-Credentials', 'true')
                 ]
@@ -160,7 +184,7 @@ class NotificationApiController(http.Controller):
                     status=404,
                     headers=[
                         ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                         ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                         ('Access-Control-Allow-Credentials', 'true')
                     ]
@@ -181,7 +205,7 @@ class NotificationApiController(http.Controller):
                 status=200,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                     ('Access-Control-Allow-Credentials', 'true')
                 ]
@@ -200,8 +224,20 @@ class NotificationApiController(http.Controller):
             )
 
     # API đánh dấu thông báo đã đọc
-    @http.route('/api/notifications/read', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/notifications/read', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def mark_notification_as_read(self):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                ]
+            )
+
         params = request.httprequest.get_json(force=True, silent=True) or {}
         user_id = params.get('user_id')
         notify_id = params.get('notify_id')
@@ -258,8 +294,19 @@ class NotificationApiController(http.Controller):
             )
     
     # API đánh dấu đã đọc tất cả thông báo của user
-    @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def mark_all_notifications_as_read(self):
+        if request.httprequest.method == 'OPTIONS':
+                return Response(
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                        ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                    ]
+                )
         params = request.httprequest.get_json(force=True, silent=True) or {}
         user_id = params.get('user_id')
         if not user_id:
@@ -318,8 +365,19 @@ class NotificationApiController(http.Controller):
             )
    
     # API lấy số lượng thông báo chưa đọc
-    @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_unread_notifications_count(self):
+        if request.httprequest.method == 'OPTIONS':
+                return Response(
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                        ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                    ]
+                )
         try:
             params = request.params
             user_id = params.get('user_id')

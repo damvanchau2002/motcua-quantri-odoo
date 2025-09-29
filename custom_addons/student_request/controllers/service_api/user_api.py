@@ -13,8 +13,19 @@ from datetime import datetime, timedelta
 class UserApiController(http.Controller):
     
     # Lấy danh sách users có group_id.name == 'Settings'
-    @http.route('/api/users/forassign', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/users/forassign', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_settings_users(self):
+        if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )  
         group = request.env['res.groups'].sudo().search([('name', '=', 'Settings')], limit=1)
         if not group:
             return Response(
@@ -43,9 +54,19 @@ class UserApiController(http.Controller):
         )
 
     # Lấy danh sách các department
-    @http.route('/api/department/forassign', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/department/forassign', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_departments(self):
-        
+        if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                            ]
+                        )
         departments = request.env['student.activity.department'].sudo().search([])
         data = [{'id': d.id, 'name': d.name} for d in departments]
         return Response(
