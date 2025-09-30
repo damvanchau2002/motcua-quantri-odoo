@@ -509,7 +509,7 @@ class ServiceApiController(http.Controller):
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
-
+            sysuser = request.env['res.users'].sudo().browse(1)
             # Lấy dữ liệu từ form
             form = httprequest.form
             request_id = form.get('request_id')
@@ -523,7 +523,7 @@ class ServiceApiController(http.Controller):
                 raise ValueError("Thiếu request_user_id")
 
             # Lấy request hiện tại
-            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            service_request = request.env['student.service.request'].sudo().with_user(sysuser).browse(int(request_id))
             if not service_request.exists():
                 raise ValueError("Yêu cầu không tồn tại")
 
@@ -531,13 +531,13 @@ class ServiceApiController(http.Controller):
             try:
                 removed_ids = json.loads(removed_image_ids)
                 if removed_ids and isinstance(removed_ids, list):
-                    attachments_to_remove = request.env['ir.attachment'].sudo().browse(removed_ids)
+                    attachments_to_remove = request.env['ir.attachment'].sudo().with_user(sysuser).browse(removed_ids)
                     # Chỉ xóa những ảnh thực sự thuộc về request này
                     valid_attachments = attachments_to_remove.filtered(
                         lambda a: a.res_model == 'student.service.request' and a.res_id == int(request_id)
                     )
                     if valid_attachments:
-                        valid_attachments.sudo().unlink()
+                        valid_attachments.sudo().with_user(sysuser).unlink()
             except json.JSONDecodeError:
                 _logger.warning("Invalid removed_image_ids format")
 
@@ -546,7 +546,7 @@ class ServiceApiController(http.Controller):
             for file_storage in files:
                 file_data = file_storage.read()
                 base64_data = base64.b64encode(file_data).decode('utf-8')
-                attachment = request.env['ir.attachment'].sudo().create({
+                attachment = request.env['ir.attachment'].sudo().with_user(sysuser).create({
                     'name': file_storage.filename,
                     'datas': base64_data,
                     'res_model': 'student.service.request',
@@ -1105,10 +1105,11 @@ class ServiceApiController(http.Controller):
                             ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
                         ]
           )
+        sysuser = request.env['res.users'].sudo().browse(1)
 
-        req = request.env['student.service.request'].sudo().browse(int(request_id))
-        user = request.env['res.users'].sudo().browse(int(user_id))
-        step = request.env['student.service.request.step'].sudo().browse(int(step_id))
+        req = request.env['student.service.request'].sudo().with_user(sysuser).browse(int(request_id))
+        user = request.env['res.users'].sudo().with_user(sysuser).browse(int(user_id))
+        step = request.env['student.service.request.step'].sudo().with_user(sysuser).browse(int(step_id))
 
         if not req.exists() or not user.exists() or not step.exists():
             return Response(
@@ -1717,7 +1718,7 @@ class ServiceApiController(http.Controller):
         """
         try:
             httprequest = request.httprequest
-
+            system_user = request.env['res.users'].sudo().browse(1)
             # Lấy dữ liệu từ form
             form = httprequest.form
             request_id = form.get('request_id') 
@@ -1726,7 +1727,7 @@ class ServiceApiController(http.Controller):
             action = form.get('action', 'issue')    # Hành động 
             stars = int(form.get('star', 0))            # Số sao đánh giá
 
-            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            service_request = request.env['student.service.request'].sudo().with_user(system_user).browse(int(request_id))
             if not service_request.exists():
                 return Response(
                     json.dumps({'success': False, 'message': 'Yêu cầu dịch vụ không tồn tại'}),
@@ -1740,7 +1741,7 @@ class ServiceApiController(http.Controller):
                     ]
                 )
 
-            acceptance = request.env['student.service.request.result'].sudo().create({
+            acceptance = request.env['student.service.request.result'].sudo().with_user(system_user).create({
                 'request_id': int(request_id),
                 'user_id': int(service_request.request_user_id.id),
                 'note': content,
@@ -1772,7 +1773,6 @@ class ServiceApiController(http.Controller):
                 pass  # Nếu không tìm thấy user_id thì bỏ qua
 
             # Cập nhật trạng thái cuối cho yêu cầu dịch vụ
-            system_user = request.env['res.users'].sudo().browse(1)
             if action == 'accept':
                 service_request.sudo().with_user(system_user).write({'final_state': 'closed', 'final_star': stars })
                 send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
@@ -1855,12 +1855,13 @@ class ServiceApiController(http.Controller):
             if user_id:
                 domain.append(('user_id', '=', int(user_id)))
 
+            system_user = request.env['res.users'].sudo().browse(1)
             # Tính total và offset
-            total = request.env['student.service.request.result'].sudo().search_count(domain)
+            total = request.env['student.service.request.result'].sudo().with_user(system_user).search_count(domain)
             offset = (page - 1) * limit
 
             # Lấy danh sách nghiệm thu
-            acceptances = request.env['student.service.request.result'].sudo().search(
+            acceptances = request.env['student.service.request.result'].sudo().with_user(system_user).search(
                 domain, 
                 offset=offset, 
                 limit=limit, 
