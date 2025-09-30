@@ -238,7 +238,10 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     Returns:
         dict or bool: Trả về dict chứa thông tin cập nhật nếu thành công, False nếu không tìm thấy bước (Returns a dict with updated information if successful, False if the step is not found).
     """
-    request = env['student.service.request'].browse(requestid)
+    # Tạo system user để có quyền truy cập
+    system_user = env['res.users'].sudo().browse(1)
+    
+    request = env['student.service.request'].sudo().with_user(system_user).browse(requestid)
     step = request.step_ids.browse(stepid)
     # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
     # step = service.step_ids.filtered(lambda s: s.state not in ('ignored', 'approved', 'rejected')).sorted('sequence')
@@ -1127,7 +1130,7 @@ class ServiceApiController(http.Controller):
         try:
             # Cập nhật bước duyệt
             vals = update_request_step(request.env, request_id, step_id, user_id, note, state, asign_user_id, checked_ids, final, department_id)
-            step.sudo().write(vals)
+            step.sudo().with_user(sysuser).write(vals)
             return Response(
                 json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
                 content_type='application/json',
