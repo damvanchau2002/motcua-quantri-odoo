@@ -191,11 +191,12 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
     if not userid:
         raise ValueError("Thiếu user id")
 
-    request = env['student.service.request'].sudo().browse(int(requestid))
+    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để browse request
+    request = env['student.service.request'].sudo().with_user(sysuser).browse(int(requestid))
     if not request.exists():
         raise ValueError(f"Yêu cầu không tồn tại: {requestid}")
 
-    user = env['res.users'].sudo().browse(int(userid))
+    user = env['res.users'].sudo().with_user(sysuser).browse(int(userid))
     if not user.exists():
         raise ValueError(f"User không tồn tại: {userid}")
 
@@ -212,7 +213,6 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 
 
     # Cập nhật
-    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
     request.sudo().with_user(sysuser).write(vals)
 
     # Gửi FCM thông báo cập nhật yêu cầu
@@ -239,7 +239,8 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     Returns:
         dict or bool: Trả về dict chứa thông tin cập nhật nếu thành công, False nếu không tìm thấy bước (Returns a dict with updated information if successful, False if the step is not found).
     """
-    request = env['student.service.request'].browse(requestid)
+    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
+    request = env['student.service.request'].sudo().with_user(sysuser).browse(requestid)
     step = request.step_ids.browse(stepid)
     # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
     # step = service.step_ids.filtered(lambda s: s.state not in ('ignored', 'approved', 'rejected')).sorted('sequence')
@@ -1332,6 +1333,7 @@ class ServiceApiController(http.Controller):
             return self._handle_options_request()
 
         try:
+            system_user = request.env['res.users'].sudo().browse(1)
             params = request.httprequest.get_json(force=True, silent=True) or {}
             request_id = params.get('request_id')
             user_id = params.get('user_id')
@@ -1354,7 +1356,7 @@ class ServiceApiController(http.Controller):
                 )
 
             # Kiểm tra yêu cầu tồn tại và thuộc về user
-            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            service_request = request.env['student.service.request'].sudo().with_user(system_user).browse(int(request_id))
             if not service_request.exists():
                 return Response(
                     json.dumps({
@@ -1406,7 +1408,7 @@ class ServiceApiController(http.Controller):
                 )
 
             # Cập nhật trạng thái yêu cầu thành "cancelled"
-            service_request.write({
+            service_request.sudo().with_user(system_user).write({
                 'final_state': 'cancelled',
                 'cancel_reason': cancel_reason,
                 'cancel_date': fields.Datetime.now(),
@@ -1416,7 +1418,7 @@ class ServiceApiController(http.Controller):
             # Tạo history cho việc hủy yêu cầu
             current_step = service_request.step_ids.filtered(lambda s: s.state in ['pending', 'assigned'])
             if current_step:
-                current_step[0].history_ids.sudo().create({
+                current_step[0].history_ids.sudo().with_user(system_user).create({
                     'step_id': current_step[0].id,
                     'user_id': int(user_id),
                     'state': 'cancelled',
@@ -1828,6 +1830,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
+ 
     @http.route('/api/service/request/acceptance/list', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_service_request_acceptances(self, **kwargs):    
         if request.httprequest.method == 'OPTIONS':
