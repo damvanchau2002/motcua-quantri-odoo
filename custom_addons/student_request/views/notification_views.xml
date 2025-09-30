@@ -9,7 +9,7 @@
                 <field name="title"/>
                 <field name="body"/>
                 <field name="user_id"/>
-                <field name="dormitory_cluster_ids"/>
+                <field name="cluster_ids"/>
                 <field name="create_date"/>
                 <field name="fcm_success_count"/>
                 <field name="fcm_failure_count"/>
@@ -21,7 +21,10 @@
         <field name="name">student.notify.form</field>
         <field name="model">student.notify</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Thông báo">
+                <header>
+                    <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
+                </header>
                 <sheet>
                     <group string="Thông tin thông báo">
                         <field name="title"/>
@@ -34,7 +37,7 @@
                     </group>
                     <group string="Thông tin người nhận">
                         <field name="user_ids" />
-                        <field name="dormitory_cluster_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
+                        <field name="cluster_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
                     </group>
                     <group>
                         <button name="send_fcm" string="Gửi FCM" type="object" class="btn-primary" confirm="Bạn có chắc chắn muốn gửi thông báo này không?"/>

@@ -64,6 +64,15 @@ class ServiceGroup(models.Model):
     parent_id = fields.Many2one('student.service.group', string='Nhóm cha')
     child_ids = fields.One2many('student.service.group', 'parent_id', string='Nhóm con')
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Nhóm dịch vụ',
+            'res_model': 'student.service.group',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
     def action_unlink_with_children(self):
         for group in self:
             group._unlink_with_children_recursive()
@@ -127,6 +136,15 @@ class ServiceStep(models.Model):
     role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này')
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này')
     # / tạm thời chưa dùng
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Bước duyệt dịch vụ',
+            'res_model': 'student.service.step',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
     def unlink(self):
         for step in self:
@@ -220,6 +238,11 @@ class ServiceRequestStep(models.Model):
         help='Các giấy tờ đã nộp trong bước này'
     )
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window_close',
+        }
+
     def action_confirm_approve(self):
         # Nếu tạo mới:
         #if vals.get('approve_content') == self.approve_content and vals.get('assign_user_id') == self.assign_user_id.id and vals.get('state') == self.state:
@@ -280,6 +303,15 @@ class ServiceRequest(models.Model):
     # DUYỆT
     # Lấy user trong role_ids dồn vào đây, field users sẽ chứa tất cả người dùng có quyền duyệt, đã duyệt và sẽ duyệt dịch vụ này
     users = fields.Many2many('res.users', string='Danh sách người đã và đang duyệt', help='Người có quyền duyệt dịch vụ này')
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Yêu cầu dịch vụ',
+            'res_model': 'student.service.request',
+            'view_mode': 'list',
+            'target': 'current',
+        }
     role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
     department_ids = fields.Many2many('student.activity.department', string='Phòng ban được xử lý yêu cầu', help='Các phòng ban có quyền xử lý yêu cầu dịch vụ này')
     # Người đang xử lý yêu cầu dịch vụ này
@@ -415,6 +447,15 @@ class StudentAdminProfile(models.Model):
     # Thông tin phòng ban:
     department_id = fields.Many2one('student.activity.department', string='Phòng ban', help='Phòng ban của quản trị viên sinh viên')
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Thông tin quản trị viên',
+            'res_model': 'student.admin.profile',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
 # Model quản lý vai trò hoạt động trong KTX
 class ActivityRole(models.Model):
     _name = 'student.activity.role'
@@ -428,6 +469,15 @@ class ActivityRole(models.Model):
         ('3', 'Chuyên viên')
     ], string='Cấp bậc', required=False, default='3')
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Vai trò hoạt động',
+            'res_model': 'student.activity.role',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
 
 class ActivityDepartment(models.Model):
     _name = 'student.activity.department'
@@ -437,6 +487,15 @@ class ActivityDepartment(models.Model):
     description = fields.Text('Mô tả phòng ban')
     admin_profiles = fields.One2many('student.admin.profile', 'department_id', string='Thành viên của Phòng ban')
     cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm KTX', help='Các cụm KTX thuộc phòng ban này')
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Phòng ban hoạt động',
+            'res_model': 'student.activity.department',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
 
 # Model quản lý thông tin OAuth của quản trị viên
@@ -470,9 +529,23 @@ class StudentNotify(models.Model):
     read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
     
     #Nhận notify theo user, cluster, activity
-    user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id',  string='Danh sách người nhận notify', help='Danh sách người sẽ nhận thông báo')
-    dormitory_cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm nhận notify', help='Gửi thông báo đến các SV trong các cụm KTX này')
-    activity_role_ids = fields.Many2many('student.activity.role', string='Vai trò nhận notify', help='Gửi thông báo đến các SV có vai trò hoạt động này')
+    # Gửi thông báo đến người dùng cụ thể
+    user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id', string='Người nhận', help='Danh sách người dùng nhận thông báo')
+    # Gửi thông báo đến cụm ký túc xá
+    cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm KTX', help='Danh sách cụm ký túc xá nhận thông báo')
+    # Gửi thông báo đến vai trò hoạt động
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò', help='Danh sách vai trò hoạt động nhận thông báo')
+    # Gửi thông báo đến phòng ban
+    department_ids = fields.Many2many('student.activity.department', string='Phòng ban', help='Danh sách phòng ban nhận thông báo')
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Thông báo',
+            'res_model': 'student.notify',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
     # Thống kê kết quả gửi FCM
     user_id = fields.Many2one('res.users', string='Người gửi', help='Người gửi thông báo')
@@ -516,6 +589,15 @@ class StudentDormitoryArea(models.Model):
     def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Khu ký túc xá',
+            'res_model': 'student.dormitory.area',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
 # Model quản lý cụm ký túc xá
 class StudentDormitoryCluster(models.Model):
     _name = 'student.dormitory.cluster'
@@ -530,6 +612,15 @@ class StudentDormitoryCluster(models.Model):
     @api.model
     def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Cụm ký túc xá',
+            'res_model': 'student.dormitory.cluster',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
 
 # Model lịch sử nghiệm thu yêu cầu

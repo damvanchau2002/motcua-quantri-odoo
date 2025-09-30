@@ -31,11 +31,11 @@
     ],
     'installable': True,
     'application': True,
-    # 'assets': {
-    #     'web.assets_backend': [
-    #         'student_request/static/src/css/kanban.css',
-    #     ],
-    # },
+    'assets': {
+        'web.assets_backend': [
+            'student_request/static/src/css/kanban.css',
+        ],
+    },
 }
 
 # Các loại view phổ biến trong Odoo:

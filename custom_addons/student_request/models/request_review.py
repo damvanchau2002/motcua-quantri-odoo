@@ -28,6 +28,15 @@ class RequestReview(models.Model):
     comments = fields.Text(string='Comments')
     reply = fields.Text(string='Phản hồi ')
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Đánh giá yêu cầu',
+            'res_model': 'student.service.request.review',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
 
 class RequestComplaint(models.Model):
     _name = 'student.service.request.complaint'
