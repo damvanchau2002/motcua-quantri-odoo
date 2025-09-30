@@ -192,7 +192,7 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
         raise ValueError("Thiếu user id")
     sysuser = env['res.users'].sudo().browse(1)
 
-    request = env['student.service.request'].sudo().browse(int(requestid))
+    request = env['student.service.request'].sudo().with_user(sysuser).browse(int(requestid))
     if not request.exists():
         raise ValueError(f"Yêu cầu không tồn tại: {requestid}")
 
