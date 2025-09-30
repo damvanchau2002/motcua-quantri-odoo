@@ -203,6 +203,12 @@ class ServiceRequestStep(models.Model):
 
     # Phân công
     assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
+    allowed_user_ids = fields.Many2many('res.users', compute='_compute_allowed_users')
+    def _compute_allowed_users(self):
+        users = self.env['student.admin.profile'].search([]).mapped('user_id')
+        for record in self:
+            record.allowed_user_ids = [(6, 0, users.ids)]
+
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này')
     # Lịch sử xử lý yêu cầu
     history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý', ondelete='cascade')
