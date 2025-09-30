@@ -190,8 +190,9 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 
     if not userid:
         raise ValueError("Thiếu user id")
+    sysuser = env['res.users'].sudo().browse(1)
 
-    request = env['student.service.request'].sudo().browse(int(requestid))
+    request = env['student.service.request'].sudo().with_user(sysuser).browse(int(requestid))
     if not request.exists():
         raise ValueError(f"Yêu cầu không tồn tại: {requestid}")
 
@@ -210,9 +211,7 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
     if attachments:
         vals['image_attachment_ids'] = [(4, attach_id) for attach_id in attachments] # 4: Thêm file đính kèm, 6: Gán file mới
 
-
     # Cập nhật
-    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
     request.sudo().with_user(sysuser).write(vals)
 
     # Gửi FCM thông báo cập nhật yêu cầu
@@ -239,8 +238,9 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     Returns:
         dict or bool: Trả về dict chứa thông tin cập nhật nếu thành công, False nếu không tìm thấy bước (Returns a dict with updated information if successful, False if the step is not found).
     """
-    request = env['student.service.request'].browse(requestid)
-    step = request.step_ids.browse(stepid)
+    system_user = env['res.users'].sudo().browse(1)
+    request = env['student.service.request'].sudo().with_user(system_user).browse(requestid)
+    step = request.step_ids.sudo().with_user(system_user).browse(stepid)
     # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
     # step = service.step_ids.filtered(lambda s: s.state not in ('ignored', 'approved', 'rejected')).sorted('sequence')
     # step = step[0] if step else service.step_ids.browse(stepid)
@@ -250,7 +250,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     if step.base_secquence == 99:
         if act == 'closed':
             # Kiểm tra lại đã có đánh giá nghiệm thu từ SV và người nghiệm thu, chưa có thì báo lỗi
-            acceptance_result = env['student.service.request.result'].sudo().search([
+            acceptance_result = env['student.service.request.result'].sudo().with_user(system_user).search([
                 ('request_id', '=', requestid),
                 ('action_user_id', '=', userid)
             ], limit=1)
@@ -259,7 +259,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 #return False
 
             # Lấy nghiệm thu của Admin cho yêu cầu này
-            admin_acceptance = env['student.service.request.result'].sudo().search([
+            admin_acceptance = env['student.service.request.result'].sudo().with_user(system_user).search([
                 ('request_id', '=', requestid),
                 ('action_user_id', '!=', userid)
             ], limit=1)
@@ -302,7 +302,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
 
     # Tạo bản ghi history cho bước đang duyệt
-    hh = env['student.service.request.step.history'].sudo().create({
+    hh = env['student.service.request.step.history'].sudo().with_user(system_user).create({
         'request_id': requestid,
         'step_id': step.id,
         'state': act,
@@ -341,7 +341,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         next_step = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
         if next_step:
             next_step = next_step[0]
-            next_step.sudo().write({
+            next_step.sudo().with_user(system_user).write({
                 'state': 'assigned',
                 'assign_user_id': nextuserid if nextuserid else 0,
                 'approve_date': Datetime.now(),
@@ -355,8 +355,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 next_step_users += received_users
 
     #Update database: request các field: approve_content approve_date final_state final_data
-    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
-    request.sudo().with_user(sysuser).write({
+    request.sudo().with_user(system_user).write({
         'users': [(4, uid) for uid in next_step_users],
         'approve_content': note,
         'approve_date': Datetime.now(),
@@ -1078,6 +1077,7 @@ class ServiceApiController(http.Controller):
         state = params.get('state', '')
         note = params.get('note', '')
         final = params.get('final', '')
+
         if not request_id or not user_id or not step_id:
             return Response(
                 json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
@@ -1768,7 +1768,7 @@ class ServiceApiController(http.Controller):
                     })
                     attachment_ids.append(attachment.id)
                 if attachment_ids:
-                    acceptance.sudo().write({'image_ids': [(6, 0, attachment_ids)]})
+                    acceptance.sudo().with_user(system_user).write({'image_ids': [(6, 0, attachment_ids)]})
             except Exception as e:
                 pass  # Nếu không tìm thấy user_id thì bỏ qua
 
@@ -1778,7 +1778,7 @@ class ServiceApiController(http.Controller):
                 send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
                 # Kiểm tra đã có nghiệm thu accept của Admin thì đóng yêu cầu
                 # Lấy nghiệm thu của User khác
-                other_acceptance = request.env['student.service.request.result'].sudo().search([
+                other_acceptance = request.env['student.service.request.result'].sudo().with_user(system_user).search([
                     ('request_id', '=', service_request.id),
                     ('user_id', '!=', service_request.request_user_id.id)
                 ], order='timestamp desc', limit=1)
