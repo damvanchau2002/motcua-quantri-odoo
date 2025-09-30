@@ -23,7 +23,10 @@
         <field name="name">student.service.group.form</field>
         <field name="model">student.service.group</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Nhóm dịch vụ">
+                <header>
+                    <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
+                </header>
                 <sheet>
                     <group string="Thông tin nhóm">
                         <field name="name"/>

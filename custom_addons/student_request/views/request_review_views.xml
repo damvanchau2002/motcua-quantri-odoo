@@ -20,7 +20,10 @@
         <field name="name">student.service.request.review.form</field>
         <field name="model">student.service.request.review</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Đánh giá yêu cầu">
+                <header>
+                    <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
+                </header>
                 <sheet>
                     <group>
                         <field name="name"/>
