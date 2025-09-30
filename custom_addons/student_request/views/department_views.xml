@@ -18,7 +18,10 @@
         <field name="name">student.activity.department.form</field>
         <field name="model">student.activity.department</field>
         <field name="arch" type="xml">
-            <form>
+            <form string="Phòng ban hoạt động">
+                <header>
+                    <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
+                </header>
                 <sheet>
                     <group>
                         <field name="name"/>

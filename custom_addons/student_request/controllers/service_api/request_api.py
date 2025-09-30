@@ -350,7 +350,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
             note = f'Đã duyệt bước {step.base_step_id.name}, đang chờ duyệt bước {next_step.base_step_id.name}'
             act = 'assigned' # Update bước tiếp theo thành đã phân công
             # Cập nhật danh sách người đã xử lý yêu cầu
-            received_users = get_user_received_requests(env, request.dormitory_cluster_id.id, request.service_id, next_step)
+            received_users = get_user_received_requests(env, request.dormitory_cluster_id, request.service_id, next_step)
             if received_users:
                 next_step_users += received_users
 
@@ -1869,17 +1869,23 @@ class ServiceApiController(http.Controller):
 
             result = []
             for acceptance in acceptances:
+                # Ensure all related field access uses sudo()
+                request_record = acceptance.request_id.sudo() if acceptance.request_id else None
+                service_record = request_record.service_id.sudo() if request_record and request_record.service_id else None
+                user_record = acceptance.user_id.sudo() if acceptance.user_id else None
+                action_user_record = acceptance.action_user.sudo() if acceptance.action_user else None
+                
                 result.append({
                     'id': acceptance.id,
-                    'request_id': acceptance.request_id.id if acceptance.request_id else None,
-                    'request_name': acceptance.request_id.name if acceptance.request_id else '',
-                    'service_name': acceptance.request_id.service_id.name if acceptance.request_id.service_id else '',
+                    'request_id': request_record.id if request_record else None,
+                    'request_name': request_record.name if request_record else '',
+                    'service_name': service_record.name if service_record else '',
                     
-                    'user_id': acceptance.user_id.id if acceptance.user_id else None,
-                    'user_name': acceptance.user_id.name if acceptance.user_id else '',
+                    'user_id': user_record.id if user_record else None,
+                    'user_name': user_record.name if user_record else '',
                     
-                    'action_user': acceptance.action_user.id if acceptance.action_user else None,
-                    'action_user_name': acceptance.action_user.name if acceptance.action_user else '',
+                    'action_user': action_user_record.id if action_user_record else None,
+                    'action_user_name': action_user_record.name if action_user_record else '',
                     
                     'note': acceptance.note,
                     'action': acceptance.action,
@@ -1895,9 +1901,9 @@ class ServiceApiController(http.Controller):
                     
                     # Thông tin thêm về request
                     'request_info': {
-                        'final_state': acceptance.request_id.final_state if acceptance.request_id else '',
-                        'final_star': acceptance.request_id.final_star if acceptance.request_id else 0,
-                        'request_date': format_datetime_local(acceptance.request_id.request_date) if acceptance.request_id else '',
+                        'final_state': request_record.final_state if request_record else '',
+                        'final_star': request_record.final_star if request_record else 0,
+                        'request_date': format_datetime_local(request_record.request_date) if request_record else '',
                     }
                 })
 
@@ -1940,6 +1946,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
+            
     @http.route('/api/service/request/images', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_request_images(self):
         try:
