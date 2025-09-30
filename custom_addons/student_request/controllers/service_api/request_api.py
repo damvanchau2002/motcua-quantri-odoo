@@ -35,8 +35,8 @@ def get_user_received_requests(env, cluster_id, service, step):
     #    received_users += step.base_step_id.user_ids.ids
 
     # Lấy các user trong cụm KTX
-    if cluster_id > 0:
-        domain = [('dormitory_clusters', 'in', [cluster_id]), ('role_ids', 'in', service.role_ids.ids)]
+    if cluster_id and cluster_id.id:
+        domain = [('dormitory_clusters', 'in', [cluster_id.id]), ('role_ids', 'in', service.role_ids.ids)]
         dormitory_admins = env['student.admin.profile'].sudo().search(domain)
 
         if dormitory_admins:  # Nếu có quản lý KTX thì lấy user_id của họ
