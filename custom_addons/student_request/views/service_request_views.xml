@@ -147,6 +147,7 @@
                     </group>
                     <group invisible="id != 0">
                         <button name="action_create_new" string="Tạo yêu cầu" type="object" class="btn-primary"/>
+                <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
                     </group>
                 </sheet>
             </form>
@@ -288,6 +289,9 @@
         <field name="model">student.service.request.step</field>
         <field name="arch" type="xml">
             <form string="Bước duyệt yêu cầu dịch vụ">
+                <header>
+                    <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
+                </header>
                 <sheet>
                     <group>
                         <group string="Thông tin yêu cầu dịch vụ">
