@@ -264,18 +264,24 @@ class ServiceRequestStep(models.Model):
             if not rec.request_id:
                 continue
 
-            # Lấy tất cả step trong cùng 1 request, sắp xếp theo sequence
+            # Lấy tất cả step trong request, sort theo sequence
             steps = rec.request_id.step_ids.sorted(lambda s: s.base_step_id.sequence or 0)
 
-            # Tìm bước pending đầu tiên
-            first_pending = steps.filtered(lambda s: s.state == "pending")[:1]
+            # Tìm step ngay trước step hiện tại
+            prev_steps = steps.filtered(
+                lambda s: (s.base_step_id.sequence or 0) < (rec.base_step_id.sequence or 0)
+            )
 
-            if not first_pending:
-                # nếu không có pending thì tất cả đều khóa
+            if not prev_steps:
+                # Nếu không có step trước → step đầu tiên luôn mở
+                rec.disabled = False
                 continue
 
-            # Nếu step này nằm trước hoặc chính bước pending đầu tiên → mở khóa
-            if (rec.base_step_id.sequence or 0) <= (first_pending.base_step_id.sequence or 0):
+            # Lấy step liền kề trước nó
+            prev_step = prev_steps[-1]
+
+            # Nếu step trước là approved thì mở step hiện tại
+            if prev_step.state == "approved":
                 rec.disabled = False
 
 
