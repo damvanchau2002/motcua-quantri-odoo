@@ -68,11 +68,13 @@
                     </group>
 
                     <group invisible="(id == 0 or final_state == 'closed')" string="Các bước duyệt">
-                        <field name="step_ids" widget="kanban" nolabel="1" no_create="true" options="{'no_create': true, 'no_open': true}">
+                        <field name="step_ids_active" widget="kanban" nolabel="1" no_create="true" no_open="true" options="{'no_create': true, 'no_open': true}">
                             <kanban>
                                 <templates>
-                                    <t t-name="kanban-box">
+                                    <t t-name="kanban-box" t-if="!record.disabled.raw_value">
                                         <div class="card oe_kanban_card p-0" t-att-class="record.state.raw_value == 'rejected' ? 'bg-danger' : (record.state.raw_value == 'approved' ? 'bg-success' : (record.state.raw_value == 'pending' ? '' : 'bg-warning'))">
+                                            <!-- field disabled để tính toán, không hiển thị -->
+                                            <field name="disabled" invisible="1"/>
                                             <div class="card-header oe_kanban_header">
                                                 <strong><field name="base_step_id"/></strong>
                                             </div>

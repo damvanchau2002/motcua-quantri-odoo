@@ -249,6 +249,36 @@ class ServiceRequestStep(models.Model):
         ondelete='cascade'
     )
 
+    disabled = fields.Boolean(
+        string="Disabled",
+        compute="_compute_disabled",
+        store=False,
+        help="Các bước sau bước 'pending' đầu tiên sẽ bị khóa"
+    )
+
+    @api.depends("state", "request_id.step_ids.state")
+    def _compute_disabled(self):
+        for rec in self:
+            rec.disabled = True  # mặc định khóa
+
+            if not rec.request_id:
+                continue
+
+            # Lấy tất cả step trong cùng 1 request, sắp xếp theo sequence
+            steps = rec.request_id.step_ids.sorted(lambda s: s.base_step_id.sequence or 0)
+
+            # Tìm bước pending đầu tiên
+            first_pending = steps.filtered(lambda s: s.state == "pending")[:1]
+
+            if not first_pending:
+                # nếu không có pending thì tất cả đều khóa
+                continue
+
+            # Nếu step này nằm trước hoặc chính bước pending đầu tiên → mở khóa
+            if (rec.base_step_id.sequence or 0) <= (first_pending.base_step_id.sequence or 0):
+                rec.disabled = False
+
+
     def action_back(self):
         return {
             'type': 'ir.actions.act_window_close',
@@ -310,7 +340,7 @@ class ServiceRequest(models.Model):
 
     # THÔNG TIN CÁC BƯỚC
     # Tạo tự động theo setup Service:
-    step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
+    step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này',domain=[('disabled', '=', False)], order='sequence asc')
     
     # DUYỆT
     # Lấy user trong role_ids dồn vào đây, field users sẽ chứa tất cả người dùng có quyền duyệt, đã duyệt và sẽ duyệt dịch vụ này
@@ -360,6 +390,25 @@ class ServiceRequest(models.Model):
     # GHI NHẬN KẾT QUẢ
     result_ids = fields.One2many('student.service.request.result', 'request_id', string='Kết quả', help='Các kết quả liên quan đến yêu cầu dịch vụ này')
 
+
+    step_ids_active = fields.One2many(
+        "student.service.request.step",
+        compute="_compute_step_ids_active",
+        inverse="_inverse_step_ids_active",
+        string="Các bước đang hoạt động",
+        store=False,
+    )
+
+    @api.depends("step_ids.disabled")
+    def _compute_step_ids_active(self):
+        for rec in self:
+            rec.step_ids_active = rec.step_ids.filtered(lambda s: not s.disabled)
+
+    def _inverse_step_ids_active(self):
+        # map ngược lại cho step_ids
+        for rec in self:
+            # gộp cả disabled + active
+            rec.step_ids = rec.step_ids_active | rec.step_ids.filtered(lambda s: s.disabled)
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):
         """Tăng thời gian hết hạn của yêu cầu dịch vụ"""
