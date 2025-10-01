@@ -378,8 +378,9 @@ class ServiceRequest(models.Model):
 
 
     def action_create_new(self):
+        super_env = self.with_user(1)
         # Tạo mới yêu cầu dịch vụ
-        vals = create_request(self.env, self.service_id.id, self.id if self.id else 0, self.request_user_id.id, self.note, self.image_attachment_ids.ids)
+        vals = create_request(self.env, super_env.service_id.id, super_env.id if super_env.id else 0, super_env.request_user_id.id, super_env.note, super_env.image_attachment_ids.ids)
         return { 'type': 'ir.actions.client', 'tag': 'reload' }
 
     # Lọc trên View theo quyền user
