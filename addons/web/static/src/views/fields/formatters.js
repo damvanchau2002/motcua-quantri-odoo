@@ -85,17 +85,26 @@ formatChar.extractOptions = ({ attrs }) => {
 };
 
 export function formatDate(value, options) {
-    return _formatDate(value, options);
+    if (!value) {
+        return "";
+    }
+    // Force Vietnamese date format
+    return value.toFormat("dd/MM/yyyy");
 }
 formatDate.extractOptions = ({ options }) => {
     return { condensed: options.condensed };
 };
 
 export function formatDateTime(value, options = {}) {
-    if (options.showTime === false) {
-        return _formatDate(value, options);
+    if (!value) {
+        return "";
     }
-    return _formatDateTime(value, options);
+    if (options.showTime === false) {
+        // Force Vietnamese date format for date-only display
+        return value.toFormat("dd/MM/yyyy");
+    }
+    // Force Vietnamese datetime format
+    return value.toFormat("dd/MM/yyyy HH:mm:ss");
 }
 formatDateTime.extractOptions = ({ attrs, options }) => {
     return {
