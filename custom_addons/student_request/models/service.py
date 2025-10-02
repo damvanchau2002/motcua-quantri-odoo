@@ -445,7 +445,7 @@ class ServiceRequest(models.Model):
         """Kiểm tra và cập nhật trạng thái timeout cho các request"""
         try:
             # Tìm các request đã quá thời gian xử lý
-            timeout_date = fields.Datetime.now() - timedelta(days=6)
+            timeout_date = fields.Datetime.now() - timedelta(hours=12)
             timeout_requests = self.search([('final_state', '=', 'pending'), ('send_expired_warning', '=', False), ('request_date', '<', timeout_date)])
 
             system_user = self.env['res.users'].browse(1)  # Giả sử user hệ thống có ID là 1
