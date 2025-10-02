@@ -788,6 +788,45 @@ class ServiceApiController(http.Controller):
 
             results = []
             for req in requests:
+                # Lấy thông tin số điện thoại của sinh viên từ nhiều nguồn
+                student_phone = 'Không có thông tin'
+                
+                # Debug: Log thông tin user
+                import logging
+                _logger = logging.getLogger(__name__)
+                _logger.info(f"=== DEBUG PHONE FOR USER API - USER ID: {req.request_user_id.id} ===")
+                
+                # Thử lấy từ student.user.profile trước
+                student_profile = request.env['student.user.profile'].sudo().search([('user_id', '=', req.request_user_id.id)], limit=1)
+                _logger.info(f"Student profile found: {bool(student_profile)}")
+                if student_profile:
+                    _logger.info(f"Student profile phone: '{student_profile.phone}'")
+                    if student_profile.phone and student_profile.phone != 'None' and student_profile.phone.strip():
+                        student_phone = student_profile.phone
+                        _logger.info(f"Using student profile phone: {student_phone}")
+                
+                if student_phone == 'Không có thông tin':
+                    # Nếu không có trong profile, thử lấy từ res.users
+                    if req.request_user_id and req.request_user_id.phone and req.request_user_id.phone != 'None' and req.request_user_id.phone.strip():
+                        student_phone = req.request_user_id.phone
+                        _logger.info(f"Using user phone: {student_phone}")
+                    elif req.request_user_id and req.request_user_id.mobile and req.request_user_id.mobile != 'None' and req.request_user_id.mobile.strip():
+                        student_phone = req.request_user_id.mobile
+                        _logger.info(f"Using user mobile: {student_phone}")
+                    else:
+                        # Thử lấy từ partner
+                        if req.request_user_id and req.request_user_id.partner_id:
+                            _logger.info(f"Partner phone: '{req.request_user_id.partner_id.phone}', Partner mobile: '{req.request_user_id.partner_id.mobile}'")
+                            if req.request_user_id.partner_id.phone and req.request_user_id.partner_id.phone != 'None' and req.request_user_id.partner_id.phone.strip():
+                                student_phone = req.request_user_id.partner_id.phone
+                                _logger.info(f"Using partner phone: {student_phone}")
+                            elif req.request_user_id.partner_id.mobile and req.request_user_id.partner_id.mobile != 'None' and req.request_user_id.partner_id.mobile.strip():
+                                student_phone = req.request_user_id.partner_id.mobile
+                                _logger.info(f"Using partner mobile: {student_phone}")
+                
+                _logger.info(f"Final phone result: '{student_phone}'")
+                _logger.info("=== END DEBUG PHONE USER API ===")
+                
                 steps = []
                 for step in req.step_ids:
                     steps.append({
@@ -808,9 +847,12 @@ class ServiceApiController(http.Controller):
                     })
                 # Sắp xếp các bước theo sequence tăng dần
                 steps = sorted(steps, key=lambda x: x['base_secquence'])
-                results.append({
+                
+                # Debug log để kiểm tra giá trị student_phone
+                _logger.info(f"DEBUG RESPONSE: req.id={req.id}, student_phone='{student_phone}', request_user_name='{req.request_user_name}'")
+                
+                result_item = {
                     'id': req.id,
-
                     'name': req.name,
                     'note': req.note,
                     'request_date': format_datetime_local(req.create_date, user_id),
@@ -822,6 +864,10 @@ class ServiceApiController(http.Controller):
                     'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
                     'expired_date': format_datetime_local(req.expired_date, user_id),
 
+                    # Thông tin sinh viên
+                    'request_user_name': req.request_user_name,
+                    'request_user_phone': student_phone,
+
                     'service': {
                         'id': req.service_id.id,
                         'name': req.service_id.name,
@@ -830,7 +876,10 @@ class ServiceApiController(http.Controller):
 
                     'steps': steps,
                     'is_new': req.is_new
-                })
+                }
+                
+                _logger.info(f"DEBUG RESULT ITEM: {result_item}")
+                results.append(result_item)
             # Trả về danh sách yêu cầu dịch vụ của user
             return Response(
                 json.dumps({
@@ -887,6 +936,39 @@ class ServiceApiController(http.Controller):
 
             results = []
             for req in requests:
+                # Lấy thông tin số điện thoại của sinh viên từ nhiều nguồn với debug log
+                student_phone = 'Không có thông tin'
+                
+                # Debug: Log thông tin user
+                import logging
+                _logger = logging.getLogger(__name__)
+                _logger.info(f"=== DEBUG PHONE FOR USER ID: {req.request_user_id.id} ===")
+                
+                # 1. Tìm trong student.user.profile
+                student_profile = request.env['student.user.profile'].sudo().search([('user_id', '=', req.request_user_id.id)], limit=1)
+                _logger.info(f"Student profile found: {bool(student_profile)}")
+                if student_profile:
+                    _logger.info(f"Student profile phone: '{student_profile.phone}'")
+                    if student_profile.phone and student_profile.phone != 'None' and student_profile.phone.strip():
+                        student_phone = student_profile.phone
+                        _logger.info(f"Using student profile phone: {student_phone}")
+                
+                if student_phone == 'Không có thông tin':
+                    # 2. Tìm trong res.users -> partner_id -> phone
+                    user = req.request_user_id
+                    _logger.info(f"User found: {bool(user)}, Partner found: {bool(user.partner_id if user else False)}")
+                    if user and user.partner_id:
+                        _logger.info(f"Partner phone: '{user.partner_id.phone}', Partner mobile: '{user.partner_id.mobile}'")
+                        if user.partner_id.phone and user.partner_id.phone != 'None' and user.partner_id.phone.strip():
+                            student_phone = user.partner_id.phone
+                            _logger.info(f"Using partner phone: {student_phone}")
+                        elif user.partner_id.mobile and user.partner_id.mobile != 'None' and user.partner_id.mobile.strip():
+                            student_phone = user.partner_id.mobile
+                            _logger.info(f"Using partner mobile: {student_phone}")
+                
+                _logger.info(f"Final phone result: '{student_phone}'")
+                _logger.info("=== END DEBUG PHONE ===")
+                
                 steps = []
                 for step in req.step_ids:
                     steps.append({
@@ -920,6 +1002,10 @@ class ServiceApiController(http.Controller):
                     'final_state': req.final_state,
                     'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
                     'expired_date': format_datetime_local(req.expired_date, user_id),
+
+                    # Thông tin sinh viên
+                    'request_user_name': req.request_user_name,
+                    'request_user_phone': student_phone,
 
                     'service': {
                         'id': req.service_id.id,

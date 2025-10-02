@@ -20,6 +20,8 @@
     <menuitem id="menu_student_activity_department" name="Phòng ban" parent="menu_service_user_config" action="action_student_activity_department" />
 
     <menuitem id="menu_student_email_template" name="Mẫu gửi Email" parent="student_request_config" action="action_student_email_template"/>
+    <menuitem id="menu_maintenance_system" name="Bảo trì hệ thống" parent="student_request_config" action="action_maintenance_dashboard"/>
+    <menuitem id="menu_maintenance_advanced" name="Cấu hình nâng cao" parent="student_request_config" action="action_maintenance_config"/>
 
     <menuitem id="student_request_review" name="Duyệt comments " parent="student_request_root" />
     <menuitem id="student_request_review_menu" name="Đánh giá yêu cầu" parent="student_request_review" action="action_student_service_request_review"/>
