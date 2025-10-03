@@ -962,7 +962,7 @@ class StudentServiceReport(models.Model):
     _name = "student.service.report" 
     _description = "Báo cáo" 
     _rec_name = "period" 
-    _auto = False
+    _auto = True
     # Model báo cáo không có bảng thật 
     report_title = fields.Char( string="Tiêu đề báo cáo", compute="_compute_report_title", store=False ) 
     period = fields.Char(string='Ngày/Tháng/Năm') 
