@@ -19,6 +19,7 @@
         'views/service_step_views.xml',
         'views/service_file_views.xml',
         'views/service_request_views.xml',
+        'views/bulk_assign_wizard_views.xml',
         'views/admin_profile_views.xml',
         'views/notification_views.xml',
         'views/dormitory_views.xml',

@@ -1,4 +1,5 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_student_request_bulk_assign_wizard,student.request.bulk.assign.wizard,model_student_request_bulk_assign_wizard,base.group_system,1,1,1,1
 access_student_service,student.service,model_student_service,,1,1,1,1
 access_student_service_file,student.service.file,model_student_service_file,,1,1,1,1
 access_student_service_step,student.service.step,model_student_service_step,,1,1,1,1

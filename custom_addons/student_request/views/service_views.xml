@@ -36,7 +36,7 @@
                         </group>
                         <group string="Thông tin duyệt dịch vụ">
                             <field name="files" widget="many2many_tags"/>
-                            <field name="step_ids" widget="many2many_tags"
+                            <field name="step_ids" widget="many2many_tags" required="1"
                                 domain="[]"
                                 context="{'default_sequence': 1, 'default_nextstep': 99}"
                                 options="{'no_create': true, 'no_create_edit': true}"

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Wizard Form View -->
+    <record id="view_student_request_bulk_assign_wizard" model="ir.ui.view">
+        <field name="name">student.request.bulk.assign.wizard.form</field>
+        <field name="model">student.request.bulk.assign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Phân công hàng loạt">
+                <group>
+                    <field name="request_ids" widget="many2many_tags"/>
+                    <field name="assign_user_id"/>
+                    <field name="department_id"/>
+                    <field name="note"/>
+                </group>
+                <footer>
+                    <button name="action_assign" type="object" string="Phân công" class="btn-primary"/>
+                    <button string="Đóng" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action mở wizard, bind vào model student.service.request -->
+    <record id="action_student_request_bulk_assign_wizard" model="ir.actions.act_window">
+        <field name="name">Phân công hàng loạt</field>
+        <field name="res_model">student.request.bulk.assign.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_student_request_bulk_assign_wizard"/>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_student_service_request"/>
+        <field name="binding_type">action</field>
+        <field name="context">{}</field>
+
+    </record>
+</odoo>

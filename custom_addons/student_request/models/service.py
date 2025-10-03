@@ -2,6 +2,7 @@ import os
 import json
 import requests
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 from datetime import timedelta 
 from ..controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
 from ..controllers.service_api.request_api import create_request, update_request_step
@@ -121,6 +122,12 @@ class Service(models.Model):
     @api.model
     def get_group_system_id(self):
         return self.env.ref('base.group_system').id
+
+    @api.constrains('step_ids')
+    def _check_step_ids_required(self):
+        for rec in self:
+            if not rec.step_ids:
+                raise ValidationError('Vui lòng thêm ít nhất một bước duyệt cho dịch vụ.')
 
 
 # Định nghĩa bước duyệt của 1 dịch vụ
