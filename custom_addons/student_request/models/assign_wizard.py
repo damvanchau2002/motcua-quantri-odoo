@@ -8,7 +8,7 @@ class StudentRequestBulkAssignWizard(models.TransientModel):
     _description = 'Phân công hàng loạt yêu cầu dịch vụ'
 
     request_ids = fields.Many2many('student.service.request', string='Yêu cầu dịch vụ')
-    assign_user_id = fields.Many2one('res.users', string='Người được phân công')
+    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công')
     note = fields.Char(string='Ghi chú', default='Phân công hàng loạt')
 

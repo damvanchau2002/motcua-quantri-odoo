@@ -954,16 +954,17 @@ class ServiceApiController(http.Controller):
                         _logger.info(f"Using student profile phone: {student_phone}")
                 
                 if student_phone == 'Không có thông tin':
-                    # 2. Tìm trong res.users -> partner_id -> phone
-                    user = req.request_user_id
-                    _logger.info(f"User found: {bool(user)}, Partner found: {bool(user.partner_id if user else False)}")
-                    if user and user.partner_id:
-                        _logger.info(f"Partner phone: '{user.partner_id.phone}', Partner mobile: '{user.partner_id.mobile}'")
-                        if user.partner_id.phone and user.partner_id.phone != 'None' and user.partner_id.phone.strip():
-                            student_phone = user.partner_id.phone
+                    # 2. Tìm trong res.users -> partner_id -> phone (dùng sudo để tránh lỗi quyền truy cập res.partner)
+                    req_user = req.request_user_id.sudo()
+                    partner = req_user.partner_id.sudo() if req_user and req_user.partner_id else False
+                    _logger.info(f"User found: {bool(req_user)}, Partner found: {bool(partner)}")
+                    if partner:
+                        _logger.info(f"Partner phone: '{partner.phone}', Partner mobile: '{partner.mobile}'")
+                        if partner.phone and partner.phone != 'None' and partner.phone.strip():
+                            student_phone = partner.phone
                             _logger.info(f"Using partner phone: {student_phone}")
-                        elif user.partner_id.mobile and user.partner_id.mobile != 'None' and user.partner_id.mobile.strip():
-                            student_phone = user.partner_id.mobile
+                        elif partner.mobile and partner.mobile != 'None' and partner.mobile.strip():
+                            student_phone = partner.mobile
                             _logger.info(f"Using partner mobile: {student_phone}")
                 
                 _logger.info(f"Final phone result: '{student_phone}'")
