@@ -1,0 +1,42 @@
+<odoo>
+    <record id="view_student_email_template_list" model="ir.ui.view">
+        <field name="name">student.emailmng.template.list</field>
+        <field name="model">student.emailmng.template</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="subject"/>
+                <field name="status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_student_email_template_form" model="ir.ui.view">
+        <field name="name">student.emailmng.template.form</field>
+        <field name="model">student.emailmng.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="status"/>
+                        <field name="subject"/>
+                        <i>
+                            Các thẻ Replace subject: ${student_name}, ${service_name}, ${receiver_name}
+                        </i>
+                        <hr/>
+                        <field name="body_html" widget="html"/>
+                        <i> Các thẻ Replace body: ${student_name}, ${service_name}, ${receiver_name}, ${request_name}, ${request_expired} </i>
+                        <field name="mailto" widget="many2many_tags" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_email_template" model="ir.actions.act_window">
+        <field name="name">Student Email Templates</field>
+        <field name="res_model">student.emailmng.template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

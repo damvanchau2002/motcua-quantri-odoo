@@ -367,14 +367,8 @@ export function formatDate(value, options = {}) {
     if (!value) {
         return "";
     }
-    let format = options.format;
-    if (!format) {
-        format = localization.dateFormat;
-        if (options.condensed) {
-            format = getCondensedFormat(format);
-        }
-    }
-    return value.toFormat(format);
+    // Force Vietnamese date format dd/MM/yyyy
+    return value.toFormat("dd/MM/yyyy");
 }
 
 /**
@@ -387,18 +381,8 @@ export function formatDateTime(value, options = {}) {
     if (!value) {
         return "";
     }
-    let format = options.format;
-    if (!format) {
-        if (options.showSeconds === false) {
-            format = `${localization.dateFormat} ${localization.shortTimeFormat}`;
-        } else {
-            format = localization.dateTimeFormat;
-        }
-        if (options.condensed) {
-            format = getCondensedFormat(format);
-        }
-    }
-    return value.setZone(options.tz || "default").toFormat(format);
+    // Force Vietnamese datetime format dd/MM/yyyy HH:mm:ss
+    return value.setZone(options.tz || "default").toFormat("dd/MM/yyyy HH:mm:ss");
 }
 
 /**

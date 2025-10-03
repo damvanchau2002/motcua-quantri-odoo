@@ -67,6 +67,15 @@ class ServiceGroup(models.Model):
     parent_id = fields.Many2one('student.service.group', string='Nhóm cha')
     child_ids = fields.One2many('student.service.group', 'parent_id', string='Nhóm con')
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Nhóm dịch vụ',
+            'res_model': 'student.service.group',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
     def action_unlink_with_children(self):
         for group in self:
             group._unlink_with_children_recursive()
@@ -103,14 +112,24 @@ class Service(models.Model):
         ('enabled', 'Enabled'),
         ('disabled', 'Disabled')
     ], string='Hoạt động', default='enabled', help='Trạng thái hoạt động của dịch vụ: Đang hoạt động hay Tạm ngừng gửi yêu cầu')
-    group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ')
+    group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ', ondelete='cascade')
 
-    files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
+    files = fields.Many2many('student.service.file', string='Files cần gửi kèm', ondelete='cascade')
 
-    step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
+    step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt', ondelete='cascade')
 
-    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
-    role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
+    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này', ondelete='cascade')
+    role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này', ondelete='cascade')
+
+    @api.model
+    def get_group_system_id(self):
+        return self.env.ref('base.group_system').id
+
+    @api.constrains('step_ids')
+    def _check_step_ids_required(self):
+        for rec in self:
+            if not rec.step_ids:
+                raise ValidationError('Vui lòng thêm ít nhất một bước duyệt cho dịch vụ.')
 
 
 # Định nghĩa bước duyệt của 1 dịch vụ
@@ -126,10 +145,19 @@ class ServiceStep(models.Model):
     state = fields.Integer('Trạng thái', default=1)  # Trạng thái bước, mặc định là 1 (có thể chỉnh sửa)
 
     # tạm thời chưa dùng:
-    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định được phân công thực hiện duyệt bước này')
-    role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này')
-    department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này')
+    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định được phân công thực hiện duyệt bước này', ondelete='cascade')
+    role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này', ondelete='cascade')
+    department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này', ondelete='cascade')
     # / tạm thời chưa dùng
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Bước duyệt dịch vụ',
+            'res_model': 'student.service.step',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
     def unlink(self):
         for step in self:
@@ -154,8 +182,8 @@ class ServiceRequestStepHistory(models.Model):
     _order = 'date desc'
     
     request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ')
-    step_id = fields.Many2one('student.service.request.step', string='Bước duyệt')
-    user_id = fields.Many2one('res.users', string='Người duyệt')
+    step_id = fields.Many2one('student.service.request.step', string='Bước duyệt', ondelete='cascade')
+    user_id = fields.Many2one('res.users', string='Người duyệt', ondelete='cascade')
     state = fields.Selection([
         ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
@@ -178,8 +206,8 @@ class ServiceRequestStep(models.Model):
     _order = 'base_secquence'
 
     # BASE
-    request_id = fields.Many2one('student.service.request', string='Dịch vụ')
-    base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt')
+    request_id = fields.Many2one('student.service.request', string='Dịch vụ', ondelete='cascade')
+    base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt', ondelete='cascade')
     base_secquence = fields.Integer('Thứ tự', related='base_step_id.sequence', help='Thứ tự của bước duyệt trong quy trình')
     activated = fields.Boolean('Đã kích hoạt', default=False)
 
@@ -197,18 +225,20 @@ class ServiceRequestStep(models.Model):
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
-    upload_files = fields.Many2many('ir.attachment', string='Tài liệu đính kèm', help='Các tài liệu đính kèm cho bước này')
+    upload_files = fields.Many2many('ir.attachment', string='Tài liệu đính kèm', help='Các tài liệu đính kèm cho bước này', ondelete='cascade')
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
 
     # Phân công
-    assign_user_id = fields.Many2one(
-        'res.users',
-        string='Người được phân công',
-        domain=lambda self: [('groups_id', 'in', [self.env['res.groups'].search([('name','=','Settings')], limit=1).id])],
-    )
+    assign_user_id = fields.Many2one('res.users', string='Người được phân công', help='Người đã được phân công tiêp theo để xử lý bước này')
+    allowed_user_ids = fields.Many2many('res.users', compute='_compute_allowed_users')
+    def _compute_allowed_users(self):
+        users = self.env['student.admin.profile'].search([]).mapped('user_id')
+        for record in self:
+            record.allowed_user_ids = [(6, 0, users.ids)]
+
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này')
     # Lịch sử xử lý yêu cầu
-    history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
+    history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý', ondelete='cascade')
 
     # Các giấy tờ cần nộp trong bước này (chỉ bước 1 mới có)
     file_ids = fields.Many2many(
@@ -216,7 +246,7 @@ class ServiceRequestStep(models.Model):
         'student_service_step_file_rel',  # bảng quan hệ riêng cho file_ids
         'step_id', 'file_id',
         string='Giấy tờ cần nộp',
-        help='Các giấy tờ cần nộp trong bước này'
+        help='Các giấy tờ cần nộp trong bước này', ondelete='cascade'
     )
     # Đánh dấu các giấy tờ đã nộp  (chỉ bước 1 mới có)
     file_checkbox_ids = fields.Many2many(
@@ -224,8 +254,50 @@ class ServiceRequestStep(models.Model):
         'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
         'step_id', 'file_id',
         string='Hồ sơ đã nộp',
-        help='Các giấy tờ đã nộp trong bước này'
+        help='Các giấy tờ đã nộp trong bước này',
+        ondelete='cascade'
     )
+
+    disabled = fields.Boolean(
+        string="Disabled",
+        compute="_compute_disabled",
+        store=False,
+        help="Các bước sau bước 'pending' đầu tiên sẽ bị khóa"
+    )
+
+    @api.depends("state", "request_id.step_ids.state")
+    def _compute_disabled(self):
+        for rec in self:
+            rec.disabled = True  # mặc định khóa
+
+            if not rec.request_id:
+                continue
+
+            # Lấy tất cả step trong request, sort theo sequence
+            steps = rec.request_id.step_ids.sorted(lambda s: s.base_step_id.sequence or 0)
+
+            # Tìm step ngay trước step hiện tại
+            prev_steps = steps.filtered(
+                lambda s: (s.base_step_id.sequence or 0) < (rec.base_step_id.sequence or 0)
+            )
+
+            if not prev_steps:
+                # Nếu không có step trước → step đầu tiên luôn mở
+                rec.disabled = False
+                continue
+
+            # Lấy step liền kề trước nó
+            prev_step = prev_steps[-1]
+
+            # Nếu step trước là approved thì mở step hiện tại
+            if prev_step.state == "approved":
+                rec.disabled = False
+
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window_close',
+        }
 
     def action_confirm_approve(self):
         # Nếu tạo mới:
@@ -261,13 +333,14 @@ class ServiceRequest(models.Model):
         'ir.attachment',
         string='Ảnh đính kèm',
         domain=[('mimetype', 'ilike', 'image')],
-        help='Ảnh đính kèm khi gửi yêu cầu dịch vụ'
+        help='Ảnh đính kèm khi gửi yêu cầu dịch vụ',
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
+        ondelete='cascade'
     )
 
     # SINH VIÊN GỬI YÊU CẦU
-    request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ')
-    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này')
+    request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ', ondelete='cascade')
+    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này', )
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
@@ -282,15 +355,24 @@ class ServiceRequest(models.Model):
 
     # THÔNG TIN CÁC BƯỚC
     # Tạo tự động theo setup Service:
-    step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này', order='sequence asc')
+    step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này',domain=[('disabled', '=', False)], order='sequence asc')
     
     # DUYỆT
     # Lấy user trong role_ids dồn vào đây, field users sẽ chứa tất cả người dùng có quyền duyệt, đã duyệt và sẽ duyệt dịch vụ này
     users = fields.Many2many('res.users', string='Danh sách người đã và đang duyệt', help='Người có quyền duyệt dịch vụ này')
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Yêu cầu dịch vụ',
+            'res_model': 'student.service.request',
+            'view_mode': 'list',
+            'target': 'current',
+        }
     role_ids = fields.Many2many('student.activity.role', string='Vai trò được duyệt', help='Các vai trò có quyền duyệt dịch vụ này')
     department_ids = fields.Many2many('student.activity.department', string='Phòng ban được xử lý yêu cầu', help='Các phòng ban có quyền xử lý yêu cầu dịch vụ này')
     # Người đang xử lý yêu cầu dịch vụ này
-    user_processing_id = fields.Many2one('res.users', string='Người đang xử lý', help='Người đang xử lý yêu cầu dịch vụ này')
+    user_processing_id = fields.Many2one('res.users', string='Người đang xử lý', help='Người đang xử lý yêu cầu dịch vụ này', ondelete='cascade')
 
     # TRẠNG THÁI KẾT LUẬN CUỐI
     # Trạng thái cuối cùng của yêu cầu dịch vụ
@@ -313,16 +395,35 @@ class ServiceRequest(models.Model):
     # Thông tin duyệt mỗi bước cập nhật lên
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt hiện tại cho yêu cầu dịch vụ này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now, help='Ngày và giờ thao tác cập nhật duyệt yêu cầu dịch vụ này')
-    approve_user_id = fields.Many2one('res.users', string='Người đang nhận duyệt', help='Người đang thụ lý yêu cầu dịch vụ này')
+    approve_user_id = fields.Many2one('res.users', string='Người đang nhận duyệt', help='Người đang thụ lý yêu cầu dịch vụ này', ondelete='cascade')
 
     # PHẢN HỒI, ĐÁNH GIÁ
     acceptance = fields.Text('Phản hồi chấp nhận', help='Phản hồi của người yêu cầu về việc xử lý')
-    complaint_ids = fields.One2many('student.service.request.complaint', 'request_id', string='Các khiếu nại', help='Các khiếu nại liên quan đến yêu cầu dịch vụ này')
-    review_ids = fields.One2many('student.service.request.review', 'request_id', string='Các đánh giá', help='Các đánh giá liên quan đến yêu cầu dịch vụ này')
+    complaint_ids = fields.One2many('student.service.request.complaint', 'request_id', string='Các khiếu nại', help='Các khiếu nại liên quan đến yêu cầu dịch vụ này', ondelete='cascade')
+    review_ids = fields.One2many('student.service.request.review', 'request_id', string='Các đánh giá', help='Các đánh giá liên quan đến yêu cầu dịch vụ này', ondelete='cascade')
 
     # GHI NHẬN KẾT QUẢ
     result_ids = fields.One2many('student.service.request.result', 'request_id', string='Kết quả', help='Các kết quả liên quan đến yêu cầu dịch vụ này')
 
+
+    step_ids_active = fields.One2many(
+        "student.service.request.step",
+        compute="_compute_step_ids_active",
+        inverse="_inverse_step_ids_active",
+        string="Các bước đang hoạt động",
+        store=False,
+    )
+
+    @api.depends("step_ids.disabled")
+    def _compute_step_ids_active(self):
+        for rec in self:
+            rec.step_ids_active = rec.step_ids.filtered(lambda s: not s.disabled)
+
+    def _inverse_step_ids_active(self):
+        # map ngược lại cho step_ids
+        for rec in self:
+            # gộp cả disabled + active
+            rec.step_ids = rec.step_ids_active | rec.step_ids.filtered(lambda s: s.disabled)
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):
         """Tăng thời gian hết hạn của yêu cầu dịch vụ"""
@@ -341,23 +442,82 @@ class ServiceRequest(models.Model):
 
 
     def action_create_new(self):
+        super_env = self.with_user(1)
         # Tạo mới yêu cầu dịch vụ
-        vals = create_request(self.env, self.service_id.id, self.id if self.id else 0, self.request_user_id.id, self.note, self.image_attachment_ids.ids)
+        vals = create_request(self.env, super_env.service_id.id, super_env.id if super_env.id else 0, super_env.request_user_id.id, super_env.note, super_env.image_attachment_ids.ids)
         return { 'type': 'ir.actions.client', 'tag': 'reload' }
 
+    # Lọc trên View theo quyền user
+    # user_can_view = fields.Boolean(string='User Can View', compute='_compute_viewer',store=False)
+    # @api.depends_context('uid')
+    # def _compute_viewer(self):
+    #     uid = self.env.user.id
+    #     admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
+        
+    #     for record in self:
+    #         try:
+    #             # Kiểm tra quyền trực tiếp
+    #             has_direct_access = (
+    #                 uid in record.service_id.users.ids or 
+    #                 (record.approve_user_id and record.approve_user_id.id == uid)
+    #             )
+                
+    #             # Kiểm tra quyền admin profile
+    #             has_admin_access = False
+    #             admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
+                
+    #             if admin_profile and admin_profile.department_id and admin_profile.dormitory_clusters:
+    #                 has_admin_access = (
+    #                     bool(admin_profile.role_ids & record.service_id.role_ids) and
+    #                     record.dormitory_cluster_id and
+    #                     record.dormitory_cluster_id.id in admin_profile.dormitory_clusters.ids
+    #                 )
+                
+    #             record.user_can_view = has_direct_access or has_admin_access
+                
+    #         except Exception as e:
+    #             # Nếu có lỗi khi truy vấn, mặc định là False
+    #             record.user_can_view = False
+
+    def _search(self, args, offset=0, limit=None, order=None):
+        uid = self.env.user.id
+        if uid == 1:
+            return super()._search(args, offset=offset, limit=limit, order=order)
+
+        admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
+        # Tạo domain filter
+        domain = ['|', 
+            ('users', 'in', [uid]), # Đã dồn user trực tiếp vào đây
+            ('approve_user_id', '=', uid)
+        ]
+        if admin_profile and admin_profile.department_id and admin_profile.dormitory_clusters:
+            if admin_profile.role_ids:
+                domain = ['|'] + domain + [
+                    '&',
+                    ('service_id.role_ids', 'in', admin_profile.role_ids.ids),
+                    ('dormitory_cluster_id', 'in', admin_profile.dormitory_clusters.ids)
+                ]
+        
+        final_args = domain + args
+        # Bỏ tham số count - không có trong _search()
+        return super()._search(final_args, offset=offset, limit=limit, order=order)
+
+
+    # Cron job kiểm tra các request sắp hết hạn và gửi cảnh báo
     @api.model
     def cron_check_timeout_requests(self):
         """Kiểm tra và cập nhật trạng thái timeout cho các request"""
         try:
             # Tìm các request đã quá thời gian xử lý
-            timeout_date = fields.Datetime.now() - timedelta(days=6)
+            timeout_date = fields.Datetime.now() - timedelta(hours=12)
             timeout_requests = self.search([('final_state', '=', 'pending'), ('send_expired_warning', '=', False), ('request_date', '<', timeout_date)])
 
+            system_user = self.env['res.users'].browse(1)  # Giả sử user hệ thống có ID là 1
             for request in timeout_requests:
                 # Cập nhật trạng thái timeout
                 print(f"Updating request {request.id} to timeout status")
                 send_fcm_request(self.env, self, 13)
-                request.sudo().send_expired_warning = True
+                request.sudo().with_user(system_user).send_expired_warning = True
 
 
             print(f"Updated {len(timeout_requests)} requests to timeout status")
@@ -422,6 +582,15 @@ class StudentAdminProfile(models.Model):
     # Thông tin phòng ban:
     department_id = fields.Many2one('student.activity.department', string='Phòng ban', help='Phòng ban của quản trị viên sinh viên')
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Thông tin quản trị viên',
+            'res_model': 'student.admin.profile',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
 # Model quản lý vai trò hoạt động trong KTX
 class ActivityRole(models.Model):
     _name = 'student.activity.role'
@@ -435,6 +604,15 @@ class ActivityRole(models.Model):
         ('3', 'Chuyên viên')
     ], string='Cấp bậc', required=False, default='3')
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Vai trò hoạt động',
+            'res_model': 'student.activity.role',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
 
 class ActivityDepartment(models.Model):
     _name = 'student.activity.department'
@@ -442,8 +620,17 @@ class ActivityDepartment(models.Model):
 
     name = fields.Char('Tên phòng ban', required=True)
     description = fields.Text('Mô tả phòng ban')
-    admin_profiles = fields.One2many('student.admin.profile', 'department_id', string='Thành viên của Phòng ban')
-    cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm KTX', help='Các cụm KTX thuộc phòng ban này')
+    admin_profiles = fields.One2many('student.admin.profile', 'department_id', string='Thành viên của Phòng ban', ondelete='cascade')
+    cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm KTX', help='Các cụm KTX thuộc phòng ban này', ondelete='cascade')
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Phòng ban hoạt động',
+            'res_model': 'student.activity.department',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
 
 # Model quản lý thông tin OAuth của quản trị viên
@@ -477,9 +664,23 @@ class StudentNotify(models.Model):
     read_user_ids = fields.Many2many('res.users', 'student_notify_read_user_rel', 'notify_id', 'user_id', string='Người đã đọc', help='Danh sách người dùng đã đọc thông báo')
     
     #Nhận notify theo user, cluster, activity
-    user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id',  string='Danh sách người nhận notify', help='Danh sách người sẽ nhận thông báo')
-    dormitory_cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm nhận notify', help='Gửi thông báo đến các SV trong các cụm KTX này')
-    activity_role_ids = fields.Many2many('student.activity.role', string='Vai trò nhận notify', help='Gửi thông báo đến các SV có vai trò hoạt động này')
+    # Gửi thông báo đến người dùng cụ thể
+    user_ids = fields.Many2many('res.users', 'student_notify_user_rel', 'notify_id', 'user_id', string='Người nhận', help='Danh sách người dùng nhận thông báo')
+    # Gửi thông báo đến cụm ký túc xá
+    cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm KTX', help='Danh sách cụm ký túc xá nhận thông báo')
+    # Gửi thông báo đến vai trò hoạt động
+    role_ids = fields.Many2many('student.activity.role', string='Vai trò', help='Danh sách vai trò hoạt động nhận thông báo')
+    # Gửi thông báo đến phòng ban
+    department_ids = fields.Many2many('student.activity.department', string='Phòng ban', help='Danh sách phòng ban nhận thông báo')
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Thông báo',
+            'res_model': 'student.notify',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
     # Thống kê kết quả gửi FCM
     user_id = fields.Many2one('res.users', string='Người gửi', help='Người gửi thông báo')
@@ -523,6 +724,15 @@ class StudentDormitoryArea(models.Model):
     def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)
 
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Khu ký túc xá',
+            'res_model': 'student.dormitory.area',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+
 # Model quản lý cụm ký túc xá
 class StudentDormitoryCluster(models.Model):
     _name = 'student.dormitory.cluster'
@@ -537,6 +747,15 @@ class StudentDormitoryCluster(models.Model):
     @api.model
     def action_sync_cluster(self, vals):
         return action_sync_area_cluster(self)
+
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Cụm ký túc xá',
+            'res_model': 'student.dormitory.cluster',
+            'view_mode': 'list',
+            'target': 'current',
+        }
 
 
 # Model lịch sử nghiệm thu yêu cầu

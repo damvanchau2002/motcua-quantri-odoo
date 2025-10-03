@@ -19,6 +19,7 @@
         'views/service_step_views.xml',
         'views/service_file_views.xml',
         'views/service_request_views.xml',
+        'views/bulk_assign_wizard_views.xml',
         'views/admin_profile_views.xml',
         'views/notification_views.xml',
         'views/dormitory_views.xml',
@@ -26,6 +27,9 @@
         'views/roles_views.xml',
         'views/department_views.xml',
         'views/service_report_views.xml',
+        'views/email_template.xml',
+        'views/maintenance_simple_views.xml',
+        'views/maintenance_user_friendly_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',
@@ -35,6 +39,7 @@
     'assets': {
         'web.assets_backend': [
             'student_request/static/src/css/hide_checkbox.css',
+            'student_request/static/src/css/kanban.css',
         ],
     },
 }

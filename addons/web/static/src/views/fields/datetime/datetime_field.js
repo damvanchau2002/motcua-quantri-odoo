@@ -186,11 +186,16 @@ export class DateTimeField extends Component {
     getFormattedValue(valueIndex) {
         const value = this.values[valueIndex];
         const { condensed, showSeconds, showTime } = this.props;
-        return value
-            ? this.field.type === "date"
-                ? formatDate(value, { condensed })
-                : formatDateTime(value, { condensed, showSeconds, showTime })
-            : "";
+        if (!value) {
+            return "";
+        }
+        
+        // Custom format for Vietnamese date/time display
+        if (this.field.type === "date") {
+            return value.toFormat("dd/MM/yyyy");
+        } else {
+            return value.toFormat("dd/MM/yyyy HH:mm:ss");
+        }
     }
 
     /**

@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Actions - Định nghĩa trước để tránh lỗi tham chiếu -->
+    <record id="action_toggle_maintenance" model="ir.actions.server">
+        <field name="name">Bật/Tắt bảo trì</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+current_status = env['ir.config_parameter'].sudo().get_param('maintenance.status', 'off')
+if current_status == 'on':
+    env['ir.config_parameter'].sudo().set_param('maintenance.status', 'off')
+    env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(datetime.datetime.now()))
+    title = '🟢 Đã tắt bảo trì'
+    message = 'Hệ thống đã hoạt động bình thường'
+    notification_type = 'success'
+else:
+    env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
+    env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
+    title = '🔴 Đã bật bảo trì'
+    message = 'Hệ thống đã chuyển sang chế độ bảo trì'
+    notification_type = 'warning'
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': title,
+        'message': message,
+        'type': notification_type,
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <record id="action_set_maintenance_on" model="ir.actions.server">
+        <field name="name">Bật bảo trì</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '🔴 Đã bật bảo trì',
+        'message': 'Hệ thống đã chuyển sang chế độ bảo trì',
+        'type': 'warning',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <record id="action_set_maintenance_off" model="ir.actions.server">
+        <field name="name">Tắt bảo trì</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.status', 'off')
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(datetime.datetime.now()))
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '🟢 Đã tắt bảo trì',
+        'message': 'Hệ thống đã hoạt động bình thường',
+        'type': 'success',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <!-- Duration Actions -->
+    <record id="action_set_duration_30min" model="ir.actions.server">
+        <field name="name">Cài đặt bảo trì 30 phút</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.duration', '30 phút')
+env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
+end_time = datetime.datetime.now() + datetime.timedelta(minutes=30)
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(end_time))
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '⏰ Đã cài đặt bảo trì 30 phút',
+        'message': 'Hệ thống sẽ bảo trì trong 30 phút',
+        'type': 'info',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <record id="action_set_duration_1hour" model="ir.actions.server">
+        <field name="name">Cài đặt bảo trì 1 giờ</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.duration', '1 giờ')
+env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
+end_time = datetime.datetime.now() + datetime.timedelta(hours=1)
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(end_time))
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '⏰ Đã cài đặt bảo trì 1 giờ',
+        'message': 'Hệ thống sẽ bảo trì trong 1 giờ',
+        'type': 'info',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <record id="action_set_duration_2hour" model="ir.actions.server">
+        <field name="name">Cài đặt bảo trì 2 giờ</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.duration', '2 giờ')
+env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
+end_time = datetime.datetime.now() + datetime.timedelta(hours=2)
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(end_time))
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '⏰ Đã cài đặt bảo trì 2 giờ',
+        'message': 'Hệ thống sẽ bảo trì trong 2 giờ',
+        'type': 'info',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <!-- Message Actions -->
+    <record id="action_set_message_update" model="ir.actions.server">
+        <field name="name">Thông báo cập nhật</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.message', 'Hệ thống đang cập nhật, vui lòng quay lại sau')
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '📝 Đã cập nhật thông báo',
+        'message': 'Thông báo: Hệ thống đang cập nhật',
+        'type': 'success',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <record id="action_set_message_maintenance" model="ir.actions.server">
+        <field name="name">Thông báo bảo trì</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.message', 'Hệ thống đang bảo trì định kỳ')
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '📝 Đã cập nhật thông báo',
+        'message': 'Thông báo: Hệ thống đang bảo trì định kỳ',
+        'type': 'success',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <record id="action_set_message_upgrade" model="ir.actions.server">
+        <field name="name">Thông báo nâng cấp</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+env['ir.config_parameter'].sudo().set_param('maintenance.message', 'Đang nâng cấp hệ thống, xin lỗi vì sự bất tiện')
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': '📝 Đã cập nhật thông báo',
+        'message': 'Thông báo: Đang nâng cấp hệ thống',
+        'type': 'success',
+        'sticky': False,
+    }
+}
+        </field>
+    </record>
+
+    <record id="action_set_custom_message" model="ir.actions.server">
+        <field name="name">Tùy chỉnh thông báo</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Tùy chỉnh thông báo bảo trì',
+    'res_model': 'ir.config_parameter',
+    'view_mode': 'form',
+    'target': 'new',
+    'context': {
+        'default_key': 'maintenance.message',
+        'default_value': env['ir.config_parameter'].sudo().get_param('maintenance.message', 'Hệ thống đang bảo trì')
+    },
+    'domain': [('key', '=', 'maintenance.message')]
+}
+        </field>
+    </record>
+
+    <!-- Model để quản lý maintenance dễ dàng hơn -->
+    <record id="view_maintenance_dashboard_form" model="ir.ui.view">
+        <field name="name">maintenance.dashboard.form</field>
+        <field name="model">ir.config_parameter</field>
+        <field name="arch" type="xml">
+            <form string="Quản lý bảo trì hệ thống" create="false" edit="false" delete="false">
+                <header>
+                    <button name="%(action_toggle_maintenance)d" 
+                            string="🔄 Bật/Tắt bảo trì" 
+                            type="action" 
+                            class="btn-primary btn-lg"/>
+                    <button name="%(action_set_maintenance_on)d" 
+                            string="🔴 Bật bảo trì" 
+                            type="action" 
+                            class="btn-warning"/>
+                    <button name="%(action_set_maintenance_off)d" 
+                            string="🟢 Tắt bảo trì" 
+                            type="action" 
+                            class="btn-success"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>🛠️ Bảng điều khiển bảo trì</h1>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>📊 Trạng thái hiện tại</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-info">
+                                        <h4 id="current_status">Đang tải...</h4>
+                                        <p id="current_message">Đang tải thông tin...</p>
+                                        <small id="current_time">Cập nhật: Đang tải...</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>⚙️ Cài đặt nhanh</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="btn-group-vertical d-grid gap-2">
+                                        <button name="%(action_set_duration_30min)d" 
+                                                string="⏰ Bảo trì 30 phút" 
+                                                type="action" 
+                                                class="btn btn-outline-primary"/>
+                                        <button name="%(action_set_duration_1hour)d" 
+                                                string="⏰ Bảo trì 1 giờ" 
+                                                type="action" 
+                                                class="btn btn-outline-primary"/>
+                                        <button name="%(action_set_duration_2hour)d" 
+                                                string="⏰ Bảo trì 2 giờ" 
+                                                type="action" 
+                                                class="btn btn-outline-primary"/>
+                                        <button name="%(action_set_custom_message)d" 
+                                                string="✏️ Tùy chỉnh thông báo" 
+                                                type="action" 
+                                                class="btn btn-outline-secondary"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>📝 Thông báo mẫu</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="btn-group-vertical d-grid gap-2">
+                                        <button name="%(action_set_message_update)d" 
+                                                string="🔄 Hệ thống đang cập nhật, vui lòng quay lại sau" 
+                                                type="action" 
+                                                class="btn btn-outline-info"/>
+                                        <button name="%(action_set_message_maintenance)d" 
+                                                string="🛠️ Hệ thống đang bảo trì định kỳ" 
+                                                type="action" 
+                                                class="btn btn-outline-info"/>
+                                        <button name="%(action_set_message_upgrade)d" 
+                                                string="⬆️ Đang nâng cấp hệ thống, xin lỗi vì sự bất tiện" 
+                                                type="action" 
+                                                class="btn btn-outline-info"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+
+    <!-- Action cho dashboard -->
+    <record id="action_maintenance_dashboard" model="ir.actions.act_window">
+        <field name="name">🛠️ Bảng điều khiển bảo trì</field>
+        <field name="res_model">ir.config_parameter</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_maintenance_dashboard_form"/>
+        <field name="target">current</field>
+        <field name="context">{
+            'default_key': 'maintenance.status',
+            'default_value': 'off'
+        }</field>
+        <field name="domain">[('key', '=', 'maintenance.status')]</field>
+    </record>
+
+</odoo>

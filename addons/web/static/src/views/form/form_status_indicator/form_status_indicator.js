@@ -20,10 +20,12 @@ export class FormStatusIndicator extends Component {
         );
         useEffect(
             () => {
-                if (!this.props.model.root.isNew && this.indicatorMode === "invalid") {
-                    this.saveButton.el.setAttribute("disabled", "1");
-                } else {
-                    this.saveButton.el.removeAttribute("disabled");
+                if (this.saveButton.el) {
+                    if (!this.props.model.root.isNew && this.indicatorMode === "invalid") {
+                        this.saveButton.el.setAttribute("disabled", "1");
+                    } else {
+                        this.saveButton.el.removeAttribute("disabled");
+                    }
                 }
             },
             () => [this.props.model.root.isValid]
@@ -34,6 +36,12 @@ export class FormStatusIndicator extends Component {
 
     get displayButtons() {
         return this.indicatorMode !== "saved";
+    }
+
+    get displayDiscardButton() {
+        // Luôn hiển thị nút discard khi form status indicator được hiển thị
+        // để người dùng có thể hủy bỏ thay đổi ở mọi trường hợp
+        return true;
     }
 
     get indicatorMode() {

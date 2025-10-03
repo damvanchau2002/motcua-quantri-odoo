@@ -68,11 +68,13 @@
                     </group>
 
                     <group invisible="(id == 0 or final_state == 'closed')" string="Các bước duyệt">
-                        <field name="step_ids" widget="kanban" nolabel="1" no_create="true" options="{'no_create': true, 'no_open': true}">
+                        <field name="step_ids_active" widget="kanban" nolabel="1" no_create="true" no_open="true" options="{'no_create': true, 'no_open': true}">
                             <kanban>
                                 <templates>
-                                    <t t-name="kanban-box">
+                                    <t t-name="kanban-box" t-if="!record.disabled.raw_value">
                                         <div class="card oe_kanban_card p-0" t-att-class="record.state.raw_value == 'rejected' ? 'bg-danger' : (record.state.raw_value == 'approved' ? 'bg-success' : (record.state.raw_value == 'pending' ? '' : 'bg-warning'))">
+                                            <!-- field disabled để tính toán, không hiển thị -->
+                                            <field name="disabled" invisible="1"/>
                                             <div class="card-header oe_kanban_header">
                                                 <strong><field name="base_step_id"/></strong>
                                             </div>
@@ -147,6 +149,7 @@
                     </group>
                     <group invisible="id != 0">
                         <button name="action_create_new" string="Tạo yêu cầu" type="object" class="btn-primary"/>
+                <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
                     </group>
                 </sheet>
             </form>
@@ -268,7 +271,6 @@
         <field name="res_model">student.service.request</field>
         <field name="view_mode">kanban,list,form</field>
         <field name="search_view_id" ref="view_student_service_request_search"/>
-        <field name="domain">[ '|', ("service_id.users", "in", [uid]), ("approve_user_id", "=", uid) ]</field>
     </record>
     
     <record id="view_student_service_request_step_history_tree" model="ir.ui.view">
@@ -289,6 +291,9 @@
         <field name="model">student.service.request.step</field>
         <field name="arch" type="xml">
             <form string="Bước duyệt yêu cầu dịch vụ">
+                <header>
+                    <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
+                </header>
                 <sheet>
                     <group>
                         <group string="Thông tin yêu cầu dịch vụ">
@@ -298,7 +303,7 @@
                         <group string="Thông tin duyệt">
                             <field name="state"/>
                             <field name="approve_content"/>
-                            <field name="assign_user_id" /> <!-- domain="[ '|', ('groups_id.name', '=', 'Settings'), ('groups_id.name', '=', 'Administration') ]" -->
+                            <field name="assign_user_id" domain="[('id', 'in', allowed_user_ids)]"/> 
                             <field name="department_id" />
                         </group>
                         <group string="Nghiệm thu">
@@ -306,7 +311,7 @@
                         </group>
                         <group string="Thông tin đính kèm">
                             <field name="file_ids" widget="many2many_tags" readonly="1" invisible="base_secquence != 1" options="{'no_create': True, 'no_create_edit': True}"/>
-                            <field name="file_checkbox_ids" widget="many2many_checkboxes" invisible="base_secquence != 1"/>
+                            <field name="file_checkbox_ids" widget="many2many_checkboxes" invisible="base_secquence != 1" domain="[('id','in', file_ids)]"/>
                         </group>
                         <group string="Lịch sử duyệt">
                             <field name="history_ids" readonly="1" nolabel="1"/>
@@ -327,7 +332,7 @@
         <field name="model_id" ref="model_student_service_request"/> 
         <field name="state">code</field>
         <field name="code">model.cron_check_timeout_requests()</field>
-        <field name="interval_number">120</field>
+        <field name="interval_number">30</field>
         <field name="interval_type">minutes</field>
         <field name="active">True</field>
         <field name="user_id" ref="base.user_admin"/>

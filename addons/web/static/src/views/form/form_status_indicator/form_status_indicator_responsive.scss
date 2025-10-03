@@ -1,0 +1,52 @@
+// Form Status Indicator Responsive Styles
+// Đảm bảo nút discard luôn hiển thị trên mọi kích thước màn hình
+
+.o_form_status_indicator {
+    // Đảm bảo container luôn hiển thị
+    display: flex !important;
+    
+    .o_form_status_indicator_buttons {
+        // Đảm bảo buttons container luôn hiển thị và không bị wrap
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        
+        // Đảm bảo các nút không bị ẩn trên màn hình nhỏ
+        .o_form_button_save,
+        .o_form_button_cancel {
+            display: flex !important;
+            flex-shrink: 0 !important; // Không cho phép thu nhỏ
+            min-width: auto !important;
+            white-space: nowrap !important;
+        }
+    }
+}
+
+// Media queries để đảm bảo hiển thị tốt trên mọi kích thước màn hình
+@media (max-width: 767.98px) {
+    .o_form_status_indicator {
+        .o_form_status_indicator_buttons {
+            // Trên màn hình nhỏ, giữ kích thước tối thiểu
+            .o_form_button_save,
+            .o_form_button_cancel {
+                padding: 0.125rem 0.25rem !important;
+                font-size: 0.875rem !important;
+            }
+        }
+    }
+}
+
+@media (max-width: 575.98px) {
+    .o_form_status_indicator {
+        .o_form_status_indicator_buttons {
+            // Trên màn hình rất nhỏ, vẫn đảm bảo hiển thị
+            .o_form_button_save,
+            .o_form_button_cancel {
+                padding: 0.1rem 0.2rem !important;
+                
+                i {
+                    font-size: 0.75rem !important;
+                }
+            }
+        }
+    }
+}

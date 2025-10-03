@@ -111,7 +111,10 @@ export class ViewButton extends Component {
      * @param {MouseEvent} ev
      */
     onClick(ev) {
-        if (this.props.tag === "a") {
+        // Only prevent default for anchor tags that are not in status bar buttons
+        // Status bar buttons need to be clickable even when rendered as anchor tags
+        const isInStatusBar = ev.target.closest('.o_statusbar_buttons');
+        if (this.props.tag === "a" && !isInStatusBar) {
             ev.preventDefault();
         }
 

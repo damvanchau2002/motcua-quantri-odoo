@@ -35,8 +35,8 @@ def get_user_received_requests(env, cluster_id, service, step):
     #    received_users += step.base_step_id.user_ids.ids
 
     # Lấy các user trong cụm KTX
-    if cluster_id > 0:
-        domain = [('dormitory_clusters', 'in', [cluster_id]), ('role_ids', 'in', service.role_ids.ids)]
+    if cluster_id and cluster_id.id:
+        domain = [('dormitory_clusters', 'in', [cluster_id.id]), ('role_ids', 'in', service.role_ids.ids)]
         dormitory_admins = env['student.admin.profile'].sudo().search(domain)
 
         if dormitory_admins:  # Nếu có quản lý KTX thì lấy user_id của họ
@@ -81,12 +81,13 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     if not service.exists():
         raise ValueError(f"Service không tồn tại: {serviceid}")
     
+    sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
 
     attachments = attachments or []
     vals = {}
     # Nếu có request_id => cập nhật (chô này nếu tạo trên Web sẽ luôn có request_id và không có step_ids)
     if requestid and str(requestid).isdigit() and int(requestid) > 0:
-        vals = env['student.service.request'].sudo().browse(int(requestid))
+        vals = env['student.service.request'].sudo().with_user(sysuser).browse(int(requestid))
         if vals.exists():
             vals.sudo().write({
                 'name': f'{user.name}: {service.name}',
@@ -167,7 +168,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     
         raise ValueError("Thiếu ID yêu cầu")
     except Exception as e:
-        vals = env['student.service.request'].sudo().create(vals)
+        vals = env['student.service.request'].sudo().with_user(sysuser).create(vals)
         send_fcm_request(env, vals, 0)
         pass
     return vals
@@ -189,12 +190,13 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 
     if not userid:
         raise ValueError("Thiếu user id")
+    sysuser = env['res.users'].sudo().browse(1)
 
-    request = env['student.service.request'].sudo().browse(int(requestid))
+    request = env['student.service.request'].sudo().with_user(sysuser).browse(int(requestid))
     if not request.exists():
         raise ValueError(f"Yêu cầu không tồn tại: {requestid}")
 
-    user = env['res.users'].sudo().browse(int(userid))
+    user = env['res.users'].sudo().with_user(sysuser).browse(int(userid))
     if not user.exists():
         raise ValueError(f"User không tồn tại: {userid}")
 
@@ -209,9 +211,8 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
     if attachments:
         vals['image_attachment_ids'] = [(4, attach_id) for attach_id in attachments] # 4: Thêm file đính kèm, 6: Gán file mới
 
-
     # Cập nhật
-    request.sudo().write(vals)
+    request.sudo().with_user(sysuser).write(vals)
 
     # Gửi FCM thông báo cập nhật yêu cầu
     send_fcm_request(env, request, 1)
@@ -237,7 +238,10 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     Returns:
         dict or bool: Trả về dict chứa thông tin cập nhật nếu thành công, False nếu không tìm thấy bước (Returns a dict with updated information if successful, False if the step is not found).
     """
-    request = env['student.service.request'].browse(requestid)
+    # Tạo system user để có quyền truy cập
+    system_user = env['res.users'].sudo().browse(1)
+    
+    request = env['student.service.request'].sudo().with_user(system_user).browse(requestid)
     step = request.step_ids.browse(stepid)
     # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
     # step = service.step_ids.filtered(lambda s: s.state not in ('ignored', 'approved', 'rejected')).sorted('sequence')
@@ -248,7 +252,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     if step.base_secquence == 99:
         if act == 'closed':
             # Kiểm tra lại đã có đánh giá nghiệm thu từ SV và người nghiệm thu, chưa có thì báo lỗi
-            acceptance_result = env['student.service.request.result'].sudo().search([
+            acceptance_result = env['student.service.request.result'].sudo().with_user(system_user).search([
                 ('request_id', '=', requestid),
                 ('action_user_id', '=', userid)
             ], limit=1)
@@ -257,7 +261,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 #return False
 
             # Lấy nghiệm thu của Admin cho yêu cầu này
-            admin_acceptance = env['student.service.request.result'].sudo().search([
+            admin_acceptance = env['student.service.request.result'].sudo().with_user(system_user).search([
                 ('request_id', '=', requestid),
                 ('action_user_id', '!=', userid)
             ], limit=1)
@@ -300,7 +304,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
 
     # Tạo bản ghi history cho bước đang duyệt
-    hh = env['student.service.request.step.history'].sudo().create({
+    hh = env['student.service.request.step.history'].sudo().with_user(system_user).create({
         'request_id': requestid,
         'step_id': step.id,
         'state': act,
@@ -339,7 +343,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         next_step = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
         if next_step:
             next_step = next_step[0]
-            next_step.sudo().write({
+            next_step.sudo().with_user(system_user).write({
                 'state': 'assigned',
                 'assign_user_id': nextuserid if nextuserid else 0,
                 'approve_date': Datetime.now(),
@@ -348,12 +352,12 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
             note = f'Đã duyệt bước {step.base_step_id.name}, đang chờ duyệt bước {next_step.base_step_id.name}'
             act = 'assigned' # Update bước tiếp theo thành đã phân công
             # Cập nhật danh sách người đã xử lý yêu cầu
-            received_users = get_user_received_requests(env, request.dormitory_cluster_id.id, request.service_id, next_step)
+            received_users = get_user_received_requests(env, request.dormitory_cluster_id, request.service_id, next_step)
             if received_users:
                 next_step_users += received_users
 
     #Update database: request các field: approve_content approve_date final_state final_data
-    request.sudo().write({
+    request.sudo().with_user(system_user).write({
         'users': [(4, uid) for uid in next_step_users],
         'approve_content': note,
         'approve_date': Datetime.now(),
@@ -506,7 +510,7 @@ class ServiceApiController(http.Controller):
         try:
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
-
+            sysuser = request.env['res.users'].sudo().browse(1)
             # Lấy dữ liệu từ form
             form = httprequest.form
             request_id = form.get('request_id')
@@ -520,7 +524,7 @@ class ServiceApiController(http.Controller):
                 raise ValueError("Thiếu request_user_id")
 
             # Lấy request hiện tại
-            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            service_request = request.env['student.service.request'].sudo().with_user(sysuser).browse(int(request_id))
             if not service_request.exists():
                 raise ValueError("Yêu cầu không tồn tại")
 
@@ -528,13 +532,13 @@ class ServiceApiController(http.Controller):
             try:
                 removed_ids = json.loads(removed_image_ids)
                 if removed_ids and isinstance(removed_ids, list):
-                    attachments_to_remove = request.env['ir.attachment'].sudo().browse(removed_ids)
+                    attachments_to_remove = request.env['ir.attachment'].sudo().with_user(sysuser).browse(removed_ids)
                     # Chỉ xóa những ảnh thực sự thuộc về request này
                     valid_attachments = attachments_to_remove.filtered(
                         lambda a: a.res_model == 'student.service.request' and a.res_id == int(request_id)
                     )
                     if valid_attachments:
-                        valid_attachments.sudo().unlink()
+                        valid_attachments.sudo().with_user(sysuser).unlink()
             except json.JSONDecodeError:
                 _logger.warning("Invalid removed_image_ids format")
 
@@ -543,7 +547,7 @@ class ServiceApiController(http.Controller):
             for file_storage in files:
                 file_data = file_storage.read()
                 base64_data = base64.b64encode(file_data).decode('utf-8')
-                attachment = request.env['ir.attachment'].sudo().create({
+                attachment = request.env['ir.attachment'].sudo().with_user(sysuser).create({
                     'name': file_storage.filename,
                     'datas': base64_data,
                     'res_model': 'student.service.request',
@@ -607,7 +611,7 @@ class ServiceApiController(http.Controller):
             )
 
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
-    @http.route('/api/service/request/user', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/user', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_requests_by_user(self):
         if request.httprequest.method == 'OPTIONS':
             return Response(
@@ -621,6 +625,7 @@ class ServiceApiController(http.Controller):
                 ]
             )
         try:
+            system_user = request.env['res.users'].sudo().browse(1)
             # params = request.httprequest.get_json(force=True, silent=True) or {}
             params = request.params
             user_id = params.get('user_id')
@@ -638,8 +643,8 @@ class ServiceApiController(http.Controller):
 
             offset = (page - 1) * limit
 
-            total = request.env['student.service.request'].sudo().search_count(domain)
-            requests_data = request.env['student.service.request'].sudo().search(domain, offset=offset, limit=limit, order='request_date desc')
+            total = request.env['student.service.request'].sudo().with_user(system_user).search_count(domain)
+            requests_data = request.env['student.service.request'].sudo().with_user(system_user).search(domain, offset=offset, limit=limit, order='request_date desc')
             result = []
             for req in requests_data:
                 sumhistories_dict = {}
@@ -733,7 +738,7 @@ class ServiceApiController(http.Controller):
 
 
     # Lấy danh sách các yêu cầu dịch vụ theo: Quyền duyệt của user_id
-    @http.route('/api/service/request/list', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/service/request/list', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_service_requests(self, **post):
         if request.httprequest.method == 'OPTIONS':
             return Response(
@@ -754,15 +759,74 @@ class ServiceApiController(http.Controller):
             aprofile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id)], limit=1) if user_id else None
             
             # Lọc các yêu cầu dịch vụ mà user_id nằm trong users hoặc một trong các role_id của aprofile nằm trong role_ids
+            # domain = ['|',
+            #     ('approve_user_id', '=', user_id),
+            #     ('users', 'in', [user_id])
+            # ]
+            # if aprofile and aprofile.department_id and aprofile.dormitory_clusters:
+            #     if aprofile.role_ids:
+            #         domain = ['|'] + domain + [
+            #             '&',
+            #             ('service_id.role_ids', 'in', aprofile.role_ids.ids),
+            #             ('dormitory_cluster_id', 'in', aprofile.dormitory_clusters.ids)
+            #         ]
+            user = request.env['res.users'].sudo().browse(user_id)
+            if not user.exists():
+                return Response(
+                    json.dumps({'success': False, 'message': 'User không tồn tại'}),
+                    content_type='application/json',
+                    status=400,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
+                    ]
+                )
 
-            #domain.append('|')
-            domain.append(('users', 'in', [user_id]))
-            #domain.append(('role_ids', 'in', aprofile.role_ids.ids))
-
-            requests = request.env['student.service.request'].sudo().search(domain)
+            requests = request.env['student.service.request'].sudo().with_user(user).search([])
 
             results = []
             for req in requests:
+                # Lấy thông tin số điện thoại của sinh viên từ nhiều nguồn
+                student_phone = 'Không có thông tin'
+                
+                # Debug: Log thông tin user
+                import logging
+                _logger = logging.getLogger(__name__)
+                _logger.info(f"=== DEBUG PHONE FOR USER API - USER ID: {req.request_user_id.id} ===")
+                
+                # Thử lấy từ student.user.profile trước
+                student_profile = request.env['student.user.profile'].sudo().search([('user_id', '=', req.request_user_id.id)], limit=1)
+                _logger.info(f"Student profile found: {bool(student_profile)}")
+                if student_profile:
+                    _logger.info(f"Student profile phone: '{student_profile.phone}'")
+                    if student_profile.phone and student_profile.phone != 'None' and student_profile.phone.strip():
+                        student_phone = student_profile.phone
+                        _logger.info(f"Using student profile phone: {student_phone}")
+                
+                if student_phone == 'Không có thông tin':
+                    # Nếu không có trong profile, thử lấy từ res.users
+                    if req.request_user_id and req.request_user_id.phone and req.request_user_id.phone != 'None' and req.request_user_id.phone.strip():
+                        student_phone = req.request_user_id.phone
+                        _logger.info(f"Using user phone: {student_phone}")
+                    elif req.request_user_id and req.request_user_id.mobile and req.request_user_id.mobile != 'None' and req.request_user_id.mobile.strip():
+                        student_phone = req.request_user_id.mobile
+                        _logger.info(f"Using user mobile: {student_phone}")
+                    else:
+                        # Thử lấy từ partner
+                        if req.request_user_id and req.request_user_id.partner_id:
+                            _logger.info(f"Partner phone: '{req.request_user_id.partner_id.phone}', Partner mobile: '{req.request_user_id.partner_id.mobile}'")
+                            if req.request_user_id.partner_id.phone and req.request_user_id.partner_id.phone != 'None' and req.request_user_id.partner_id.phone.strip():
+                                student_phone = req.request_user_id.partner_id.phone
+                                _logger.info(f"Using partner phone: {student_phone}")
+                            elif req.request_user_id.partner_id.mobile and req.request_user_id.partner_id.mobile != 'None' and req.request_user_id.partner_id.mobile.strip():
+                                student_phone = req.request_user_id.partner_id.mobile
+                                _logger.info(f"Using partner mobile: {student_phone}")
+                
+                _logger.info(f"Final phone result: '{student_phone}'")
+                _logger.info("=== END DEBUG PHONE USER API ===")
+                
                 steps = []
                 for step in req.step_ids:
                     steps.append({
@@ -783,9 +847,12 @@ class ServiceApiController(http.Controller):
                     })
                 # Sắp xếp các bước theo sequence tăng dần
                 steps = sorted(steps, key=lambda x: x['base_secquence'])
-                results.append({
+                
+                # Debug log để kiểm tra giá trị student_phone
+                _logger.info(f"DEBUG RESPONSE: req.id={req.id}, student_phone='{student_phone}', request_user_name='{req.request_user_name}'")
+                
+                result_item = {
                     'id': req.id,
-
                     'name': req.name,
                     'note': req.note,
                     'request_date': format_datetime_local(req.create_date, user_id),
@@ -797,6 +864,10 @@ class ServiceApiController(http.Controller):
                     'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
                     'expired_date': format_datetime_local(req.expired_date, user_id),
 
+                    # Thông tin sinh viên
+                    'request_user_name': req.request_user_name,
+                    'request_user_phone': student_phone,
+
                     'service': {
                         'id': req.service_id.id,
                         'name': req.service_id.name,
@@ -805,7 +876,10 @@ class ServiceApiController(http.Controller):
 
                     'steps': steps,
                     'is_new': req.is_new
-                })
+                }
+                
+                _logger.info(f"DEBUG RESULT ITEM: {result_item}")
+                results.append(result_item)
             # Trả về danh sách yêu cầu dịch vụ của user
             return Response(
                 json.dumps({
@@ -839,19 +913,63 @@ class ServiceApiController(http.Controller):
     @http.route('/api/service/request/myasigned', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_service_requests_asigned(self, **post):
         if request.httprequest.method == 'OPTIONS':
-                return self._handle_options_request()
+                return Response(
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                        ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                    ]
+                )
         domain = []
         params = request.httprequest.get_json(force=True, silent=True) or {}
         try:
-            user_id = int(params.get('user_id')) if params.get('user_id') else 0
+            user_id = int(request.params.get('user_id') or 0)
             aprofile = request.env['student.admin.profile'].sudo().search([('user_id', '=', user_id)], limit=1) if user_id else None
 
             domain.append(('user_processing_id', '=', user_id))
+            user = request.env['res.users'].sudo().browse(user_id)
 
-            requests = request.env['student.service.request'].sudo().search(domain)
+            requests = request.env['student.service.request'].sudo().with_user(user).search(domain)
 
             results = []
             for req in requests:
+                # Lấy thông tin số điện thoại của sinh viên từ nhiều nguồn với debug log
+                student_phone = 'Không có thông tin'
+                
+                # Debug: Log thông tin user
+                import logging
+                _logger = logging.getLogger(__name__)
+                _logger.info(f"=== DEBUG PHONE FOR USER ID: {req.request_user_id.id} ===")
+                
+                # 1. Tìm trong student.user.profile
+                student_profile = request.env['student.user.profile'].sudo().search([('user_id', '=', req.request_user_id.id)], limit=1)
+                _logger.info(f"Student profile found: {bool(student_profile)}")
+                if student_profile:
+                    _logger.info(f"Student profile phone: '{student_profile.phone}'")
+                    if student_profile.phone and student_profile.phone != 'None' and student_profile.phone.strip():
+                        student_phone = student_profile.phone
+                        _logger.info(f"Using student profile phone: {student_phone}")
+                
+                if student_phone == 'Không có thông tin':
+                    # 2. Tìm trong res.users -> partner_id -> phone (dùng sudo để tránh lỗi quyền truy cập res.partner)
+                    req_user = req.request_user_id.sudo()
+                    partner = req_user.partner_id.sudo() if req_user and req_user.partner_id else False
+                    _logger.info(f"User found: {bool(req_user)}, Partner found: {bool(partner)}")
+                    if partner:
+                        _logger.info(f"Partner phone: '{partner.phone}', Partner mobile: '{partner.mobile}'")
+                        if partner.phone and partner.phone != 'None' and partner.phone.strip():
+                            student_phone = partner.phone
+                            _logger.info(f"Using partner phone: {student_phone}")
+                        elif partner.mobile and partner.mobile != 'None' and partner.mobile.strip():
+                            student_phone = partner.mobile
+                            _logger.info(f"Using partner mobile: {student_phone}")
+                
+                _logger.info(f"Final phone result: '{student_phone}'")
+                _logger.info("=== END DEBUG PHONE ===")
+                
                 steps = []
                 for step in req.step_ids:
                     steps.append({
@@ -886,6 +1004,10 @@ class ServiceApiController(http.Controller):
                     'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
                     'expired_date': format_datetime_local(req.expired_date, user_id),
 
+                    # Thông tin sinh viên
+                    'request_user_name': req.request_user_name,
+                    'request_user_phone': student_phone,
+
                     'service': {
                         'id': req.service_id.id,
                         'name': req.service_id.name,
@@ -904,14 +1026,24 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
     # Lấy chi tiết 1 yêu cầu dịch vụ
@@ -928,7 +1060,8 @@ class ServiceApiController(http.Controller):
                                     ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
                                 ]
                             )
-        req = request.env['student.service.request'].sudo().browse(request_id)
+        sysuser = request.env['res.users'].sudo().browse(1)
+        req = request.env['student.service.request'].sudo().with_user(sysuser).browse(request_id)
         if not req.exists():
             return Response(
                 json.dumps({'success': False, 'message': 'Service request not found', 'data': {}}),
@@ -1033,6 +1166,7 @@ class ServiceApiController(http.Controller):
         state = params.get('state', '')
         note = params.get('note', '')
         final = params.get('final', '')
+
         if not request_id or not user_id or not step_id:
             return Response(
                 json.dumps({'success': False, 'message': 'Missing request_id, user_id, or step_id'}),
@@ -1060,29 +1194,40 @@ class ServiceApiController(http.Controller):
                             ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
                         ]
           )
+        sysuser = request.env['res.users'].sudo().browse(1)
 
-        req = request.env['student.service.request'].sudo().browse(int(request_id))
-        user = request.env['res.users'].sudo().browse(int(user_id))
-        step = request.env['student.service.request.step'].sudo().browse(int(step_id))
+        req = request.env['student.service.request'].sudo().with_user(sysuser).browse(int(request_id))
+        user = request.env['res.users'].sudo().with_user(sysuser).browse(int(user_id))
+        step = request.env['student.service.request.step'].sudo().with_user(sysuser).browse(int(step_id))
 
         if not req.exists() or not user.exists() or not step.exists():
             return Response(
                 json.dumps({'success': False, 'message': 'Request, user, or step not found'}),
                 content_type='application/json',
                 status=404,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
 
         try:
             # Cập nhật bước duyệt
             vals = update_request_step(request.env, request_id, step_id, user_id, note, state, asign_user_id, checked_ids, final, department_id)
-            step.sudo().write(vals)
+            step.sudo().with_user(sysuser).write(vals)
             return Response(
                 json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
         except Exception as e:
@@ -1090,7 +1235,12 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
 
@@ -1109,6 +1259,9 @@ class ServiceApiController(http.Controller):
             if not user_id:
                 raise ValueError("Thiếu user_id")
             
+            # System user
+            system_user = request.env['res.users'].sudo().browse(1)
+
             # Thời điểm hiện tại
             now = fields.Datetime.now()
             warning_date = now + timedelta(days=warning_days)
@@ -1124,23 +1277,23 @@ class ServiceApiController(http.Controller):
             new_requests_domain = base_domain + [
                 ('create_date', '>=', now - timedelta(days=1))
             ]
-            new_requests_count = request.env['student.service.request'].sudo().search_count(new_requests_domain)
-            new_requests = request.env['student.service.request'].sudo().search(new_requests_domain)
+            new_requests_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(new_requests_domain)
+            new_requests = request.env['student.service.request'].sudo().with_user(system_user).search(new_requests_domain)
 
             # 2. Thống kê yêu cầu đang xử lý
             processing_domain = base_domain + [
                 ('final_state', 'in', ['pending', 'assigned'])
             ]
-            processing_count = request.env['student.service.request'].sudo().search_count(processing_domain)
-            processing_requests = request.env['student.service.request'].sudo().search(processing_domain)
+            processing_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(processing_domain)
+            processing_requests = request.env['student.service.request'].sudo().with_user(system_user).search(processing_domain)
 
             # 3. Thống kê yêu cầu quá hạn
             overdue_domain = base_domain + [
                 ('expired_date', '<', now),
                 ('final_state', 'in', ['pending', 'assigned'])
             ]
-            overdue_count = request.env['student.service.request'].sudo().search_count(overdue_domain)
-            overdue_requests = request.env['student.service.request'].sudo().search(overdue_domain)
+            overdue_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(overdue_domain)
+            overdue_requests = request.env['student.service.request'].sudo().with_user(system_user).search(overdue_domain)
 
             # 4. Thống kê yêu cầu sắp đến hạn
             warning_domain = base_domain + [
@@ -1148,8 +1301,8 @@ class ServiceApiController(http.Controller):
                 ('expired_date', '<=', warning_date),
                 ('final_state', 'in', ['pending', 'assigned'])
             ]
-            warning_count = request.env['student.service.request'].sudo().search_count(warning_domain)
-            warning_requests = request.env['student.service.request'].sudo().search(warning_domain)
+            warning_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(warning_domain)
+            warning_requests = request.env['student.service.request'].sudo().with_user(system_user).search(warning_domain)
 
             # Format dữ liệu chi tiết cho từng yêu cầu
             def format_request_data(reqs):
@@ -1185,7 +1338,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
 
@@ -1198,7 +1356,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
 
             )
  # API: Lấy danh sách đánh giá cho yêu cầu dịch vụ
@@ -1231,14 +1394,24 @@ class ServiceApiController(http.Controller):
                 json.dumps({'success': True, 'message': 'Thành công', 'data': result}),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': []}),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
     # API: Hủy yêu cầu dịch vụ
@@ -1248,6 +1421,7 @@ class ServiceApiController(http.Controller):
             return self._handle_options_request()
 
         try:
+            system_user = request.env['res.users'].sudo().browse(1)
             params = request.httprequest.get_json(force=True, silent=True) or {}
             request_id = params.get('request_id')
             user_id = params.get('user_id')
@@ -1261,11 +1435,16 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=400,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Kiểm tra yêu cầu tồn tại và thuộc về user
-            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            service_request = request.env['student.service.request'].sudo().with_user(system_user).browse(int(request_id))
             if not service_request.exists():
                 return Response(
                     json.dumps({
@@ -1274,7 +1453,12 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=404,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Kiểm tra quyền hủy yêu cầu
@@ -1286,7 +1470,12 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=403,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Kiểm tra trạng thái yêu cầu - chỉ cho phép hủy khi ở trạng thái pending
@@ -1298,11 +1487,16 @@ class ServiceApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=400,
-                    headers=self._get_cors_headers()
+                      headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
                 )
 
             # Cập nhật trạng thái yêu cầu thành "cancelled"
-            service_request.write({
+            service_request.sudo().with_user(system_user).write({
                 'final_state': 'cancelled',
                 'cancel_reason': cancel_reason,
                 'cancel_date': fields.Datetime.now(),
@@ -1312,7 +1506,7 @@ class ServiceApiController(http.Controller):
             # Tạo history cho việc hủy yêu cầu
             current_step = service_request.step_ids.filtered(lambda s: s.state in ['pending', 'assigned'])
             if current_step:
-                current_step[0].history_ids.sudo().create({
+                current_step[0].history_ids.sudo().with_user(system_user).create({
                     'step_id': current_step[0].id,
                     'user_id': int(user_id),
                     'state': 'cancelled',
@@ -1343,7 +1537,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
         except Exception as e:
@@ -1355,7 +1554,12 @@ class ServiceApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=500,
-                headers=self._get_cors_headers()
+                  headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
             )
 
     # API: Tạo đánh giá cho yêu cầu dịch vụ
@@ -1503,8 +1707,10 @@ class ServiceApiController(http.Controller):
             )
 
     # API: Tạo khiếu nại cho yêu cầu dịch vụ
-    @http.route('/api/service/request/complaint/create', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/service/request/complaint/create', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def create_service_request_complaint(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+                        return self._handle_options_request()    
         try:
             httprequest = request.httprequest
 
@@ -1595,13 +1801,14 @@ class ServiceApiController(http.Controller):
     # Đánh giá nghiệm thu của SV
     @http.route('/api/service/request/acceptance/create', type='http', auth='public', methods=['POST'], csrf=False)
     def create_service_request_acceptance(self, **post):
+        
         """
             Tạo đánh giá nghiệm thu cho yêu cầu dịch vụ
             
         """
         try:
             httprequest = request.httprequest
-
+            system_user = request.env['res.users'].sudo().browse(1)
             # Lấy dữ liệu từ form
             form = httprequest.form
             request_id = form.get('request_id') 
@@ -1610,7 +1817,7 @@ class ServiceApiController(http.Controller):
             action = form.get('action', 'issue')    # Hành động 
             stars = int(form.get('star', 0))            # Số sao đánh giá
 
-            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            service_request = request.env['student.service.request'].sudo().with_user(system_user).browse(int(request_id))
             if not service_request.exists():
                 return Response(
                     json.dumps({'success': False, 'message': 'Yêu cầu dịch vụ không tồn tại'}),
@@ -1624,7 +1831,7 @@ class ServiceApiController(http.Controller):
                     ]
                 )
 
-            acceptance = request.env['student.service.request.result'].sudo().create({
+            acceptance = request.env['student.service.request.result'].sudo().with_user(system_user).create({
                 'request_id': int(request_id),
                 'user_id': int(service_request.request_user_id.id),
                 'note': content,
@@ -1651,26 +1858,26 @@ class ServiceApiController(http.Controller):
                     })
                     attachment_ids.append(attachment.id)
                 if attachment_ids:
-                    acceptance.sudo().write({'image_ids': [(6, 0, attachment_ids)]})
+                    acceptance.sudo().with_user(system_user).write({'image_ids': [(6, 0, attachment_ids)]})
             except Exception as e:
                 pass  # Nếu không tìm thấy user_id thì bỏ qua
 
             # Cập nhật trạng thái cuối cho yêu cầu dịch vụ
             if action == 'accept':
-                service_request.sudo().write({'final_state': 'closed', 'final_star': stars })
+                service_request.sudo().with_user(system_user).write({'final_state': 'closed', 'final_star': stars })
                 send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
                 # Kiểm tra đã có nghiệm thu accept của Admin thì đóng yêu cầu
                 # Lấy nghiệm thu của User khác
-                other_acceptance = request.env['student.service.request.result'].sudo().search([
+                other_acceptance = request.env['student.service.request.result'].sudo().with_user(system_user).search([
                     ('request_id', '=', service_request.id),
                     ('user_id', '!=', service_request.request_user_id.id)
                 ], order='timestamp desc', limit=1)
                 if other_acceptance and other_acceptance.action == 'accept':
-                    service_request.sudo().write({'final_state': 'closed', 'final_star': stars})
+                    service_request.sudo().with_user(system_user).write({'final_state': 'closed', 'final_star': stars})
                     send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ Admin
 
             elif action == 'reject' or action == 'issue':
-                service_request.sudo().write({'final_state': 'repairing', 'final_star': stars})
+                service_request.sudo().with_user(system_user).write({'final_state': 'repairing', 'final_star': stars})
                 send_fcm_request(
                     request.env,
                     service_request,
@@ -1711,10 +1918,10 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
+ 
     @http.route('/api/service/request/acceptance/list', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
-    def list_service_request_acceptances(self, **kwargs):
-        try:
-            if request.httprequest.method == 'OPTIONS':
+    def list_service_request_acceptances(self, **kwargs):    
+        if request.httprequest.method == 'OPTIONS':
                     return Response(
                         status=200,
                         headers=[
@@ -1725,6 +1932,7 @@ class ServiceApiController(http.Controller):
                             ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
                         ]
                     )
+        try:
              # Lấy tham số lọc và phân trang
             params = request.httprequest.args or request.params
             request_id = params.get('request_id')
@@ -1738,12 +1946,13 @@ class ServiceApiController(http.Controller):
             if user_id:
                 domain.append(('user_id', '=', int(user_id)))
 
+            system_user = request.env['res.users'].sudo().browse(1)
             # Tính total và offset
-            total = request.env['student.service.request.result'].sudo().search_count(domain)
+            total = request.env['student.service.request.result'].sudo().with_user(system_user).search_count(domain)
             offset = (page - 1) * limit
 
             # Lấy danh sách nghiệm thu
-            acceptances = request.env['student.service.request.result'].sudo().search(
+            acceptances = request.env['student.service.request.result'].sudo().with_user(system_user).search(
                 domain, 
                 offset=offset, 
                 limit=limit, 
@@ -1752,17 +1961,23 @@ class ServiceApiController(http.Controller):
 
             result = []
             for acceptance in acceptances:
+                # Ensure all related field access uses sudo()
+                request_record = acceptance.request_id.sudo() if acceptance.request_id else None
+                service_record = request_record.service_id.sudo() if request_record and request_record.service_id else None
+                user_record = acceptance.user_id.sudo() if acceptance.user_id else None
+                action_user_record = acceptance.action_user.sudo() if acceptance.action_user else None
+                
                 result.append({
                     'id': acceptance.id,
-                    'request_id': acceptance.request_id.id if acceptance.request_id else None,
-                    'request_name': acceptance.request_id.name if acceptance.request_id else '',
-                    'service_name': acceptance.request_id.service_id.name if acceptance.request_id.service_id else '',
+                    'request_id': request_record.id if request_record else None,
+                    'request_name': request_record.name if request_record else '',
+                    'service_name': service_record.name if service_record else '',
                     
-                    'user_id': acceptance.user_id.id if acceptance.user_id else None,
-                    'user_name': acceptance.user_id.name if acceptance.user_id else '',
+                    'user_id': user_record.id if user_record else None,
+                    'user_name': user_record.name if user_record else '',
                     
-                    'action_user': acceptance.action_user.id if acceptance.action_user else None,
-                    'action_user_name': acceptance.action_user.name if acceptance.action_user else '',
+                    'action_user': action_user_record.id if action_user_record else None,
+                    'action_user_name': action_user_record.name if action_user_record else '',
                     
                     'note': acceptance.note,
                     'action': acceptance.action,
@@ -1778,9 +1993,9 @@ class ServiceApiController(http.Controller):
                     
                     # Thông tin thêm về request
                     'request_info': {
-                        'final_state': acceptance.request_id.final_state if acceptance.request_id else '',
-                        'final_star': acceptance.request_id.final_star if acceptance.request_id else 0,
-                        'request_date': format_datetime_local(acceptance.request_id.request_date) if acceptance.request_id else '',
+                        'final_state': request_record.final_state if request_record else '',
+                        'final_star': request_record.final_star if request_record else 0,
+                        'request_date': format_datetime_local(request_record.request_date) if request_record else '',
                     }
                 })
 
@@ -1823,6 +2038,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true'),
                 ]
             )
+            
     @http.route('/api/service/request/images', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_request_images(self):
         try:

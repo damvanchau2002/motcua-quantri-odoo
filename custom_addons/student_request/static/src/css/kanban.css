@@ -35,6 +35,16 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.o_list_view.no-checkbox-list .o_list_record_selector {
-    display: none !important;
+.disabled-card {
+    pointer-events: none;
+    /* Ngăn tương tác */
+    opacity: 0.6;
+    /* Làm mờ */
+}
+
+.o_kanban_view .o_disabled {
+    pointer-events: none;
+    /* chặn toàn bộ click */
+    opacity: 0.5;
+    /* làm mờ thẻ */
 }

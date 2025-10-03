@@ -474,7 +474,33 @@ class AuthApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
+    @http.route('/api/avatar/<string:student_code>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
+    def proxy_avatar(self, student_code):
+        if request.httprequest.method == 'OPTIONS':
+                        return Response(
+                            status=200,
+                            headers=[
+                                ('Access-Control-Allow-Origin', '*'),
+                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                                ('Access-Control-Allow-Credentials', 'true'),
+                                ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                            ]
+                        )     
+        profile = request.env['student.user.profile'].sudo().search([('student_code', '=', student_code)], limit=1)
+        if not profile or not profile.avatar_url:
+            return Response(status=404)
 
+        try:
+            resp = py_requests.get(profile.avatar_url, timeout=10)
+            if resp.status_code == 200:
+                return Response(
+                    resp.content,
+                    content_type=resp.headers.get("Content-Type", "image/jpeg"),
+                    headers=[('Access-Control-Allow-Origin', '*')]
+                )
+        except Exception as e:
+            return Response(str(e), status=500)
     # Đăng nhập Oauth (Odoo)
     @http.route('/api/public_user/oauth', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def oauth_login(self):   

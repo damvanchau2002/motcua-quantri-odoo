@@ -1,0 +1,64 @@
+// Breadcrumbs Responsive Styles
+// Đảm bảo nút back button hiển thị nhất quán trên mọi kích thước màn hình
+
+.o_breadcrumb {
+    .o_back_button {
+        // Đảm bảo nút back button luôn hiển thị
+        display: flex !important;
+        align-items: center !important;
+        flex-shrink: 0 !important; // Không cho phép thu nhỏ
+        min-width: auto !important;
+        
+        // Đảm bảo icon hiển thị tốt
+        i {
+            display: inline-block !important;
+            font-size: 1rem !important;
+        }
+        
+        // Hover effect
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+            border-radius: 0.25rem !important;
+        }
+    }
+}
+
+// Media queries để tối ưu hiển thị trên các kích thước màn hình khác nhau
+@media (max-width: 767.98px) {
+    .o_breadcrumb {
+        .o_back_button {
+            // Trên màn hình nhỏ, giữ kích thước phù hợp
+            padding: 0.25rem 0.5rem !important;
+            margin-right: 0.5rem !important;
+            
+            i {
+                font-size: 0.875rem !important;
+            }
+        }
+    }
+}
+
+@media (max-width: 575.98px) {
+    .o_breadcrumb {
+        .o_back_button {
+            // Trên màn hình rất nhỏ, vẫn đảm bảo hiển thị
+            padding: 0.2rem 0.4rem !important;
+            margin-right: 0.3rem !important;
+            
+            i {
+                font-size: 0.75rem !important;
+            }
+        }
+    }
+}
+
+// Đảm bảo nút back button không bị ẩn bởi các quy tắc CSS khác
+@media (min-width: 768px) {
+    .o_breadcrumb {
+        .o_back_button {
+            // Trên màn hình lớn, hiển thị với kích thước tiêu chuẩn
+            display: flex !important;
+            margin-right: 0.75rem !important;
+        }
+    }
+}

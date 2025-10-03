@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from .utils import *
 import pytz
 
-
 class NotificationApiController(http.Controller):
     
     @http.route('/api/notifications/my', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
@@ -81,9 +80,9 @@ class NotificationApiController(http.Controller):
             
             # 2. Thông báo gửi cho khu KTX của user
             if student_profile and student_profile.dormitory_cluster_id:
-                base_domain = expression.OR([base_domain, [('dormitory_cluster_ids', 'in', [student_profile.dormitory_cluster_id])]])
+                base_domain = expression.OR([base_domain, [('cluster_ids', 'in', [student_profile.dormitory_cluster_id])]])
             elif admin_profile and admin_profile.dormitory_clusters:
-                base_domain = expression.OR([base_domain, [('dormitory_cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]])
+                base_domain = expression.OR([base_domain, [('cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]])
 
             # Domain cho thông báo chưa đọc
             unread_domain = expression.AND([base_domain, [('read_user_ids', 'not in', [user_id_int])]])
@@ -295,7 +294,7 @@ class NotificationApiController(http.Controller):
             )
     
     # API đánh dấu đã đọc tất cả thông báo của user
-    @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST'], csrf=False)
+    @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def mark_all_notifications_as_read(self):
         if request.httprequest.method == 'OPTIONS':
                 return Response(
@@ -337,7 +336,7 @@ class NotificationApiController(http.Controller):
                     ]
                 )
             profile = request.env['student.user.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
-            domain = ['|', ('user_ids', 'in', [user.id]), ('dormitory_cluster_ids', 'in', [profile.dormitory_cluster_id])] if profile and profile.dormitory_cluster_id else [('user_ids', 'in', [user.id])]
+            domain = ['|', ('user_ids', 'in', [user.id]), ('cluster_ids', 'in', [profile.dormitory_cluster_id])] if profile and profile.dormitory_cluster_id else [('user_ids', 'in', [user.id])]
             notifications = request.env['student.notify'].sudo().search(domain)
             for notify in notifications:
                 notify.sudo().write({'read_user_ids': [(4, user.id)]})
@@ -366,8 +365,19 @@ class NotificationApiController(http.Controller):
             )
    
     # API lấy số lượng thông báo chưa đọc
-    @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET'], csrf=False)
+    @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_unread_notifications_count(self):
+        if request.httprequest.method == 'OPTIONS':
+                return Response(
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                        ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                    ]
+                )
         try:
             params = request.params
             user_id = params.get('user_id')
@@ -411,9 +421,9 @@ class NotificationApiController(http.Controller):
             
             # 2. Thông báo gửi cho khu KTX của user
             if student_profile and student_profile.dormitory_cluster_id:
-                domain = ['|'] + domain + [('dormitory_cluster_ids', 'in', [student_profile.dormitory_cluster_id.id])]
+                domain = ['|'] + domain + [('cluster_ids', 'in', [student_profile.dormitory_cluster_id])]
             elif admin_profile and admin_profile.dormitory_clusters:
-                domain = ['|'] + domain + [('dormitory_cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]
+                domain = ['|'] + domain + [('cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]
 
             # Đếm tổng số thông báo theo domain
             total_count = request.env['student.notify'].sudo().search_count(domain)

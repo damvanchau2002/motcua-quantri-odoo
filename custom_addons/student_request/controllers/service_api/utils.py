@@ -180,9 +180,9 @@ def send_fcm_notify(env, notify, data):
             print(error_msg)
 
     # Send to dormitory clusters  
-    if notify.dormitory_cluster_ids:
+    if notify.cluster_ids:
         try:
-            cluster_names = notify.dormitory_cluster_ids.mapped('name')
+            cluster_names = notify.cluster_ids.mapped('name')
             if cluster_names:
                 topics = ' || '.join([f"'{name}' in topics" for name in cluster_names])
 
@@ -595,7 +595,7 @@ def remove_user_from_all_firebase_topics(env, user_id):
         if profile.dormitory_area_id:
             topics.append(str(profile.dormitory_area_id.id))
         if profile.dormitory_cluster_id:
-            topics.append(str(profile.dormitory_cluster_id.id))
+            topics.append(str(profile.dormitory_cluster_id))
             
         # Unsubscribe from all topics
         responses = {}
@@ -616,7 +616,9 @@ def remove_user_from_all_firebase_topics(env, user_id):
         
 
 def format_datetime_local(dt, user_id=None):
-
+    """
+    Chuyển đổi datetime từ UTC sang timezone local của user
+    """
     if not dt:
         return ''
     
