@@ -25,4 +25,5 @@ access_student_service_request_review_manager,student.service.request.review man
 access_student_service_request_complaint_manager,student.service.request.complaint manager,model_student_service_request_complaint,,1,1,1,1
 access_student_service_request_result,student.service.request.result,model_student_service_request_result,,1,1,1,1
 access_temporary_wizard,access.temporary.wizard,model_temporary_wizard,,1,1,1,1
-access_student_emailmng_template,student.emailmng.template,model_student_emailmng_template,,1,1,1,1
+access_student_service_report_manager,student.service.report.manager,model_student_service_report,base.group_system,1,1,1,1
+access_student_service_report_wizard,student.service.report.wizard,model_student_service_report_wizard,base.group_system,1,1,1,1
