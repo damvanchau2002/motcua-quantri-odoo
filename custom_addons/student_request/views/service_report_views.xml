@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Wizard view -->
+    <record id="view_student_service_report_wizard" model="ir.ui.view">
+        <field name="name">student.service.report.wizard.form</field>
+        <field name="model">student.service.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Tìm kiếm báo cáo">
+                <group>
+                    <field name="mode"/>
+                </group>
+                <group>
+                    <field name="from_date" invisible="mode != 'day'"/>
+                    <field name="to_date" invisible="mode != 'day'"/>
+
+                    <field name="from_month" widget="month_selection" invisible="mode != 'month'"/>
+                    <field name="to_month" widget="month_selection" invisible="mode != 'month'"/>
+
+                    <field name="from_year" invisible="mode != 'year'"/>
+                    <field name="to_year" invisible="mode != 'year'"/>
+                </group>
+                <footer>
+                    <button string="Xem báo cáo" type="object"
+                            name="action_generate_report"
+                            class="btn-primary"/>
+                    <button string="Hủy" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action mở wizard -->
+    <record id="action_student_service_report_wizard" model="ir.actions.act_window">
+        <field name="name">Báo cáo</field>
+        <field name="res_model">student.service.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- List view cho report -->
+    <record id="view_student_service_report_list" model="ir.ui.view">
+        <field name="name">student.service.report.list</field>
+        <field name="model">student.service.report</field>
+        <field name="arch" type="xml">
+            <list string="Báo cáo"
+                    create="false" edit="false" delete="false"
+                    class="no-checkbox-list">
+                <field name="period"/>
+                <field name="area_name"/>
+                <field name="cluster_name"/>
+                <field name="group_name"/>
+                <field name="service_name"/>
+                <field name="total_requests"/>
+                <field name="processed_requests"/>
+                <field name="pending_requests"/>
+                <field name="overdue_requests"/>
+                <field name="processed_percent"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Action mở report -->
+    <record id="action_student_service_report" model="ir.actions.act_window">
+        <field name="name">Báo cáo</field>
+        <field name="res_model">student.service.report</field>
+        <field name="view_mode">list</field>
+        <field name="target">current</field>
+    </record>
+</odoo>

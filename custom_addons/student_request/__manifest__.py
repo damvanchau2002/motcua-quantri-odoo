@@ -26,6 +26,7 @@
         'views/request_review_views.xml',
         'views/roles_views.xml',
         'views/department_views.xml',
+        'views/service_report_views.xml',
         'views/email_template.xml',
         'views/maintenance_simple_views.xml',
         'views/maintenance_user_friendly_views.xml',
@@ -37,6 +38,7 @@
     'application': True,
     'assets': {
         'web.assets_backend': [
+            'student_request/static/src/css/hide_checkbox.css',
             'student_request/static/src/css/kanban.css',
         ],
     },
