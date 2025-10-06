@@ -192,8 +192,8 @@ class ServiceRequestStepHistory(models.Model):
         ('cancelled', 'Đã hủy'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'),
-
         ('rejected', 'Từ chối'),
+        ('adjust_profile', 'Điều chỉnh hồ sơ'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     date = fields.Datetime('Ngày thực hiện', default=fields.Datetime.now)
@@ -219,8 +219,9 @@ class ServiceRequestStep(models.Model):
         ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
         ('approved', 'Đã duyệt'), # Trạng thái đã duyệt: Hoàn thành xử lý yêu cầu
-        ('cancelled', 'Đã hủy'),
         ('rejected', 'Từ chối'),
+        ('adjust_profile', 'Điều chỉnh hồ sơ'), # Trạng thái yêu cầu sinh viên điều chỉnh hồ sơ
+        ('cancelled', 'Đã hủy'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
@@ -316,6 +317,18 @@ class ServiceRequestStep(models.Model):
             self.final_data,
             self.department_id.id if self.department_id else 0
         )
+        
+        # Gửi thông báo khi trạng thái là "Điều chỉnh hồ sơ"
+        if self.state == 'adjust_profile' and self.request_id and self.request_id.request_user_id:
+            # Tạo thông báo cho sinh viên
+            self.env['student.notify'].sudo().create({
+                'title': 'Yêu cầu điều chỉnh hồ sơ',
+                'body': f'Yêu cầu dịch vụ "{self.request_id.name}" cần được điều chỉnh hồ sơ. Vui lòng kiểm tra và cập nhật.',
+                'notify_type': 'users',
+                'user_ids': [(4, self.request_id.request_user_id.id)],
+                'data': f'{{"request_id": {self.request_id.id}, "step_id": {self.id}}}'
+            })
+            
         super().write(vals)
         return { 'type': 'ir.actions.client', 'tag': 'reload' }
 
@@ -382,9 +395,10 @@ class ServiceRequest(models.Model):
         ('assigned', 'Đã phân công'),
         ('extended', 'Đã gia hạn'),
         ('ignored', 'Đã bỏ qua'),
-        ('cancelled', 'Đã hủy'),
         ('approved', 'Đã duyệt'), 
         ('rejected', 'Từ chối'),    # Hủy bỏ yêu cầu
+        ('adjust_profile', 'Điều chỉnh hồ sơ'),  # Trạng thái yêu cầu sinh viên điều chỉnh hồ sơ
+        ('cancelled', 'Đã hủy'),
         ('closed', 'Đã đóng')       # Là hoàn thành và đóng
     ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
