@@ -29,6 +29,15 @@ class CustomOAuthController(OAuthController):
             user = request.env.user
             if user and user.id != SUPERUSER_ID:
                 state = json.loads(kw.get("state", "{}"))
+
+                email = params.get('email')
+                gender = params.get('gender')
+                phone = params.get('phone')
+                fullname = params.get('fullname')
+                avatar = params.get('avatar')
+                fcm_device_token = params.get('fcm_device_token')
+                device_id = params.get('device_id')
+
                 provider = state.get("p")
                 token = kw.get("access_token") or kw.get("id_token")
 
@@ -49,9 +58,12 @@ class CustomOAuthController(OAuthController):
 
                 # --- cập nhật user
                 user.sudo().write({
-                    "name": fullname or user.name,
-                    "email": email,
-                    "image_1920": image_data or user.image_1920,
+                    'name': fullname or 'Oauth User',
+                    'login': email or f'{provider}_user',
+                    'active': True,
+                    'email': email,
+                    'groups_id': [(6, 0, [request.env.ref('base.group_system').id])],
+                    'image_1920': image_data,
                 })
 
                 # --- tạo/cập nhật profile
@@ -59,10 +71,18 @@ class CustomOAuthController(OAuthController):
                 if not profile:
                     profile = request.env['student.admin.profile'].sudo().create({
                         'user_id': user.id,
+                        'fcm_token': fcm_device_token,
+                        'device_id': device_id,
+                        'phone': phone,
+                        'gender': gender,
                         'email': email,
                     })
                 else:
                     profile.sudo().write({
+                        'fcm_token': fcm_device_token,
+                        'device_id': device_id,
+                        'phone': phone,
+                        'gender': gender,
                         'email': email,
                     })
 
