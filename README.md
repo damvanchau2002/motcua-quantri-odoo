@@ -51,6 +51,24 @@ Sau đó, khởi động Odoo với file cấu hình này:
 ```bash
 python odoo-bin -c odoo.cfg -i base
 ```
+
+# Set up Login with Microsoft in Odoo
+
+## 1. Cấu hình OAuth Provider
+
+1. Vào **Settings → OAuth Authentication → OAuth Providers → New**
+2. Thêm mới provider cho **Microsoft**
+3. **Scope**: `openid email profile`
+4. **UserInfo URL**: `https://graph.microsoft.com/oidc/userinfo`
+5. Tham khảo video hướng dẫn: [YouTube](https://www.youtube.com/watch?v=16lkfIpl6MM)
+
+## 2. Kích hoạt Developer Mode
+
+- Vào **Settings → Activate the Developer Mode**
+- Truy cập **Technical → System Parameters → New**
+  - **Key**: `auth_oauth.authorization_header`
+  - **Value**: `True`
+
 # Student Service API Documentation
 
 Tài liệu này mô tả tất cả các API trong file `service_api.py`, bao gồm input (request) và output (response).
@@ -58,12 +76,14 @@ Tài liệu này mô tả tất cả các API trong file `service_api.py`, bao g
 ---
 
 ## 1. GET `/api/service/groups`
+
 **Mô tả:** Lấy danh sách nhóm dịch vụ và các dịch vụ trong nhóm.
 
 **Input:**  
 Không có.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -90,12 +110,14 @@ Không có.
 ---
 
 ## 2. GET `/student_service/api/services`
+
 **Mô tả:** Lấy danh sách tất cả dịch vụ.
 
 **Input:**  
 Không có.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -113,12 +135,15 @@ Không có.
 ---
 
 ## 3. GET `/student_service/api/service/<int:service_id>`
+
 **Mô tả:** Lấy chi tiết một dịch vụ.
 
-**Input:**  
+**Input:**
+
 - `service_id`: ID của dịch vụ (trên URL).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -131,15 +156,9 @@ Không có.
     "state": "active",
     "group_id": 1,
     "group_name": "Tên nhóm",
-    "step_ids": [
-      {"id": 1, "name": "Tên bước", "description": "Mô tả bước"}
-    ],
-    "users": [
-      {"id": 2, "name": "Tên người dùng"}
-    ],
-    "files": [
-      {"id": 3, "name": "Tên file", "description": "Mô tả file"}
-    ]
+    "step_ids": [{ "id": 1, "name": "Tên bước", "description": "Mô tả bước" }],
+    "users": [{ "id": 2, "name": "Tên người dùng" }],
+    "files": [{ "id": 3, "name": "Tên file", "description": "Mô tả file" }]
   }
 }
 ```
@@ -147,12 +166,14 @@ Không có.
 ---
 
 ## 4. POST `/api/public_user/refresh_token`
+
 **Mô tả:** Làm mới JWT token.
 
 **Input:**  
 Header: `Authorization: Bearer <token>`
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -164,9 +185,11 @@ Header: `Authorization: Bearer <token>`
 ---
 
 ## 5. POST `/api/public_user/login`
+
 **Mô tả:** Đăng nhập người dùng public qua API ngoài.
 
 **Input:**
+
 ```json
 {
   "username": "student_code",
@@ -177,6 +200,7 @@ Header: `Authorization: Bearer <token>`
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -215,9 +239,11 @@ Header: `Authorization: Bearer <token>`
 ---
 
 ## 6. POST `/api/public_user/oauth`
+
 **Mô tả:** Đăng nhập qua OAuth provider.
 
 **Input:**
+
 ```json
 {
   "provider": "google",
@@ -233,6 +259,7 @@ Header: `Authorization: Bearer <token>`
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -257,10 +284,12 @@ Header: `Authorization: Bearer <token>`
 ---
 
 ## 7. POST `/api/service/request/create`
+
 **Mô tả:** Tạo yêu cầu dịch vụ mới.
 
 **Input:**  
-Form-data:  
+Form-data:
+
 - `service_id`
 - `request_id` (tùy chọn, nếu cập nhật)
 - `request_user_id`
@@ -269,6 +298,7 @@ Form-data:
 - Files (đính kèm)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -285,9 +315,11 @@ Form-data:
 ---
 
 ## 8. GET `/api/service/request/user`
+
 **Mô tả:** Lấy danh sách yêu cầu dịch vụ của một user, kèm lịch sử duyệt.
 
 **Input:**
+
 ```json
 {
   "user_id": 1
@@ -295,6 +327,7 @@ Form-data:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -336,9 +369,11 @@ Form-data:
 ---
 
 ## 9. GET `/api/service/request/list`
+
 **Mô tả:** Lấy danh sách yêu cầu dịch vụ cần duyệt theo user hoặc role.
 
 **Input:**
+
 ```json
 {
   "user_id": 1
@@ -346,6 +381,7 @@ Form-data:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -393,12 +429,14 @@ Form-data:
 ---
 
 ## 10. GET `/api/users/forassign`
+
 **Mô tả:** Lấy danh sách user thuộc group "Settings".
 
 **Input:**  
 Không có.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -417,12 +455,14 @@ Không có.
 ---
 
 ## 11. GET `/api/service/files`
+
 **Mô tả:** Lấy danh sách tất cả file dịch vụ.
 
 **Input:**  
 Không có.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -440,12 +480,15 @@ Không có.
 ---
 
 ## 12. GET `/api/service/request/detail/<int:request_id>`
+
 **Mô tả:** Lấy chi tiết một yêu cầu dịch vụ.
 
-**Input:**  
+**Input:**
+
 - `request_id`: ID của yêu cầu (trên URL).
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -455,9 +498,7 @@ Không có.
     "service_id": 10,
     "name": "...",
     "note": "...",
-    "image_attachment_ids": [
-      {"id": 1, "name": "file.png", "url": "..."}
-    ],
+    "image_attachment_ids": [{ "id": 1, "name": "file.png", "url": "..." }],
     "request_date": "YYYY-MM-DD HH:MM:SS",
     "request_user_id": 1,
     "request_user_name": "...",
@@ -469,11 +510,9 @@ Không có.
         "sequence": 1,
         "approve_content": "...",
         "approve_date": "YYYY-MM-DD HH:MM:SS",
-        "file_ids": [
-          {"id": 1, "name": "Tên file", "description": "..."}
-        ],
+        "file_ids": [{ "id": 1, "name": "Tên file", "description": "..." }],
         "file_checkbox_ids": [
-          {"id": 2, "name": "Tên file", "description": "..."}
+          { "id": 2, "name": "Tên file", "description": "..." }
         ],
         "history_ids": [
           {
@@ -487,12 +526,8 @@ Không có.
         ]
       }
     ],
-    "users": [
-      {"id": 2, "name": "Người duyệt"}
-    ],
-    "role_ids": [
-      {"id": 1, "name": "Tên vai trò"}
-    ],
+    "users": [{ "id": 2, "name": "Người duyệt" }],
+    "role_ids": [{ "id": 1, "name": "Tên vai trò" }],
     "final_state": "approved",
     "final_data": "...",
     "approve_content": "...",
@@ -516,9 +551,11 @@ Không có.
 ---
 
 ## 13. POST `/api/service/request/step/submit`
+
 **Mô tả:** Submit duyệt một bước của yêu cầu dịch vụ.
 
 **Input:**
+
 ```json
 {
   "request_id": 1,
@@ -527,12 +564,13 @@ Không có.
   "note": "...",
   "act": "approved",
   "next_user_id": 3,
-  "docs": [1,2],
+  "docs": [1, 2],
   "final_data": "..."
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -544,9 +582,11 @@ Không có.
 ---
 
 ## 14. GET `/api/notifications/my`
+
 **Mô tả:** Lấy danh sách thông báo của user.
 
 **Input:**
+
 ```json
 {
   "user_id": 1
@@ -554,6 +594,7 @@ Không có.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -574,22 +615,25 @@ Không có.
 ---
 
 ## 15. POST `/api/service/request/approve`
+
 **Mô tả:** Duyệt một bước của yêu cầu dịch vụ.
 
 **Input:**
+
 ```json
 {
   "request_id": 1,
   "user_id": 2,
   "asign_user_id": 3,
   "step_id": 1,
-  "checked_ids": [1,2],
+  "checked_ids": [1, 2],
   "note": "...",
   "final": "..."
 }
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
