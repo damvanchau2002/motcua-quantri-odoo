@@ -10,11 +10,11 @@
                     <field name="mode"/>
                 </group>
                 <group>
-                    <field name="from_date" invisible="mode != 'day'"/>
-                    <field name="to_date" invisible="mode != 'day'"/>
+                    <field name="from_date" invisible="mode != 'day'" placeholder='dd/mm/yyyy' context="{'date_format': '%d/%m/%Y'}"/>
+                    <field name="to_date" invisible="mode != 'day'" placeholder='dd/mm/yyyy' context="{'date_format': '%d/%m/%Y'}"/>
 
-                    <field name="from_month" widget="month_selection" invisible="mode != 'month'"/>
-                    <field name="to_month" widget="month_selection" invisible="mode != 'month'"/>
+                    <field name="from_month" widget="month_selection" invisible="mode != 'month'" placeholder='mm/yyyy' />
+                    <field name="to_month" widget="month_selection" invisible="mode != 'month'" placeholder='mm/yyyy'/>
 
                     <field name="from_year" invisible="mode != 'year'"/>
                     <field name="to_year" invisible="mode != 'year'"/>

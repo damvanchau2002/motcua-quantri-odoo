@@ -569,6 +569,15 @@ class StudentUserProfile(models.Model):
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
 
+    # @api.model
+    # def default_get(self, fields):
+    #     res = super().default_get(fields)
+    #     # Chỉ cần user_id mặc định
+    #     for f in fields:
+    #         if f != 'user_id':
+    #             res[f] = False
+    #     return res
+
 # Model quản lý thông tin quản trị viên
 class StudentAdminProfile(models.Model):
     _name = 'student.admin.profile'
@@ -996,3 +1005,32 @@ class StudentServiceReport(models.Model):
                 rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests 
             else: 
                 rec.processed_percent = 0.0
+
+class StudentManageAdmin(models.Model):
+    _name = 'student.manage.admin'
+    _description = 'Thông tin sinh viên KTX'
+
+    user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
+    
+    avatar_url = fields.Char('Avatar URL')
+    birthday = fields.Date('Ngày sinh')
+    gender = fields.Boolean(string='Giới tính')
+    dormitory_full_name = fields.Char('Tên ký túc xá')
+    dormitory_room_id = fields.Char('Phòng ký túc xá')
+    rent_id = fields.Char('Mã hợp đồng thuê')
+    university_name = fields.Char('Tên trường đại học')
+    student_code = fields.Char('Mã sinh viên')
+    id_card_number = fields.Char('Số CMND/CCCD')
+    id_card_date = fields.Char('Ngày cấp CMND/CCCD')
+    id_card_issued_name = fields.Char('Nơi cấp CMND/CCCD')
+    address = fields.Char('Địa chỉ')
+    district_name = fields.Char('Tên quận/huyện')
+    province_name = fields.Char('Tên tỉnh/thành phố')
+    phone = fields.Char('Số điện thoại')
+    email = fields.Char('Email')
+    dormitory_area_id = fields.Integer('ID khu ký túc xá')
+    dormitory_house_name = fields.Char('Tên nhà ký túc xá')
+    dormitory_cluster_id = fields.Integer('ID cụm ký túc xá')
+    dormitory_room_type_name = fields.Char('Loại phòng ký túc xá')
+    fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
+    device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')

@@ -14,6 +14,7 @@
     <menuitem id="student_file_menu" name="Giấy tờ nộp kèm" parent="student_request_config" action="action_student_service_file"/>
     <menuitem id="student_dormitory_area" name="Khu ký túc xá" parent="student_request_config" action="action_student_dormitory_area"/>
     <menuitem id="student_dormitory_cluster" name="Cụm ký túc xá" parent="student_request_config" action="action_student_dormitory_cluster"/>
+    <menuitem id="student_manage_admin_menu" name="Quản lý sinh viên" parent="student_request_config" action="action_student_manage_admin_menu"/>
     
     <menuitem id="menu_service_user_config" name="Tài khoản quản lý" parent="student_request_config" />
     <menuitem id="menu_student_activity_user" name="Tài khoản" parent="menu_service_user_config" action="action_admin_manager_user"/>

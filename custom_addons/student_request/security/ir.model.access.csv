@@ -27,3 +27,4 @@ access_student_service_request_result,student.service.request.result,model_stude
 access_temporary_wizard,access.temporary.wizard,model_temporary_wizard,,1,1,1,1
 access_student_service_report_manager,student.service.report.manager,model_student_service_report,base.group_system,1,1,1,1
 access_student_service_report_wizard,student.service.report.wizard,model_student_service_report_wizard,base.group_system,1,1,1,1
+access_student_manage_admin,student.manage.admin,model_student_manage_admin,,1,1,1,1
