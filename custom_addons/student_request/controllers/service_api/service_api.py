@@ -142,6 +142,7 @@ class ServiceApiController(http.Controller):
         service = request.env['student.service'].sudo().browse(service_id)
         if not service.exists():
             return Response(
+                
                 json.dumps({'error': 'Service not found'}),
                 content_type='application/json',
                 status=404,
@@ -158,6 +159,7 @@ class ServiceApiController(http.Controller):
             'description': service.description,
             'titlenote': service.titlenote,
             'state': service.state,
+            
             'group_id': service.group_id.id if service.group_id else None,
             'group_name': service.group_id.name if service.group_id else '',
             # Add more fields if needed

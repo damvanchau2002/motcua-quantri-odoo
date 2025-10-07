@@ -990,6 +990,30 @@ class ServiceApiController(http.Controller):
                     })
                 # Sắp xếp các bước theo sequence tăng dần
                 steps = sorted(steps, key=lambda x: x['base_secquence'])
+                # Lấy thông tin ký túc xá của sinh viên
+                dormitory_info = {
+                    'dormitory_full_name': 'Không có thông tin',
+                    'dormitory_area': 'Không có thông tin',
+                    'dormitory_cluster': 'Không có thông tin',
+                    'dormitory_room_id': 'Không có thông tin',
+                    'dormitory_room_type': 'Không có thông tin'
+                }
+                
+                # Tìm thông tin ký túc xá từ student.user.profile
+                student_profile = request.env['student.user.profile'].sudo().search([('user_id', '=', req.request_user_id.id)], limit=1)
+                if student_profile:
+                    dormitory_info['dormitory_full_name'] = student_profile.dormitory_full_name or 'Không có thông tin'
+                    dormitory_info['dormitory_room_id'] = student_profile.dormitory_room_id or 'Không có thông tin'
+                    dormitory_info['dormitory_room_type'] = student_profile.dormitory_room_type_name or 'Không có thông tin'
+                    
+                    # Lấy thông tin khu và cụm KTX
+                    if student_profile.dormitory_cluster_id:
+                        cluster = request.env['student.dormitory.cluster'].sudo().browse(student_profile.dormitory_cluster_id)
+                        if cluster:
+                            dormitory_info['dormitory_cluster'] = cluster.name or 'Không có thông tin'
+                            if cluster.area_id:
+                                dormitory_info['dormitory_area'] = cluster.area_id.name or 'Không có thông tin'
+                
                 results.append({
                     'id': req.id,
 
@@ -1007,6 +1031,9 @@ class ServiceApiController(http.Controller):
                     # Thông tin sinh viên
                     'request_user_name': req.request_user_name,
                     'request_user_phone': student_phone,
+                    
+                    # Thông tin ký túc xá
+                    'dormitory': dormitory_info,
 
                     'service': {
                         'id': req.service_id.id,
