@@ -4,9 +4,11 @@ from dateutil.relativedelta import relativedelta
 import requests
 from odoo import models, fields, api
 from datetime import timedelta
+import requests as py_requests
 
-from odoo.exceptions import UserError 
-from ..controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
+from odoo.exceptions import UserError
+from odoo.http import request 
+from ..controllers.service_api.utils import add_user_to_firebase_topic, convert_date, remove_user_from_all_firebase_topics, send_fcm_notify, send_fcm_users, send_fcm_request
 from ..controllers.service_api.request_api import create_request, update_request_step
 
 # Đồng bộ khu vực và cụm KTX
@@ -544,7 +546,7 @@ class StudentUserProfile(models.Model):
     _name = 'student.user.profile'
     _description = 'Thông tin sinh viên KTX'
 
-    user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
+    user_id = fields.Many2one('res.users', string='User', ondelete='cascade')
     
     avatar_url = fields.Char('Avatar URL')
     birthday = fields.Date('Ngày sinh')
@@ -569,14 +571,258 @@ class StudentUserProfile(models.Model):
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
 
-    # @api.model
-    # def default_get(self, fields):
-    #     res = super().default_get(fields)
-    #     # Chỉ cần user_id mặc định
-    #     for f in fields:
-    #         if f != 'user_id':
-    #             res[f] = False
-    #     return res
+    def action_back(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Thông tin sinh viên KTX',
+            'res_model': 'student.user.profile',
+            'view_mode': 'list',
+            'target': 'current',
+        }
+    @api.model
+    def create(self, vals):
+        record = super().create(vals)
+        if vals.get('id_card_number') and not self.env.context.get('skip_ktx_api'):
+            record.with_context(skip_ktx_api=True)._fetch_and_update_from_ktx_api(vals['id_card_number'])
+        return record
+
+    def write(self, vals):
+        res = super().write(vals)
+        if vals.get('id_card_number') and not self.env.context.get('skip_ktx_api'):
+            for rec in self:
+                rec.with_context(skip_ktx_api=True)._fetch_and_update_from_ktx_api(vals['id_card_number'])
+        return res
+
+    # ==========================================================
+    # HÀM xử lý chính: gọi API hệ thống KTX
+    # ==========================================================
+    def _fetch_and_update_from_ktx_api(self, id_card_number):
+        external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/Login"
+        payload = {
+            "username": id_card_number,
+            "password": id_card_number,  # giả sử CCCD cũng là password
+        }
+
+        try:
+            resp = py_requests.post(
+                external_api_url,
+                json=payload,
+                timeout=10,
+                verify=False,
+                headers={"x-api-key": "motcua_ktx_maia_apikey"},
+            )
+
+            if resp.status_code != 200:
+                raise Exception(f"Lỗi kết nối API ({resp.status_code}): {resp.text}")
+
+            content_type = resp.headers.get("Content-Type", "")
+            if "application/json" not in content_type:
+                raise Exception("Phản hồi không đúng định dạng JSON")
+
+            external_data = resp.json()
+            success = external_data.get("Success", False)
+            data = external_data.get("Data")
+            message = external_data.get("Message") or "Lỗi không xác định từ hệ thống KTX."
+            if not success or data is None:
+                raise Exception(data.get("Message", message))
+
+            # Thành công: xử lý dữ liệu từ external API
+            data = external_data.get("Data", {})
+
+            student_code = data.get("StudentCode")
+            full_name = data.get("FullName")
+            email = data.get("Email")
+            phone = data.get("Phone")
+            gender = data.get("Gender")
+            birthday = convert_date(data.get("Birthday"))
+            university_name = data.get("UniversityName")
+            id_card_number = data.get("IdCardNumber")
+            id_card_date = convert_date(data.get("IdCardDate"))
+            id_card_issued_name = data.get("IdCardIssuedName")
+            address = data.get("Address")
+            district_name = data.get("DistrictName")
+            province_name = data.get("ProvinceName")
+            dormitory_full_name = data.get("DormitoryFullName")
+            dormitory_area_id = data.get("DormitoryAreaId")
+            dormitory_house_name = data.get("DormitoryHouseName")
+            dormitory_cluster_id = data.get("DormitoryClusterId")
+            dormitory_room_type_name = data.get("DormitoryRoomTypeName")
+            dormitory_room_id = data.get("DormitoryRoomId")
+            rent_id = data.get("RentId")
+            avatar_url = data.get("Avatar")
+
+            # ================================================================
+            # Xử lý Area / Cluster (sử dụng self.env thay vì request.env)
+            # ================================================================
+            try:
+                dormitory_area = None
+                if dormitory_area_id:
+                    dormitory_area = self.env["student.dormitory.area"].sudo().search(
+                        [("area_id", "=", dormitory_area_id)], limit=1
+                    )
+                    if not dormitory_area:
+                        dormitory_area = self.env["student.dormitory.area"].sudo().create(
+                            {
+                                "name": f"Area {dormitory_area_id}",
+                                "area_id": dormitory_area_id,
+                            }
+                        )
+
+                dormitory_cluster = None
+                if dormitory_cluster_id:
+                    dormitory_cluster = self.env["student.dormitory.cluster"].sudo().search(
+                        [("qlsv_cluster_id", "=", dormitory_cluster_id)], limit=1
+                    )
+                    if not dormitory_cluster:
+                        dormitory_cluster = self.env["student.dormitory.cluster"].sudo().create(
+                            {
+                                "name": f"{dormitory_area.name if dormitory_area else ''} Cluster {dormitory_cluster_id}",
+                                "qlsv_cluster_id": dormitory_cluster_id,
+                                "qlsv_area_id": dormitory_area.area_id if dormitory_area else False,
+                                "area_id": dormitory_area.id if dormitory_area else False,
+                            }
+                        )
+            except Exception as e:
+                _logger = self.env["ir.logging"]
+                _logger.create(
+                    {
+                        "name": "KTX API",
+                        "type": "server",
+                        "dbname": self._cr.dbname,
+                        "level": "ERROR",
+                        "message": f"Lỗi khi tạo area/cluster: {e}",
+                        "path": "student.user.profile",
+                        "func": "_fetch_and_update_from_ktx_api",
+                    }
+                )
+
+            # ================================================================
+            # Xử lý ảnh avatar (base64)
+            # ================================================================
+            image_data = False
+            if avatar_url:
+                try:
+                    resp = py_requests.get(avatar_url)
+                    if resp.status_code == 200:
+                        image_data = base64.b64encode(resp.content).decode("utf-8")
+                except Exception:
+                    image_data = False
+
+            # ================================================================
+            # Xử lý user và profile
+            # ================================================================
+            user = self.env["res.users"].sudo().search([("login", "=", student_code)], limit=1)
+            if not user:
+                vals = {
+                    "name": full_name or student_code,
+                    "login": student_code,
+                    "active": True,
+                    "groups_id": [(6, 0, [self.env.ref("base.group_public").id])],
+                    "email": email,
+                    "phone": phone,
+                    "image_1920": image_data,
+                }
+                user = self.env["res.users"].sudo().create(vals)
+
+                if user:
+                    # Tạo student.user.profile mới
+                    self.env["student.user.profile"].sudo().create(
+                        {
+                            "user_id": user.id,
+                            "student_code": student_code,
+                            "avatar_url": avatar_url,
+                            "birthday": birthday,
+                            "gender": gender,
+                            "university_name": university_name,
+                            "id_card_number": id_card_number,
+                            "id_card_date": id_card_date,
+                            "id_card_issued_name": id_card_issued_name,
+                            "address": address,
+                            "district_name": district_name,
+                            "province_name": province_name,
+                            "dormitory_full_name": dormitory_full_name,
+                            "dormitory_area_id": dormitory_area_id,
+                            "dormitory_house_name": dormitory_house_name,
+                            "dormitory_cluster_id": dormitory_cluster_id,
+                            "dormitory_room_type_name": dormitory_room_type_name,
+                            "dormitory_room_id": dormitory_room_id,
+                            "rent_id": rent_id,
+                            "fcm_token": None,
+                            "device_id": None,
+                        }
+                    )
+
+                    try:
+                        remove_user_from_all_firebase_topics(self.env, user.id)
+                        add_user_to_firebase_topic(self.env, user.id, dormitory_area_id, dormitory_cluster_id)
+                    except Exception as e:
+                        _logger.create(
+                            {
+                                "name": "KTX API Firebase",
+                                "type": "server",
+                                "dbname": self._cr.dbname,
+                                "level": "ERROR",
+                                "message": f"Lỗi Firebase topic: {e}",
+                                "path": "student.user.profile",
+                                "func": "_fetch_and_update_from_ktx_api",
+                            }
+                        )
+            else:
+                # Cập nhật user đã tồn tại
+                user.sudo().write(
+                    {
+                        "email": email,
+                        "phone": phone,
+                        "image_1920": image_data,
+                    }
+                )
+
+                # Cập nhật hoặc tạo profile
+                profile = self.env["student.user.profile"].sudo().search([("user_id", "=", user.id)], limit=1)
+                profile_vals = {
+                    "student_code": student_code,
+                    "avatar_url": avatar_url,
+                    "birthday": birthday,
+                    "gender": gender,
+                    "university_name": university_name,
+                    "id_card_number": id_card_number,
+                    "id_card_date": id_card_date,
+                    "id_card_issued_name": id_card_issued_name,
+                    "address": address,
+                    "district_name": district_name,
+                    "province_name": province_name,
+                    "dormitory_full_name": dormitory_full_name,
+                    "dormitory_area_id": dormitory_area_id,
+                    "dormitory_house_name": dormitory_house_name,
+                    "dormitory_cluster_id": dormitory_cluster_id,
+                    "dormitory_room_type_name": dormitory_room_type_name,
+                    "dormitory_room_id": dormitory_room_id,
+                    "rent_id": rent_id,
+                    "fcm_token": None,
+                    "device_id": None,
+                }
+
+                if profile:
+                    profile.sudo().write(profile_vals)
+                else:
+                    self.env["student.user.profile"].sudo().create(
+                        {"user_id": user.id, **profile_vals}
+                    )
+
+        except Exception as e:
+            _logger = self.env["ir.logging"]
+            _logger.create(
+                {
+                    "name": "KTX API",
+                    "type": "server",
+                    "dbname": self._cr.dbname,
+                    "level": "ERROR",
+                    "message": f"Lỗi khi gọi API KTX: {e}",
+                    "path": "student.user.profile",
+                    "line": "0",
+                    "func": "_fetch_and_update_from_ktx_api",
+                }
+            )
 
 # Model quản lý thông tin quản trị viên
 class StudentAdminProfile(models.Model):
