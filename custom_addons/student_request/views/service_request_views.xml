@@ -166,13 +166,20 @@
                     <t t-name="kanban-box">
                         <div class="card p-0" t-att-class="record.final_state.raw_value == 'rejected' ? 'bg-danger' : (record.final_state.raw_value == 'closed' ? 'bg-secondary disabled' : '')">
                             <div class="card-header oe_kanban_header">
-                                <strong>
-                                    <field name="service_id" options="{'no_create': True}"/>
-                                </strong>
-                                
-                                <span style="float: right;" class="badge ms-2" t-att-class="record.final_state.raw_value == 'closed' ? 'bg-secondary' : (record.final_state.raw_value == 'approved' ? 'bg-success' : (record.final_state.raw_value == 'rejected' ? 'bg-danger' : 'bg-warning'))">
-                                    <field name="final_state"/>
-                                </span>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>
+                                            <field name="service_id" options="{'no_create': True}"/>
+                                        </strong>
+                                        <div class="text-muted small">
+                                            <i class="fa fa-hashtag"></i>
+                                            Mã yêu cầu: <field name="id"/>
+                                        </div>
+                                    </div>
+                                    <span class="badge ms-2" t-att-class="record.final_state.raw_value == 'closed' ? 'bg-secondary' : (record.final_state.raw_value == 'approved' ? 'bg-success' : (record.final_state.raw_value == 'rejected' ? 'bg-danger' : 'bg-warning'))">
+                                        <field name="final_state"/>
+                                    </span>
+                                </div>
                             </div>
                             <div class="oe_kanban_details card-body">
                                 <div class="d-flex flex-column align-items-center" style="margin-right: 10px; float: right;">
