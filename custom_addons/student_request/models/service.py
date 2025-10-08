@@ -582,33 +582,19 @@ class StudentUserProfile(models.Model):
     #     }
     @api.model
     def create(self, vals):
-        id_card_number = vals.get('id_card_number')
+        if vals.get("is_fetched_from_api"):
+            return super().create(vals)
 
-        # Nếu có số CCCD và chưa gọi API
-        if id_card_number and not self.env.context.get('skip_ktx_api'):
-            # Kiểm tra xem đã có profile với CCCD này chưa
-            existing_profile = self.env['student.user.profile'].search([
-                ('id_card_number', '=', id_card_number)
-            ], limit=1)
+        id_card_number = vals.get("id_card_number")
+        if id_card_number and not self.env.context.get("skip_ktx_api"):
+            existing = self.search([("id_card_number", "=", id_card_number)], limit=1)
+            if existing:
+                return existing
 
-            if existing_profile:
-                # Trả về profile đã tồn tại, không gọi API nữa
-                return existing_profile
-
-            # Nếu chưa có, gọi API và tạo mới
             self.with_context(skip_ktx_api=True)._fetch_and_update_from_ktx_api(id_card_number)
+            profile = self.search([("id_card_number", "=", id_card_number)], limit=1)
+            return profile or super().create(vals)
 
-            # Sau khi gọi API, tìm lại profile (vừa được tạo trong API)
-            profile = self.env['student.user.profile'].search([
-                ('id_card_number', '=', id_card_number)
-            ], limit=1)
-
-            if profile:
-                return profile
-            else:
-                raise ValidationError("Không thể tạo hồ sơ sinh viên. Vui lòng kiểm tra lại số CMND/CCCD.")
-
-        # Nếu không có CCCD hoặc đã có context thì dùng logic tạo mặc định
         return super().create(vals)
 
     # ==========================================================
@@ -745,6 +731,7 @@ class StudentUserProfile(models.Model):
                     # Tạo student.user.profile mới
                     self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].create(
                         {
+                            "is_fetched_from_api": True,
                             "user_id": user.id,
                             "student_code": student_code,
                             "avatar_url": avatar_url,
