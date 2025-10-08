@@ -356,6 +356,10 @@ class ServiceRequest(models.Model):
     dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này', )
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
+    request_user_phone = fields.Char('Số điện thoại', compute='_compute_user_profile_info', store=True, help='Số điện thoại của sinh viên gửi yêu cầu')
+    request_user_dormitory_full = fields.Char('Ký túc xá', compute='_compute_user_profile_info', store=True, help='Thông tin ký túc xá đầy đủ của sinh viên')
+    request_user_dormitory_house = fields.Char('Nhà ký túc xá', compute='_compute_user_profile_info', store=True, help='Tên nhà ký túc xá của sinh viên')
+    request_user_dormitory_room = fields.Char('Phòng ký túc xá', compute='_compute_user_profile_info', store=True, help='Phòng ký túc xá của sinh viên')
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
     expired_date = fields.Datetime('Ngày hết hạn', default=fields.Datetime.now() + timedelta(days=7), help='Ngày và giờ hết hạn gửi yêu cầu dịch vụ')
     send_expired_warning = fields.Boolean('Đã gửi cảnh báo sắp hết hạn', default=False, help='Đánh dấu đã gửi cảnh báo yêu cầu sắp hết hạn cho sinh viên')
@@ -445,6 +449,41 @@ class ServiceRequest(models.Model):
         for rec in self:
             # gộp cả disabled + active
             rec.step_ids = rec.step_ids_active | rec.step_ids.filtered(lambda s: s.disabled)
+
+    @api.depends('request_user_id')
+    def _compute_user_profile_info(self):
+        """Tính toán thông tin profile của sinh viên gửi yêu cầu"""
+        for record in self:
+            if record.request_user_id:
+                # Tìm profile sinh viên
+                student_profile = self.env['student.user.profile'].search([
+                    ('user_id', '=', record.request_user_id.id)
+                ], limit=1)
+                
+                # Lấy phone từ user record trước, nếu không có thì lấy từ profile
+                phone = record.request_user_id.phone or record.request_user_id.mobile
+                if not phone and student_profile:
+                    phone = student_profile.phone
+                
+                # Xử lý phone - loại bỏ các giá trị False/None/empty
+                if phone and phone is not False and phone != 'False' and phone != 'None' and str(phone).strip():
+                    record.request_user_phone = str(phone).strip()
+                else:
+                    record.request_user_phone = ''
+                
+                if student_profile:
+                    record.request_user_dormitory_full = student_profile.dormitory_full_name or ''
+                    record.request_user_dormitory_house = student_profile.dormitory_house_name or ''
+                    record.request_user_dormitory_room = student_profile.dormitory_room_id or ''
+                else:
+                    record.request_user_dormitory_full = ''
+                    record.request_user_dormitory_house = ''
+                    record.request_user_dormitory_room = ''
+            else:
+                record.request_user_phone = ''
+                record.request_user_dormitory_full = ''
+                record.request_user_dormitory_house = ''
+                record.request_user_dormitory_room = ''
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):
         """Tăng thời gian hết hạn của yêu cầu dịch vụ"""
