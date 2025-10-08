@@ -27,6 +27,12 @@
     <!-- Phân công hàng loạt yêu cầu dịch vụ -->
     <menuitem id="menu_student_request_bulk_assign" name="Phân công hàng loạt" parent="student_request_root" action="action_student_request_bulk_assign_wizard"/>
 
+    <!-- Extension Management -->
+    <menuitem id="menu_extension_management" name="Quản lý gia hạn" parent="student_request_root"/>
+    <menuitem id="menu_extension_requests" name="Yêu cầu gia hạn" parent="menu_extension_management" action="action_request_extension"/>
+    <menuitem id="menu_extension_pending" name="Chờ duyệt gia hạn" parent="menu_extension_management" action="action_request_extension_pending"/>
+    <menuitem id="menu_extension_approved" name="Đã duyệt gia hạn" parent="menu_extension_management" action="action_request_extension_approved"/>
+
     <menuitem id="student_request_review" name="Duyệt comments " parent="student_request_root" />
     <menuitem id="student_request_review_menu" name="Đánh giá yêu cầu" parent="student_request_review" action="action_student_service_request_review"/>
     <menuitem id="student_request_complaint_menu" name="Khiếu nại yêu cầu" parent="student_request_review" action="action_student_service_request_complaint"/>

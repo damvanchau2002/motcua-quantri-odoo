@@ -27,3 +27,7 @@ access_student_service_request_result,student.service.request.result,model_stude
 access_temporary_wizard,access.temporary.wizard,model_temporary_wizard,,1,1,1,1
 access_student_service_report_manager,student.service.report.manager,model_student_service_report,base.group_system,1,1,1,1
 access_student_service_report_wizard,student.service.report.wizard,model_student_service_report_wizard,base.group_system,1,1,1,1
+access_request_extension_user,request.extension.user,model_request_extension,,1,1,1,0
+access_request_extension_manager,request.extension.manager,model_request_extension,base.group_system,1,1,1,1
+access_request_extension_wizard_user,request.extension.wizard.user,model_request_extension_wizard,,1,1,1,1
+access_request_extension_reject_wizard_manager,request.extension.reject.wizard.manager,model_request_extension_reject_wizard,base.group_system,1,1,1,1
