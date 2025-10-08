@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import json
 from dateutil.relativedelta import relativedelta
@@ -1076,7 +1077,7 @@ class StudentServiceRequestResult(models.Model):
 
 class StudentServiceReportWizard(models.TransientModel):
     _name = "student.service.report.wizard"
-    _description = "Báo cáo"
+    _description = "Báo cáo thống kê yêu cầu"
 
     mode = fields.Selection([
         ('day', 'Ngày'),
@@ -1093,66 +1094,59 @@ class StudentServiceReportWizard(models.TransientModel):
     from_year = fields.Integer(string="Từ năm")
     to_year = fields.Integer(string="Đến năm")
 
+    report_line_ids = fields.One2many(
+        'student.service.report',
+        'wizard_id',
+        string="Kết quả báo cáo"
+    )
+
     @api.onchange('mode')
     def _onchange_mode(self):
         self.from_date = self.to_date = False
         self.from_month = self.to_month = False
         self.from_year = self.to_year = False
 
-    def _get_report_title(self):
-        if self.mode == 'day':
-            return f"Báo cáo thống kê số lượng yêu cầu theo Ngày (Từ {self.from_date} đến {self.to_date})"
-        elif self.mode == 'month':
-            return f"Báo cáo thống kê số lượng yêu cầu theo Tháng (Từ {self.from_month} đến {self.to_month})"
-        elif self.mode == 'year':
-            return f"Báo cáo thống kê số lượng yêu cầu theo Năm (Từ {self.from_year} đến {self.to_year})"
-        return "Báo cáo"
-
     def action_generate_report(self):
         self.ensure_one()
+
+        # Xóa kết quả cũ
+        self.report_line_ids.unlink()
+
         params = {"mode": self.mode}
         where_clause = ""
 
-        # --- DAY ---
         if self.mode == 'day':
             if not (self.from_date and self.to_date):
-                raise UserError("Vui lòng nhập khoảng từ ngày đến ngày.")
-
-            # cộng thêm 1 ngày để lọc đến 23:59:59
-            to_date_plus = self.to_date + relativedelta(days=1)
-
+                raise UserError("Vui lòng nhập khoảng ngày.")
+            formatted_from_date = self.from_date.strftime("%d/%m/%Y")
+            formatted_to_date = self.to_date.strftime("%d/%m/%Y")
+            parse_to_date = datetime.strptime(formatted_to_date, "%d/%m/%Y").date() + relativedelta(days=1)
+            parse_from_date = datetime.strptime(formatted_from_date, "%d/%m/%Y").date()
             where_clause = """
-                WHERE r.request_date >= %(from_date)s
-                  AND r.request_date < %(to_date_plus)s
+                WHERE r.request_date >= %(parse_from_date)s
+                  AND r.request_date < %(parse_to_date)s
             """
             params.update({
-                "from_date": self.from_date,
-                "to_date_plus": to_date_plus
+                "parse_from_date": parse_from_date,
+                "parse_to_date": parse_to_date
             })
 
-        # --- MONTH ---
         elif self.mode == 'month':
             if not (self.from_month and self.to_month):
-                raise UserError("Vui lòng nhập khoảng từ tháng đến tháng.")
-
-            # where_clause dùng TO_DATE để convert 'MM/YYYY' -> date
+                raise UserError("Vui lòng nhập khoảng tháng.")
             where_clause = """
                 WHERE r.request_date >= DATE_TRUNC('month', TO_DATE(%(from_month)s, 'MM/YYYY'))
                 AND r.request_date < DATE_TRUNC('month', TO_DATE(%(to_month)s, 'MM/YYYY') + INTERVAL '1 month')
             """
-
             params.update({
-                "from_month": self.from_month,   # dạng '09/2025'
-                "to_month": self.to_month,       # dạng '12/2025'
+                "from_month": self.from_month,
+                "to_month": self.to_month,
             })
 
-        # --- YEAR ---
         elif self.mode == 'year':
             if not (self.from_year and self.to_year):
-                raise UserError("Vui lòng nhập khoảng từ năm đến năm.")
-
+                raise UserError("Vui lòng nhập khoảng năm.")
             to_year_plus = self.to_year + 1
-
             where_clause = """
                 WHERE r.request_date >= MAKE_DATE(%(from_year)s, 1, 1)
                   AND r.request_date < MAKE_DATE(%(to_year_plus)s, 1, 1)
@@ -1173,7 +1167,6 @@ class StudentServiceReportWizard(models.TransientModel):
                     WHEN %(mode)s = 'month' THEN TO_CHAR(r.request_date, 'MM/YYYY')
                     WHEN %(mode)s = 'year'  THEN TO_CHAR(r.request_date, 'YYYY')
                 END AS period,
-                MIN(r.request_date)::date AS min_request_date,
                 COUNT(r.id) AS total_requests,
                 COUNT(CASE WHEN r.final_state NOT IN ('pending','assigned') THEN 1 END) AS processed_requests,
                 COUNT(CASE WHEN r.final_state IN ('pending','assigned') THEN 1 END) AS pending_requests,
@@ -1199,8 +1192,13 @@ class StudentServiceReportWizard(models.TransientModel):
         self.env.cr.execute(query, params)
         rows = self.env.cr.dictfetchall()
 
+        # for row in rows:
+        #     self.env['student.service.report'].create({
+        #         **row,
+        #         "wizard_id": self.id
+        #     })
         # Xóa dữ liệu cũ
-        self.env['student.service.report'].search([]).unlink()
+        self.report_line_ids.unlink()
 
         # Biến tổng
         total_requests = 0
@@ -1209,17 +1207,28 @@ class StudentServiceReportWizard(models.TransientModel):
         total_overdue = 0
 
         for row in rows:
-            row.pop("min_request_date", None)
+            # Cộng tổng
             total_requests += row.get("total_requests", 0)
             total_processed += row.get("processed_requests", 0)
             total_pending += row.get("pending_requests", 0)
             total_overdue += row.get("overdue_requests", 0)
-            self.env['student.service.report'].create(row)
 
-        # Thêm dòng tổng cộng
-        if rows:
-            percent = (total_processed * 100.0 / total_requests) if total_requests else 0.0
+            # Tạo bản ghi báo cáo
             self.env['student.service.report'].create({
+                **row,
+                "wizard_id": self.id
+            })
+
+        # Tạo tổng cộng cuối cùng
+        if rows:
+            total_requests = sum(row.get("total_requests", 0) for row in rows)
+            total_processed = sum(row.get("processed_requests", 0) for row in rows)
+            total_pending = sum(row.get("pending_requests", 0) for row in rows)
+            total_overdue = sum(row.get("overdue_requests", 0) for row in rows)
+            percent = (total_processed * 100.0 / total_requests) if total_requests else 0.0
+
+            self.env['student.service.report'].create({
+                "wizard_id": self.id,
                 "period": "Tổng cộng",
                 "area_name": "",
                 "cluster_name": "",
@@ -1232,67 +1241,36 @@ class StudentServiceReportWizard(models.TransientModel):
                 "processed_percent": percent,
             })
 
+        # Hiển thị lại chính form này, có kết quả One2many
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Báo cáo',
-            'res_model': 'student.service.report',
-            'view_mode': 'list',
+            'res_model': 'student.service.report.wizard',
+            'res_id': self.id,
+            'view_mode': 'form',
             'target': 'current',
-            'context': {
-                'report_title': self._get_report_title(),
-            }
         }
 
-class StudentServiceReport(models.Model): 
-    _name = "student.service.report" 
-    _description = "Báo cáo" 
-    _rec_name = "period" 
-    _auto = True
-    # Model báo cáo không có bảng thật 
-    report_title = fields.Char( string="Tiêu đề báo cáo", compute="_compute_report_title", store=False ) 
-    period = fields.Char(string='Ngày/Tháng/Năm') 
-    area_name = fields.Char(string='Khu ký túc xá') 
-    cluster_name = fields.Char(string='Cụm') 
-    group_name = fields.Char(string='Nhóm') 
-    service_name = fields.Char(string='Dịch vụ') 
-    total_requests = fields.Integer(string='Tổng yêu cầu') 
-    processed_requests = fields.Integer(string='Đã xử lý') 
-    pending_requests = fields.Integer(string='Chưa xử lý') 
-    overdue_requests = fields.Integer(string='Quá hạn') 
-    processed_percent = fields.Float( string='% Xử lý', compute="_compute_processed_percent", store=False ) 
-    @api.depends('processed_requests', 'total_requests') 
-    def _compute_processed_percent(self): 
-        for rec in self: 
-            if rec.total_requests: 
-                rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests 
-            else: 
+
+class StudentServiceReport(models.TransientModel):
+    _name = "student.service.report"
+    _description = "Chi tiết báo cáo"
+
+    wizard_id = fields.Many2one('student.service.report.wizard')
+    period = fields.Char(string='Ngày/Tháng/Năm')
+    area_name = fields.Char(string='Khu ký túc xá')
+    cluster_name = fields.Char(string='Cụm')
+    group_name = fields.Char(string='Nhóm')
+    service_name = fields.Char(string='Dịch vụ')
+    total_requests = fields.Integer(string='Tổng yêu cầu')
+    processed_requests = fields.Integer(string='Đã xử lý')
+    pending_requests = fields.Integer(string='Chưa xử lý')
+    overdue_requests = fields.Integer(string='Quá hạn')
+    processed_percent = fields.Float(string='% Xử lý', compute="_compute_processed_percent", store=False)
+
+    @api.depends('processed_requests', 'total_requests')
+    def _compute_processed_percent(self):
+        for rec in self:
+            if rec.total_requests:
+                rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests
+            else:
                 rec.processed_percent = 0.0
-
-class StudentManageAdmin(models.Model):
-    _name = 'student.manage.admin'
-    _description = 'Thông tin sinh viên KTX'
-
-    user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
-    
-    avatar_url = fields.Char('Avatar URL')
-    birthday = fields.Date('Ngày sinh')
-    gender = fields.Boolean(string='Giới tính')
-    dormitory_full_name = fields.Char('Tên ký túc xá')
-    dormitory_room_id = fields.Char('Phòng ký túc xá')
-    rent_id = fields.Char('Mã hợp đồng thuê')
-    university_name = fields.Char('Tên trường đại học')
-    student_code = fields.Char('Mã sinh viên')
-    id_card_number = fields.Char('Số CMND/CCCD')
-    id_card_date = fields.Char('Ngày cấp CMND/CCCD')
-    id_card_issued_name = fields.Char('Nơi cấp CMND/CCCD')
-    address = fields.Char('Địa chỉ')
-    district_name = fields.Char('Tên quận/huyện')
-    province_name = fields.Char('Tên tỉnh/thành phố')
-    phone = fields.Char('Số điện thoại')
-    email = fields.Char('Email')
-    dormitory_area_id = fields.Integer('ID khu ký túc xá')
-    dormitory_house_name = fields.Char('Tên nhà ký túc xá')
-    dormitory_cluster_id = fields.Integer('ID cụm ký túc xá')
-    dormitory_room_type_name = fields.Char('Loại phòng ký túc xá')
-    fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
-    device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
