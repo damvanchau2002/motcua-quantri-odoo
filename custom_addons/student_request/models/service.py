@@ -6,7 +6,7 @@ from odoo import models, fields, api
 from datetime import timedelta
 import requests as py_requests
 
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from odoo.http import request 
 from ..controllers.service_api.utils import add_user_to_firebase_topic, convert_date, remove_user_from_all_firebase_topics, send_fcm_notify, send_fcm_users, send_fcm_request
 from ..controllers.service_api.request_api import create_request, update_request_step
@@ -571,36 +571,52 @@ class StudentUserProfile(models.Model):
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
 
-    def action_back(self):
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Thông tin sinh viên KTX',
-            'res_model': 'student.user.profile',
-            'view_mode': 'list',
-            'target': 'current',
-        }
+    # def action_back(self):
+    #     return {
+    #         'type': 'ir.actions.act_window',
+    #         'name': 'Thông tin sinh viên KTX',
+    #         'res_model': 'student.user.profile',
+    #         'view_mode': 'list',
+    #         'target': 'current',
+    #     }
     @api.model
     def create(self, vals):
-        record = super().create(vals)
-        if vals.get('id_card_number') and not self.env.context.get('skip_ktx_api'):
-            record.with_context(skip_ktx_api=True)._fetch_and_update_from_ktx_api(vals['id_card_number'])
-        return record
+        id_card_number = vals.get('id_card_number')
 
-    def write(self, vals):
-        res = super().write(vals)
-        if vals.get('id_card_number') and not self.env.context.get('skip_ktx_api'):
-            for rec in self:
-                rec.with_context(skip_ktx_api=True)._fetch_and_update_from_ktx_api(vals['id_card_number'])
-        return res
+        # Nếu có số CCCD và chưa gọi API
+        if id_card_number and not self.env.context.get('skip_ktx_api'):
+            # Kiểm tra xem đã có profile với CCCD này chưa
+            existing_profile = self.env['student.user.profile'].search([
+                ('id_card_number', '=', id_card_number)
+            ], limit=1)
+
+            if existing_profile:
+                # Trả về profile đã tồn tại, không gọi API nữa
+                return existing_profile
+
+            # Nếu chưa có, gọi API và tạo mới
+            self.with_context(skip_ktx_api=True)._fetch_and_update_from_ktx_api(id_card_number)
+
+            # Sau khi gọi API, tìm lại profile (vừa được tạo trong API)
+            profile = self.env['student.user.profile'].search([
+                ('id_card_number', '=', id_card_number)
+            ], limit=1)
+
+            if profile:
+                return profile
+            else:
+                raise ValidationError("Không thể tạo hồ sơ sinh viên. Vui lòng kiểm tra lại số CMND/CCCD.")
+
+        # Nếu không có CCCD hoặc đã có context thì dùng logic tạo mặc định
+        return super().create(vals)
 
     # ==========================================================
     # HÀM xử lý chính: gọi API hệ thống KTX
     # ==========================================================
     def _fetch_and_update_from_ktx_api(self, id_card_number):
-        external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/Login"
+        external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/GetStudentInfo"
         payload = {
             "username": id_card_number,
-            "password": id_card_number,  # giả sử CCCD cũng là password
         }
 
         try:
@@ -711,11 +727,11 @@ class StudentUserProfile(models.Model):
             # ================================================================
             # Xử lý user và profile
             # ================================================================
-            user = self.env["res.users"].sudo().search([("login", "=", student_code)], limit=1)
+            user = self.env["res.users"].sudo().search([("login", "=", id_card_number)], limit=1)
             if not user:
                 vals = {
-                    "name": full_name or student_code,
-                    "login": student_code,
+                    "name": full_name or id_card_number,
+                    "login": id_card_number,
                     "active": True,
                     "groups_id": [(6, 0, [self.env.ref("base.group_public").id])],
                     "email": email,
@@ -726,7 +742,7 @@ class StudentUserProfile(models.Model):
 
                 if user:
                     # Tạo student.user.profile mới
-                    self.env["student.user.profile"].sudo().create(
+                    self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].create(
                         {
                             "user_id": user.id,
                             "student_code": student_code,
@@ -805,7 +821,7 @@ class StudentUserProfile(models.Model):
                 if profile:
                     profile.sudo().write(profile_vals)
                 else:
-                    self.env["student.user.profile"].sudo().create(
+                    self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].sudo().create(
                         {"user_id": user.id, **profile_vals}
                     )
 

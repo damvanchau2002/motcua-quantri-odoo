@@ -22,21 +22,20 @@
         <field name="model">student.user.profile</field>
         <field name="arch" type="xml">
             <form string="Thông tin sinh viên">
-                <header>
-                    <!-- Nút quay lại chỉ hiện khi đã có bản ghi -->
+                <!-- <header>
                     <button name="action_back" string="Quay lại" type="object" class="btn-secondary"
                             modifiers='{"invisible": [["id", "=", false]]}'/>
-                </header>
+                </header> -->
                 <sheet>
                     <group string="Thông tin">
                         <!-- Khi tạo mới: chỉ hiển thị trường CCCD -->
-                        <group invisible="student_code">
+                        <group invisible="user_id">
                             <field name="user_id" readonly="1" invisible="True"/>
                             <field name="id_card_number" placeholder="Nhập số CCCD" required="1"/>
                         </group>
 
                         <!-- Khi đã có record -->
-                        <group invisible="not student_code">
+                        <group invisible="not user_id">
                             <field name="user_id" readonly="1"/>
                             <field name="dormitory_full_name" readonly="1"/>
                             <field name="university_name" readonly="1"/>
