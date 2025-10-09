@@ -632,15 +632,54 @@ class ServiceRequest(models.Model):
             timeout_date = fields.Datetime.now() - timedelta(hours=12)
             timeout_requests = self.search([('final_state', '=', 'pending'), ('send_expired_warning', '=', False), ('request_date', '<', timeout_date)])
 
+            # Lấy email template cho yêu cầu quá hạn
+            email_template = self.env.ref('student_request.email_template_request_expired', raise_if_not_found=False)
+            
             system_user = self.env['res.users'].browse(1)  # Giả sử user hệ thống có ID là 1
             for request in timeout_requests:
-                # Cập nhật trạng thái timeout
-                print(f"Updating request {request.id} to timeout status")
-                send_fcm_request(self.env, self, 13)
-                request.sudo().with_user(system_user).send_expired_warning = True
+                try:
+                    # Cập nhật trạng thái timeout
+                    print(f"Processing expired request {request.id}: {request.name}")
+                    
+                    # Gửi email thông báo hết hạn
+                    if email_template:
+                        # Xác định người nhận email (người xử lý hoặc admin)
+                        recipient_email = None
+                        if request.user_processing_id and request.user_processing_id.email:
+                            recipient_email = request.user_processing_id.email
+                        elif request.service_id.users:
+                            # Lấy email của người duyệt đầu tiên
+                            for user in request.service_id.users:
+                                if user.email:
+                                    recipient_email = user.email
+                                    break
+                        
+                        if recipient_email:
+                            # Gửi email với phương pháp đúng - sử dụng send_mail
+                            try:
+                                # Tạo context với email_to
+                                email_context = {
+                                    'email_to': recipient_email,
+                                    'auto_delete': False
+                                }
+                                mail_id = email_template.with_context(**email_context).send_mail(request.id, force_send=True)
+                                print(f"Sent expired email notification to {recipient_email} for request {request.name} - Mail ID: {mail_id}")
+                            except Exception as email_error:
+                                print(f"Error sending email: {email_error}")
+                        else:
+                            print(f"No recipient email found for request {request.name}")
+                    
+                    # Gửi FCM notification (giữ lại để tương thích)
+                    send_fcm_request(self.env, request, 13)
+                    
+                    # Cập nhật trạng thái đã gửi cảnh báo
+                    request.sudo().write({'send_expired_warning': True})
+                    
+                except Exception as req_error:
+                    print(f"Error processing request {request.id}: {str(req_error)}")
+                    continue
 
-
-            print(f"Updated {len(timeout_requests)} requests to timeout status")
+            print(f"Processed {len(timeout_requests)} expired requests")
             
         except Exception as e:
             print(f"Error in cron_check_timeout_requests: {str(e)}")

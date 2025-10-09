@@ -83,11 +83,11 @@
                     <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 10px 0;">
                         <ul>
                             <li><strong>Mã yêu cầu:</strong> <t t-out="object.name or 'N/A'"/></li>
-                            <li><strong>Loại yêu cầu:</strong> <t t-out="object.request_type or 'N/A'"/></li>
-                            <li><strong>Sinh viên:</strong> <t t-out="object.student_id.name or 'N/A'"/></li>
-                            <li><strong>Ngày tạo:</strong> <t t-out="object.create_date or 'N/A'"/></li>
-                            <li><strong>Hạn xử lý:</strong> <t t-out="object.deadline or 'N/A'"/></li>
-                            <li><strong>Trạng thái:</strong> <t t-out="object.state or 'N/A'"/></li>
+                            <li><strong>Loại yêu cầu:</strong> <t t-out="object.service_id.name or 'N/A'"/></li>
+                            <li><strong>Sinh viên:</strong> <t t-out="object.request_user_id.name or 'N/A'"/></li>
+                            <li><strong>Ngày tạo:</strong> <t t-out="object.request_date or 'N/A'"/></li>
+                            <li><strong>Hạn xử lý:</strong> <t t-out="object.expired_date or 'N/A'"/></li>
+                            <li><strong>Trạng thái:</strong> <t t-out="object.final_state or 'N/A'"/></li>
                         </ul>
                     </div>
                     <p><strong>Vui lòng xử lý yêu cầu này ngay lập tức để tránh ảnh hưởng đến sinh viên.</strong></p>
