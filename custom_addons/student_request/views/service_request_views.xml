@@ -38,13 +38,25 @@
         <field name="arch" type="xml">
             <form delete="false">
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_extensions" type="object" 
+                                class="oe_stat_button" icon="fa-clock-o"
+                                invisible="extension_count == 0">
+                            <field name="extension_count" widget="statinfo" string="Gia hạn"/>
+                        </button>
+                    </div>
+                    
                     <header>
                         Tạo yêu cầu mới:
+                        <button name="action_request_extension" type="object" 
+                                string="Yêu cầu gia hạn" class="btn-warning"
+                                invisible="final_state in ['closed', 'approved', 'cancelled'] or not expired_date"
+                                help="Yêu cầu gia hạn thời gian xử lý"/>
                     </header>
                     <group>
                         <group string="Nội dung yêu cầu">
                             <field name="service_id"/>
-                            <field name="image_attachment_ids" widget="many2many_binary"/>
+                            <field name="image_attachment_ids" widget="many2many_binary" options="{'accepted_file_extensions': '.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp', 'no_download': True}" class="image_attachment_field"/>
                             <field name="note"/>
                             <field name="request_user_id" domain="[('groups_id.name', '=', 'Public')]"/>
                         </group>
@@ -52,6 +64,9 @@
                             <field name="name" readonly="1"/>
                             <field name="request_user_name" readonly="1"/>
                             <field name="request_user_avatar" readonly="1" widget="image" options="{'size': [48, 48]}"/>
+                            <field name="request_user_phone" string="Số điện thoại" readonly="1"/>
+                            <field name="request_user_dormitory_full" string="Ký túc xá" readonly="1"/>
+                            <field name="request_user_dormitory_room" readonly="1"/>
                             <field name="request_date" readonly="1"/>
                         </group>
                         <group string="Trạng thái duyệt">
@@ -59,6 +74,12 @@
                             <field name="approve_content" readonly="1"/>
                             <field name="approve_date" readonly="1"/>
                             <field name="expired_date" readonly="(final_state == 'closed' or final_state == 'approved' or final_state == 'rejected')" help="Ngày hết hạn xử lý yêu cầu dịch vụ, sửa để gia hạn"/>
+                            <field name="is_expired" readonly="1" invisible="1"/>
+                            <field name="expiry_warning_sent" readonly="1" invisible="1"/>
+                        </group>
+                        <group string="Thông tin gia hạn" invisible="extension_count == 0">
+                            <field name="extension_count" readonly="1"/>
+                            <field name="total_extended_hours" readonly="1"/>
                         </group>
                          <group string="Thông tin người duyệt">
                             <field name="users" widget="many2many_tags" readonly="1"/>
@@ -351,5 +372,6 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    
+
+
 </odoo>

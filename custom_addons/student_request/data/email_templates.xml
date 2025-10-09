@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Email template cho yêu cầu gia hạn được gửi -->
+        <record id="email_template_extension_submitted" model="mail.template">
+            <field name="name">Thông báo yêu cầu gia hạn được gửi</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="subject">Yêu cầu gia hạn đã được gửi - {{ object.request_id.name or 'N/A' }}</field>
+            <field name="email_to">{{ object.request_id.user_processing_id.email or 'admin@example.com' }}</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <h3>Thông báo yêu cầu gia hạn mới</h3>
+                    <p>Xin chào,</p>
+                    <p>Có một yêu cầu gia hạn mới cần được xử lý:</p>
+                    <ul>
+                        <li><strong>Mã yêu cầu:</strong> <t t-out="object.request_id.name or 'N/A'"/></li>
+                        <li><strong>Người yêu cầu:</strong> <t t-out="object.requested_by.name or 'N/A'"/></li>
+                        <li><strong>Lý do gia hạn:</strong> <t t-out="object.reason or 'Không có'"/></li>
+                        <li><strong>Ngày yêu cầu:</strong> <t t-out="object.request_date or 'N/A'"/></li>
+                    </ul>
+                    <p>Vui lòng đăng nhập vào hệ thống để xử lý yêu cầu này.</p>
+                    <p>Trân trọng,<br/>Hệ thống quản lý sinh viên</p>
+                </div>
+            </field>
+        </record>
+
+        <!-- Email template cho yêu cầu gia hạn được duyệt -->
+        <record id="email_template_extension_approved" model="mail.template">
+            <field name="name">Thông báo yêu cầu gia hạn được duyệt</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="subject">Yêu cầu gia hạn đã được duyệt - {{ object.request_id.name or 'N/A' }}</field>
+            <field name="email_to">{{ object.requested_by.email or 'user@example.com' }}</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <h3 style="color: #28a745;">Yêu cầu gia hạn đã được phê duyệt</h3>
+                    <p>Xin chào <strong><t t-out="object.requested_by.name or 'Bạn'"/></strong>,</p>
+                    <p>Chúng tôi xin thông báo rằng yêu cầu gia hạn của bạn đã được phê duyệt:</p>
+                    <ul>
+                        <li><strong>Mã yêu cầu:</strong> <t t-out="object.request_id.name or 'N/A'"/></li>
+                        <li><strong>Ngày gia hạn mới:</strong> <t t-out="object.new_deadline or 'N/A'"/></li>
+                        <li><strong>Lý do gia hạn:</strong> <t t-out="object.reason or 'Không có'"/></li>
+                    </ul>
+                    <p>Bạn có thể tiếp tục thực hiện yêu cầu của mình trong thời hạn mới.</p>
+                    <p>Trân trọng,<br/>Phòng Đào tạo</p>
+                </div>
+            </field>
+        </record>
+
+        <!-- Email template cho yêu cầu gia hạn bị từ chối -->
+        <record id="email_template_extension_rejected" model="mail.template">
+            <field name="name">Thông báo yêu cầu gia hạn bị từ chối</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="subject">Yêu cầu gia hạn bị từ chối - {{ object.request_id.name or 'N/A' }}</field>
+            <field name="email_to">{{ object.requested_by.email or 'user@example.com' }}</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <h3 style="color: #dc3545;">Yêu cầu gia hạn bị từ chối</h3>
+                    <p>Xin chào <strong><t t-out="object.requested_by.name or 'Bạn'"/></strong>,</p>
+                    <p>Chúng tôi xin thông báo rằng yêu cầu gia hạn của bạn đã bị từ chối:</p>
+                    <ul>
+                        <li><strong>Mã yêu cầu:</strong> <t t-out="object.request_id.name or 'N/A'"/></li>
+                        <li><strong>Lý do từ chối:</strong> <t t-out="object.rejection_reason or 'Không có lý do cụ thể'"/></li>
+                        <li><strong>Ngày từ chối:</strong> <t t-out="object.rejection_date or 'N/A'"/></li>
+                    </ul>
+                    <p>Nếu bạn có thắc mắc, vui lòng liên hệ với Phòng Đào tạo để được hỗ trợ.</p>
+                    <p>Trân trọng,<br/>Phòng Đào tạo</p>
+                </div>
+            </field>
+        </record>
+
+        <!-- Email template cho yêu cầu quá hạn -->
+        <record id="email_template_request_expired" model="mail.template">
+            <field name="name">Thông báo yêu cầu quá hạn</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="subject">CẢNH BÁO: Yêu cầu {{ object.name or 'N/A' }} đã quá hạn</field>
+            <field name="email_to">{{ object.user_processing_id.email or 'admin@example.com' }}</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <h3 style="color: #dc3545;">⚠️ CẢNH BÁO: Yêu cầu quá hạn xử lý</h3>
+                    <p>Xin chào,</p>
+                    <p>Yêu cầu sau đây đã quá hạn xử lý và cần được chú ý ngay:</p>
+                    <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <ul>
+                            <li><strong>Mã yêu cầu:</strong> <t t-out="object.name or 'N/A'"/></li>
+                            <li><strong>Loại yêu cầu:</strong> <t t-out="object.request_type or 'N/A'"/></li>
+                            <li><strong>Sinh viên:</strong> <t t-out="object.student_id.name or 'N/A'"/></li>
+                            <li><strong>Ngày tạo:</strong> <t t-out="object.create_date or 'N/A'"/></li>
+                            <li><strong>Hạn xử lý:</strong> <t t-out="object.deadline or 'N/A'"/></li>
+                            <li><strong>Trạng thái:</strong> <t t-out="object.state or 'N/A'"/></li>
+                        </ul>
+                    </div>
+                    <p><strong>Vui lòng xử lý yêu cầu này ngay lập tức để tránh ảnh hưởng đến sinh viên.</strong></p>
+                    <p>Trân trọng,<br/>Hệ thống quản lý sinh viên</p>
+                </div>
+            </field>
+        </record>
+
+        <!-- Email template cho báo cáo hàng ngày -->
+        <record id="email_template_daily_expired_report" model="mail.template">
+            <field name="name">Báo cáo hàng ngày - Yêu cầu quá hạn</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="subject">Báo cáo hàng ngày: Yêu cầu quá hạn - {{ datetime.datetime.now().strftime('%d/%m/%Y') }}</field>
+            <field name="email_to">admin@example.com</field>
+            <field name="body_html" type="html">
+                <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+                    <h3>📊 Báo cáo hàng ngày - Yêu cầu quá hạn</h3>
+                    <p>Ngày báo cáo: <strong><t t-out="datetime.datetime.now().strftime('%d/%m/%Y')"/></strong></p>
+                    
+                    <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <h4>Tổng quan:</h4>
+                        <p>Đây là báo cáo tự động về các yêu cầu đã quá hạn xử lý trong hệ thống.</p>
+                        <p>Vui lòng kiểm tra và xử lý các yêu cầu quá hạn để đảm bảo chất lượng dịch vụ.</p>
+                    </div>
+                    
+                    <p><strong>Hành động cần thực hiện:</strong></p>
+                    <ul>
+                        <li>Đăng nhập vào hệ thống để xem chi tiết các yêu cầu quá hạn</li>
+                        <li>Liên hệ với các bộ phận liên quan để xử lý</li>
+                        <li>Cập nhật trạng thái xử lý cho các yêu cầu</li>
+                    </ul>
+                    
+                    <p>Trân trọng,<br/>Hệ thống quản lý sinh viên</p>
+                </div>
+            </field>
+        </record>
+
+    </data>
+</odoo>

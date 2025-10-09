@@ -359,9 +359,13 @@ class ServiceRequest(models.Model):
     dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này', )
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
+    request_user_phone = fields.Char('Số điện thoại', compute='_compute_user_profile_info', store=True, help='Số điện thoại của sinh viên gửi yêu cầu')
+    request_user_dormitory_full = fields.Char('Ký túc xá', compute='_compute_user_profile_info', store=True, help='Thông tin ký túc xá đầy đủ của sinh viên')
+    request_user_dormitory_house = fields.Char('Nhà ký túc xá', compute='_compute_user_profile_info', store=True, help='Tên nhà ký túc xá của sinh viên')
+    request_user_dormitory_room = fields.Char('Phòng ký túc xá', compute='_compute_user_profile_info', store=True, help='Phòng ký túc xá của sinh viên')
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
     expired_date = fields.Datetime('Ngày hết hạn', default=fields.Datetime.now() + timedelta(days=7), help='Ngày và giờ hết hạn gửi yêu cầu dịch vụ')
-    send_expired_warning = fields.Boolean('Đã gửi cảnh báo hết hạn', default=False, help='Đánh dấu đã gửi cảnh báo yêu cầu sắp hết hạn cho sinh viên')
+    send_expired_warning = fields.Boolean('Đã gửi cảnh báo sắp hết hạn', default=False, help='Đánh dấu đã gửi cảnh báo yêu cầu sắp hết hạn cho sinh viên')
     is_new = fields.Boolean('Yêu cầu mới', default=True, help='Đánh dấu yêu cầu này là mới')
 
     # Thông tin hủy yêu cầu
@@ -422,6 +426,13 @@ class ServiceRequest(models.Model):
     # GHI NHẬN KẾT QUẢ
     result_ids = fields.One2many('student.service.request.result', 'request_id', string='Kết quả', help='Các kết quả liên quan đến yêu cầu dịch vụ này')
 
+    # GIA HẠN THỜI GIAN
+    extension_ids = fields.One2many('request.extension', 'request_id', string='Lịch sử gia hạn', help='Các yêu cầu gia hạn cho dịch vụ này')
+    extension_count = fields.Integer('Số lần gia hạn', compute='_compute_extension_stats', help='Tổng số lần đã gia hạn')
+    total_extended_hours = fields.Integer('Tổng giờ gia hạn', compute='_compute_extension_stats', help='Tổng số giờ đã gia hạn')
+    is_expired = fields.Boolean('Đã quá hạn', compute='_compute_is_expired', help='Yêu cầu đã quá hạn chưa hoàn thành')
+    expiry_warning_sent = fields.Boolean('Đã gửi cảnh báo hết hạn', default=False, help='Đã gửi email cảnh báo hết hạn')
+
 
     step_ids_active = fields.One2many(
         "student.service.request.step",
@@ -441,6 +452,41 @@ class ServiceRequest(models.Model):
         for rec in self:
             # gộp cả disabled + active
             rec.step_ids = rec.step_ids_active | rec.step_ids.filtered(lambda s: s.disabled)
+
+    @api.depends('request_user_id')
+    def _compute_user_profile_info(self):
+        """Tính toán thông tin profile của sinh viên gửi yêu cầu"""
+        for record in self:
+            if record.request_user_id:
+                # Tìm profile sinh viên
+                student_profile = self.env['student.user.profile'].search([
+                    ('user_id', '=', record.request_user_id.id)
+                ], limit=1)
+                
+                # Lấy phone từ user record trước, nếu không có thì lấy từ profile
+                phone = record.request_user_id.phone or record.request_user_id.mobile
+                if not phone and student_profile:
+                    phone = student_profile.phone
+                
+                # Xử lý phone - loại bỏ các giá trị False/None/empty
+                if phone and phone is not False and phone != 'False' and phone != 'None' and str(phone).strip():
+                    record.request_user_phone = str(phone).strip()
+                else:
+                    record.request_user_phone = ''
+                
+                if student_profile:
+                    record.request_user_dormitory_full = student_profile.dormitory_full_name or ''
+                    record.request_user_dormitory_house = student_profile.dormitory_house_name or ''
+                    record.request_user_dormitory_room = student_profile.dormitory_room_id or ''
+                else:
+                    record.request_user_dormitory_full = ''
+                    record.request_user_dormitory_house = ''
+                    record.request_user_dormitory_room = ''
+            else:
+                record.request_user_phone = ''
+                record.request_user_dormitory_full = ''
+                record.request_user_dormitory_house = ''
+                record.request_user_dormitory_room = ''
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):
         """Tăng thời gian hết hạn của yêu cầu dịch vụ"""
@@ -457,6 +503,66 @@ class ServiceRequest(models.Model):
         })
         send_fcm_request(self.env, self, send_type=7)  # Gửi thông báo gia hạn yêu cầu
 
+    @api.depends('extension_ids', 'extension_ids.state')
+    def _compute_extension_stats(self):
+        """Tính toán thống kê gia hạn"""
+        for record in self:
+            approved_extensions = record.extension_ids.filtered(lambda x: x.state == 'approved')
+            record.extension_count = len(approved_extensions)
+            record.total_extended_hours = sum(approved_extensions.mapped('hours'))
+
+    @api.depends('expired_date', 'final_state')
+    def _compute_is_expired(self):
+        """Kiểm tra yêu cầu đã quá hạn chưa"""
+        now = fields.Datetime.now()
+        for record in self:
+            record.is_expired = (
+                record.expired_date and 
+                record.expired_date < now and 
+                record.final_state not in ['closed', 'cancelled', 'approved']
+            )
+
+    def action_request_extension(self):
+        """Mở form yêu cầu gia hạn"""
+        self.ensure_one()
+        
+        # Kiểm tra quyền yêu cầu gia hạn
+        if not self._can_request_extension():
+            raise UserError("Bạn không có quyền yêu cầu gia hạn cho dịch vụ này!")
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Yêu cầu gia hạn',
+            'res_model': 'request.extension.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_request_id': self.id,
+                'default_original_deadline': self.expired_date,
+            }
+        }
+
+    def _can_request_extension(self):
+        """Kiểm tra có thể yêu cầu gia hạn không"""
+        # Chỉ người được giao hoặc người xử lý mới có thể yêu cầu gia hạn
+        current_user = self.env.user
+        return (
+            current_user.id == self.user_processing_id.id or
+            current_user.id == self.approve_user_id.id or
+            current_user.id in self.users.ids
+        )
+
+    def action_view_extensions(self):
+        """Xem lịch sử gia hạn"""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Lịch sử gia hạn',
+            'res_model': 'request.extension',
+            'view_mode': 'list,form',
+            'domain': [('request_id', '=', self.id)],
+            'context': {'default_request_id': self.id}
+        }
 
     def action_create_new(self):
         super_env = self.with_user(1)
@@ -541,6 +647,75 @@ class ServiceRequest(models.Model):
             
         except Exception as e:
             print(f"Error in cron_check_timeout_requests: {str(e)}")
+
+    @api.model
+    def _cron_check_expired_requests(self):
+        """Cron job kiểm tra yêu cầu quá hạn hàng ngày"""
+        try:
+            now = fields.Datetime.now()
+            
+            # Tìm các yêu cầu quá hạn chưa được đánh dấu
+            expired_requests = self.search([
+                ('expired_date', '<', now),
+                ('final_state', 'not in', ['closed', 'cancelled', 'approved']),
+                ('expiry_warning_sent', '=', False)
+            ])
+            
+            # Cập nhật trạng thái và gửi thông báo
+            for request in expired_requests:
+                # Đánh dấu đã gửi cảnh báo
+                request.expiry_warning_sent = True
+                
+                # Gửi email thông báo quá hạn
+                self._send_expiry_notification(request)
+                
+                # Ghi log vào chatter
+                request.message_post(
+                    body=f"Yêu cầu đã quá hạn từ {request.expired_date}. "
+                         f"Cần xử lý hoặc yêu cầu gia hạn.",
+                    message_type='notification'
+                )
+            
+            # Gửi báo cáo tổng hợp cho lãnh đạo
+            if expired_requests:
+                self._send_daily_expired_report(expired_requests)
+                
+            print(f"Processed {len(expired_requests)} expired requests")
+            
+        except Exception as e:
+            print(f"Error in _cron_check_expired_requests: {str(e)}")
+
+    def _send_expiry_notification(self, request):
+        """Gửi thông báo yêu cầu quá hạn"""
+        try:
+            # Gửi email cho người xử lý
+            if request.user_processing_id:
+                template = self.env.ref('student_request.email_template_request_expired', raise_if_not_found=False)
+                if template:
+                    template.send_mail(request.id, force_send=True)
+                    
+        except Exception as e:
+            print(f"Error sending expiry notification: {str(e)}")
+
+    def _send_daily_expired_report(self, expired_requests):
+        """Gửi báo cáo hàng ngày về yêu cầu quá hạn cho lãnh đạo"""
+        try:
+            # Tìm các manager để gửi báo cáo
+            managers = self.env['res.users'].search([
+                ('groups_id', 'in', [self.env.ref('student_request.group_student_request_manager').id])
+            ])
+            
+            if managers:
+                template = self.env.ref('student_request.email_template_daily_expired_report', raise_if_not_found=False)
+                if template:
+                    for manager in managers:
+                        template.with_context(
+                            expired_requests=expired_requests,
+                            manager=manager
+                        ).send_mail(expired_requests[0].id, force_send=True)
+                        
+        except Exception as e:
+            print(f"Error sending daily expired report: {str(e)}")
     
 # Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Default Permission Rules -->
+        <record id="permission_rule_admin_manager" model="student.permission.manager">
+            <field name="name">Tự động gán Manager cho Admin</field>
+            <field name="condition_type">login_pattern</field>
+            <field name="condition_value">admin*</field>
+            <field name="target_group">both</field>
+            <field name="auto_assign">True</field>
+            <field name="description">Tự động gán quyền Manager và User cho tất cả tài khoản có login bắt đầu bằng "admin"</field>
+        </record>
+
+        <record id="permission_rule_ktxhcm_manager" model="student.permission.manager">
+            <field name="name">Tự động gán Manager cho email @ktxhcm.edu.vn</field>
+            <field name="condition_type">email_domain</field>
+            <field name="condition_value">@ktxhcm.edu.vn</field>
+            <field name="target_group">manager</field>
+            <field name="auto_assign">True</field>
+            <field name="description">Tự động gán quyền Manager cho tất cả user có email domain @ktxhcm.edu.vn</field>
+        </record>
+
+        <record id="permission_rule_manager_pattern" model="student.permission.manager">
+            <field name="name">Tự động gán Manager cho login chứa "manager"</field>
+            <field name="condition_type">login_pattern</field>
+            <field name="condition_value">*manager*</field>
+            <field name="target_group">both</field>
+            <field name="auto_assign">True</field>
+            <field name="description">Tự động gán quyền Manager và User cho tất cả tài khoản có login chứa từ "manager"</field>
+        </record>
+
+        <record id="permission_rule_default_user" model="student.permission.manager">
+            <field name="name">Gán quyền User cơ bản cho tất cả</field>
+            <field name="condition_type">manual</field>
+            <field name="condition_value"></field>
+            <field name="target_group">user</field>
+            <field name="auto_assign">False</field>
+            <field name="active">False</field>
+            <field name="description">Quy tắc để gán quyền User cơ bản cho tất cả users (tắt mặc định)</field>
+        </record>
+
+    </data>
+</odoo>

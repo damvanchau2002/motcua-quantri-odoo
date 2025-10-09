@@ -5,13 +5,19 @@
     'author': 'Your Name',
     'category': 'Student',
     'license': 'LGPL-3',
-    'depends': ['base'],
+    'depends': ['base', 'mail'],
     'data': [
         # Security files
         'security/ir.model.access.csv',
+        'security/extension_security.xml',
         
         # Data files (nên load trước views)
+        'data/model_data.xml',
         'data/service_step_data.xml',
+        'data/cron_data.xml',
+        'data/email_templates.xml',
+        # 'data/automated_actions.xml',  # Tạm comment để kiểm tra
+        # 'data/permission_rules_data.xml',  # Tạm comment để server khởi động
         
         # View files
         'views/service_group_views.xml',
@@ -19,6 +25,7 @@
         'views/service_step_views.xml',
         'views/service_file_views.xml',
         'views/service_request_views.xml',
+        'views/request_extension_views.xml',
         'views/bulk_assign_wizard_views.xml',
         'views/admin_profile_views.xml',
         'views/notification_views.xml',
@@ -31,16 +38,21 @@
         'views/maintenance_simple_views.xml',
         'views/maintenance_user_friendly_views.xml',
         'views/student_manage_views.xml',
+        'views/user_permission_views.xml',
+        'views/permission_manager_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',
     ],
     'installable': True,
     'application': True,
+    'post_init_hook': 'post_init_hook',
     'assets': {
         'web.assets_backend': [
             'student_request/static/src/css/hide_checkbox.css',
             'student_request/static/src/css/kanban.css',
+            'student_request/static/src/css/no_download.css',
+            'student_request/static/src/js/image_viewer.js',
         ],
     },
 }

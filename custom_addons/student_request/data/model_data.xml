@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Model definition for student.service.request -->
+        <record id="model_student_service_request" model="ir.model">
+            <field name="name">student.service.request</field>
+            <field name="model">student.service.request</field>
+            <field name="state">manual</field>
+        </record>
+        
+        <!-- Model definition for request.extension -->
+        <record id="model_request_extension" model="ir.model">
+            <field name="name">request.extension</field>
+            <field name="model">request.extension</field>
+            <field name="state">manual</field>
+        </record>
+        
+        <!-- Model definition for request.extension.wizard -->
+        <record id="model_request_extension_wizard" model="ir.model">
+            <field name="name">request.extension.wizard</field>
+            <field name="model">request.extension.wizard</field>
+            <field name="state">manual</field>
+        </record>
+        
+        <!-- Model definition for request.extension.reject.wizard -->
+        <record id="model_request_extension_reject_wizard" model="ir.model">
+            <field name="name">request.extension.reject.wizard</field>
+            <field name="model">request.extension.reject.wizard</field>
+            <field name="state">manual</field>
+        </record>
+        
+
+    </data>
+</odoo>

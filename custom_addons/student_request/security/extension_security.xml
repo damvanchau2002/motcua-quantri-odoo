@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Security Groups -->
+        <record id="group_student_request_manager" model="res.groups">
+            <field name="name">Student Request Manager</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Managers can approve/reject extension requests and access all extension data</field>
+        </record>
+
+        <record id="group_student_request_user" model="res.groups">
+            <field name="name">Student Request User</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Users can create and view their own extension requests</field>
+        </record>
+
+        <!-- Record Rules for request.extension -->
+        <record id="extension_rule_user_own" model="ir.rule">
+            <field name="name">Extension: User can only see own requests</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="domain_force">[('requested_by', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_student_request_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="extension_rule_manager_all" model="ir.rule">
+            <field name="name">Extension: Manager can see all requests</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_student_request_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Record Rules for student.service.request (extension related) -->
+        <record id="service_request_rule_extension_user" model="ir.rule">
+            <field name="name">Service Request: User can request extension for assigned requests</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="domain_force">['|', '|', 
+                ('request_user_id', '=', user.id),
+                ('user_processing_id', '=', user.id),
+                ('users', 'in', [user.id])
+            ]</field>
+            <field name="groups" eval="[(4, ref('group_student_request_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+
+
+    </data>
+</odoo>
