@@ -8,6 +8,7 @@ access_student_service_group_public,student.service.group,model_student_service_
 access_student_service_request,student.service.request,model_student_service_request,,1,1,1,1
 access_student_service_request_user,student.service.request user,model_student_service_request,base.group_user,1,1,1,1
 access_student_service_request_admin,student.service.request admin,model_student_service_request,base.group_system,1,1,1,1
+access_student_service_request,student.service.request,model_student_service_request,,1,1,1,1
 access_student_service_request_step_user,student.service.request.step,model_student_service_request_step,,1,1,0,0
 access_student_service_file_checkbox,student.service.file.checkbox,model_student_service_file_checkbox,,1,1,1,1
 access_student_user_profile,student.user.profile,model_student_user_profile,,1,1,1,1

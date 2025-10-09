@@ -26,10 +26,12 @@
                             <!-- Lọc theo ngày -->
                             <field name="from_date"
                                    invisible="mode != 'day'"
-                                   placeholder="dd/mm/yyyy"/>
+                                   placeholder="dd/mm/yyyy"
+                                   options="{'datepicker': {'dateFormat': 'dd/MM/yyyy'}}"/>
                             <field name="to_date"
                                    invisible="mode != 'day'"
-                                   placeholder="dd/mm/yyyy"/>
+                                   placeholder="dd/mm/yyyy"
+                                   options="{'datepicker': {'dateFormat': 'dd/MM/yyyy'}}"/>
 
                             <!-- Lọc theo tháng -->
                             <field name="from_month"
@@ -83,5 +85,6 @@
         <field name="view_id" ref="view_student_service_report_wizard_form"/>
         <!-- Hiển thị toàn trang -->
         <field name="target">main</field>
+        <field name="context">{'lang':'vi_VN'}</field>
     </record>
 </odoo>
