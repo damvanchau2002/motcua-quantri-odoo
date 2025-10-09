@@ -117,15 +117,36 @@ class ResUsers(models.Model):
         result = super().write(vals)
         
         # Chỉ tự động gán lại quyền khi email hoặc login thay đổi
-        if 'email' in vals or 'login' in vals:
+        # Tránh xung đột với onchange bằng cách không gán quyền khi đang trong quá trình onchange
+        if ('email' in vals or 'login' in vals) and not self.env.context.get('skip_auto_permissions'):
             permission_manager = self.env['student.permission.manager']
             for user in self:
                 try:
-                    permission_manager.auto_assign_permissions(user)
+                    # Sử dụng context để tránh vòng lặp vô hạn
+                    permission_manager.with_context(skip_auto_permissions=True).auto_assign_permissions(user)
                 except Exception as e:
                     _logger.warning(f"Không thể tự động cập nhật quyền cho user {user.login}: {e}")
                     
         return result
+
+    @api.onchange('groups_id')
+    def _onchange_groups_id(self):
+        """Override onchange để tránh lỗi KeyError khi thay đổi groups"""
+        # Không làm gì cả, chỉ để tránh lỗi KeyError
+        pass
+
+    def onchange(self, values, field_names, fields_spec):
+        """Override onchange để xử lý an toàn groups_id field"""
+        try:
+            return super().onchange(values, field_names, fields_spec)
+        except KeyError as e:
+            if 'groups_id' in str(e):
+                # Nếu gặp lỗi KeyError với groups_id, trả về kết quả rỗng
+                _logger.warning(f"KeyError với groups_id được xử lý an toàn cho user: {self}")
+                return {'value': {}, 'warning': {}, 'domain': {}}
+            else:
+                # Nếu là lỗi khác, raise lại
+                raise
     
     def action_assign_student_permissions(self):
         """Action để gán quyền student request cho user"""

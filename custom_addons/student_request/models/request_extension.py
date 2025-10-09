@@ -70,6 +70,10 @@ class RequestExtension(models.Model):
         'Lý do từ chối',
         help='Lý do từ chối yêu cầu gia hạn'
     )
+    rejection_date = fields.Datetime(
+        'Ngày từ chối',
+        help='Ngày từ chối yêu cầu gia hạn'
+    )
     
     # Thông tin deadline
     original_deadline = fields.Datetime(
@@ -252,13 +256,18 @@ class RequestExtensionRejectWizard(models.TransientModel):
     extension_id = fields.Many2one('request.extension', string='Yêu cầu gia hạn', required=True)
     rejection_reason = fields.Text('Lý do từ chối', required=True)
 
+    def action_reject_extension(self):
+        """Từ chối yêu cầu gia hạn - alias cho action_confirm_reject"""
+        return self.action_confirm_reject()
+
     def action_confirm_reject(self):
         """Xác nhận từ chối"""
         self.extension_id.write({
             'state': 'rejected',
             'rejection_reason': self.rejection_reason,
             'approved_by': self.env.user.id,
-            'approval_date': fields.Datetime.now()
+            'approval_date': fields.Datetime.now(),
+            'rejection_date': fields.Datetime.now()
         })
         
         # Ghi log vào chatter
@@ -267,5 +276,13 @@ class RequestExtensionRejectWizard(models.TransientModel):
             message_type='notification'
         )
         
-        # TODO: Gửi email thông báo cho người yêu cầu
+        # Gửi email thông báo cho người yêu cầu
+        try:
+            template = self.env.ref('student_request.email_template_extension_rejected')
+            if template:
+                template.send_mail(self.extension_id.id, force_send=True)
+                _logger.info(f"Đã gửi email từ chối gia hạn cho extension ID: {self.extension_id.id}")
+        except Exception as e:
+            _logger.error(f"Lỗi khi gửi email từ chối gia hạn: {e}")
+        
         return {'type': 'ir.actions.act_window_close'}

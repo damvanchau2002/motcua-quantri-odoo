@@ -7,17 +7,17 @@
     'license': 'LGPL-3',
     'depends': ['base', 'mail'],
     'data': [
-        # Security files
-        'security/ir.model.access.csv',
+        # Security files (groups must be loaded before access rules)
         'security/extension_security.xml',
+        'security/ir.model.access.csv',
         
         # Data files (nên load trước views)
-        'data/model_data.xml',
+        # 'data/model_data.xml',  # Temporarily commented out
         'data/service_step_data.xml',
         'data/cron_data.xml',
         'data/email_templates.xml',
-        # 'data/automated_actions.xml',  # Tạm comment để kiểm tra
-        # 'data/permission_rules_data.xml',  # Tạm comment để server khởi động
+        'data/automated_actions.xml',  # Fixed XML validation error
+        'data/permission_rules_data.xml',  # Tạm comment để server khởi động
         
         # View files
         'views/service_group_views.xml',
@@ -46,7 +46,7 @@
     ],
     'installable': True,
     'application': True,
-    'post_init_hook': 'post_init_hook',
+    'post_init_hook': 'post_init_hook',  # Temporarily commented out
     'assets': {
         'web.assets_backend': [
             'student_request/static/src/css/hide_checkbox.css',

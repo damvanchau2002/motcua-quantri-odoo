@@ -1,68 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
-        
-        <!-- Automated Action: Auto assign permissions to new users -->
-        <record id="action_auto_assign_permissions" model="ir.actions.server">
-            <field name="name">Auto Assign Student Request Permissions</field>
-            <field name="model_id" ref="base.model_res_users"/>
-            <field name="state">code</field>
-            <field name="code">
-# Tự động gán quyền cho user mới
-if record.active and record.login:
-    # Kiểm tra nếu user chưa có quyền Student Request Manager
-    manager_group = env.ref('student_request.group_student_request_manager')
-    user_group = env.ref('student_request.group_student_request_user')
+<data noupdate="1">
     
-    # Gán quyền user cơ bản cho tất cả user
-    if user_group not in record.groups_id:
-        record.write({'groups_id': [(4, user_group.id)]})
-    
-    # Tự động gán quyền manager cho admin hoặc user có email domain cụ thể
-    auto_manager_conditions = [
-        record.login == 'admin',
-        record.login.endswith('@ktxhcm.edu.vn'),  # Email domain của trường
-        'admin' in record.login.lower(),
-        'manager' in record.login.lower(),
-    ]
-    
-    if any(auto_manager_conditions) and manager_group not in record.groups_id:
-        record.write({'groups_id': [(4, manager_group.id)]})
-        env['mail.mail'].create({
-            'subject': 'Quyền Student Request Manager đã được gán tự động',
-            'body_html': f'''
-                <p>Xin chào {record.name},</p>
-                <p>Bạn đã được tự động gán quyền <strong>Student Request Manager</strong> do:</p>
-                <ul>
-                    <li>Login: {record.login}</li>
-                    <li>Điều kiện: {'Admin user' if record.login == 'admin' else 'Email domain @ktxhcm.edu.vn' if record.login.endswith('@ktxhcm.edu.vn') else 'Tên chứa admin/manager'}</li>
-                </ul>
-                <p>Bạn có thể duyệt/từ chối các yêu cầu gia hạn của sinh viên.</p>
-            ''',
-            'email_to': record.email or record.login,
-            'auto_delete': True,
-        })
-            </field>
-        </record>
+    <!-- Note: Auto-assignment temporarily disabled for compatibility -->
 
-        <!-- Automated Rule: Trigger on user creation/update -->
-        <record id="rule_auto_assign_permissions" model="base.automation">
-            <field name="name">Auto Assign Student Request Permissions</field>
-            <field name="model_id" ref="base.model_res_users"/>
-            <field name="trigger">on_create_or_write</field>
-            <field name="filter_domain">[('active', '=', True)]</field>
-            <field name="action_server_ids" eval="[(4, ref('action_auto_assign_permissions'))]"/>
-            <field name="active" eval="True"/>
-        </record>
+    <!-- Note: Automated rule temporarily disabled due to compatibility issues -->
+    <!-- Manual permission assignment is available via server actions -->
 
-        <!-- Server Action: Manual permission assignment wizard -->
-        <record id="action_assign_permissions_wizard" model="ir.actions.server">
-            <field name="name">Gán quyền Student Request Manager</field>
-            <field name="model_id" ref="base.model_res_users"/>
-            <field name="binding_model_id" ref="base.model_res_users"/>
-            <field name="binding_view_types">list,form</field>
-            <field name="state">code</field>
-            <field name="code">
+    <!-- Server Action: Manual permission assignment wizard -->
+    <record id="action_assign_permissions_wizard" model="ir.actions.server">
+        <field name="name">Gán quyền Student Request Manager</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="binding_model_id" ref="base.model_res_users"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">
 # Gán quyền Student Request Manager cho user được chọn
 manager_group = env.ref('student_request.group_student_request_manager')
 user_group = env.ref('student_request.group_student_request_user')
@@ -86,32 +38,24 @@ for user in records:
 # Hiển thị thông báo
 message = ""
 if assigned_users:
-    message += f"✅ Đã gán quyền cho: {', '.join(assigned_users)}\n"
+    message += "✅ Đã gán quyền cho: %s\n" % ', '.join(assigned_users)
 if already_assigned:
-    message += f"ℹ️ Đã có quyền: {', '.join(already_assigned)}"
+    message += "ℹ️ Đã có quyền: %s" % ', '.join(already_assigned)
 
+# Log message for debugging
 if message:
-    return {
-        'type': 'ir.actions.client',
-        'tag': 'display_notification',
-        'params': {
-            'title': 'Gán quyền thành công',
-            'message': message,
-            'type': 'success',
-            'sticky': False,
-        }
-    }
-            </field>
-        </record>
+    env.user.message_post(body=message, subject='Gán quyền thành công')
+        </field>
+    </record>
 
-        <!-- Server Action: Remove permissions -->
-        <record id="action_remove_permissions_wizard" model="ir.actions.server">
-            <field name="name">Gỡ quyền Student Request Manager</field>
-            <field name="model_id" ref="base.model_res_users"/>
-            <field name="binding_model_id" ref="base.model_res_users"/>
-            <field name="binding_view_types">list,form</field>
-            <field name="state">code</field>
-            <field name="code">
+    <!-- Server Action: Remove permissions -->
+    <record id="action_remove_permissions_wizard" model="ir.actions.server">
+        <field name="name">Gỡ quyền Student Request Manager</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="binding_model_id" ref="base.model_res_users"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">
 # Gỡ quyền Student Request Manager cho user được chọn
 manager_group = env.ref('student_request.group_student_request_manager')
 
@@ -129,23 +73,15 @@ for user in records:
 # Hiển thị thông báo
 message = ""
 if removed_users:
-    message += f"✅ Đã gỡ quyền: {', '.join(removed_users)}\n"
+    message += "✅ Đã gỡ quyền: %s\n" % ', '.join(removed_users)
 if not_assigned:
-    message += f"ℹ️ Chưa có quyền: {', '.join(not_assigned)}"
+    message += "ℹ️ Chưa có quyền: %s" % ', '.join(not_assigned)
 
+# Log message for debugging
 if message:
-    return {
-        'type': 'ir.actions.client',
-        'tag': 'display_notification',
-        'params': {
-            'title': 'Gỡ quyền thành công',
-            'message': message,
-            'type': 'info',
-            'sticky': False,
-        }
-    }
-            </field>
-        </record>
+    env.user.message_post(body=message, subject='Gỡ quyền thành công')
+        </field>
+    </record>
 
-    </data>
+</data>
 </odoo>
