@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Enhanced User List View with Permission Info -->
+        <record id="view_users_permission_tree" model="ir.ui.view">
+            <field name="name">res.users.permission.tree</field>
+            <field name="model">res.users</field>
+            <field name="arch" type="xml">
+                <list string="Quản lý quyền User" create="false">
+                    <field name="name"/>
+                    <field name="login"/>
+                    <field name="email"/>
+                    <field name="active"/>
+                    <field name="groups_id" widget="many2many_tags"/>
+                    <field name="create_date"/>
+                    <field name="login_date"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Enhanced User Form View with Permission Management -->
+        <record id="view_users_permission_form" model="ir.ui.view">
+            <field name="name">res.users.permission.form</field>
+            <field name="model">res.users</field>
+            <field name="inherit_id" ref="base.view_users_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//page[@name='access_rights']" position="after">
+                    <page string="Student Request Permissions" name="student_permissions">
+                        <group>
+                            <group string="Quyền hiện tại">
+                                <field name="groups_id" widget="many2many_checkboxes"/>
+                            </group>
+                            <group string="Thông tin quyền">
+                                <div class="alert alert-info" role="alert">
+                                    <h4>Hướng dẫn phân quyền:</h4>
+                                    <ul>
+                                        <li><strong>Student Request User:</strong> Có thể tạo và xem yêu cầu của mình</li>
+                                        <li><strong>Student Request Manager:</strong> Có thể duyệt/từ chối tất cả yêu cầu</li>
+                                    </ul>
+                                </div>
+                            </group>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Permission Management Dashboard -->
+        <record id="view_permission_dashboard" model="ir.ui.view">
+            <field name="name">permission.dashboard</field>
+            <field name="model">res.users</field>
+            <field name="arch" type="xml">
+                <kanban string="Dashboard Quyền User" create="false">
+                    <field name="name"/>
+                    <field name="login"/>
+                    <field name="email"/>
+                    <field name="groups_id"/>
+                    <field name="active"/>
+                    <field name="image_1920"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_card oe_kanban_global_click">
+                                <div class="o_kanban_image">
+                                    <img t-att-src="kanban_image('res.users', 'image_1920', record.id.raw_value)" 
+                                         alt="User" class="o_image_64_cover"/>
+                                </div>
+                                <div class="oe_kanban_details">
+                                    <strong class="o_kanban_record_title">
+                                        <field name="name"/>
+                                    </strong>
+                                    <div class="o_kanban_record_subtitle">
+                                        <field name="login"/>
+                                    </div>
+                                    <div class="o_kanban_record_body">
+                                        <field name="email"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <t t-if="record.groups_id.raw_value.includes(51)">
+                                            <span class="badge badge-success">Manager</span>
+                                        </t>
+                                        <t t-if="record.groups_id.raw_value.includes(52)">
+                                            <span class="badge badge-info">User</span>
+                                        </t>
+                                        <t t-if="!record.active.raw_value">
+                                            <span class="badge badge-secondary">Inactive</span>
+                                        </t>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <!-- Action for User Permission Management -->
+        <record id="action_user_permission_management" model="ir.actions.act_window">
+            <field name="name">Quản lý quyền User</field>
+            <field name="res_model">res.users</field>
+            <field name="view_mode">kanban,list,form</field>
+            <field name="view_ids" eval="[(5, 0, 0),
+                (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_permission_dashboard')}),
+                (0, 0, {'view_mode': 'list', 'view_id': ref('view_users_permission_tree')}),
+                (0, 0, {'view_mode': 'form', 'view_id': ref('view_users_permission_form')})]"/>
+            <field name="domain">[('active', 'in', [True, False])]</field>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Quản lý quyền Student Request cho users
+                </p>
+                <p>
+                    Tại đây bạn có thể:
+                    <ul>
+                        <li>Xem danh sách tất cả users và quyền hiện tại</li>
+                        <li>Gán/gỡ quyền Student Request Manager</li>
+                        <li>Theo dõi hoạt động của users</li>
+                    </ul>
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Item -->
+        <menuitem id="menu_user_permission_management"
+                  name="User Permissions"
+                  action="action_user_permission_management"
+                  sequence="10"
+                  groups="base.group_system"/>
+
+        <!-- Quick Actions Menu -->
+        <menuitem id="menu_permission_quick_actions"
+                  name="Quick Actions"
+                  sequence="11"
+                  groups="base.group_system"/>
+
+        <!-- Auto Assign All Users Action -->
+        <record id="action_auto_assign_all_users" model="ir.actions.server">
+            <field name="name">Tự động gán quyền cho tất cả User</field>
+            <field name="model_id" ref="base.model_res_users"/>
+            <field name="state">code</field>
+            <field name="code">
+# Tự động gán quyền cho tất cả user active
+manager_group = env.ref('student_request.group_student_request_manager')
+user_group = env.ref('student_request.group_student_request_user')
+
+all_users = env['res.users'].search([('active', '=', True)])
+assigned_manager = []
+assigned_user = []
+
+for user in all_users:
+    # Gán quyền user cơ bản cho tất cả
+    if user_group not in user.groups_id:
+        user.write({'groups_id': [(4, user_group.id)]})
+        assigned_user.append(user.name)
+    
+    # Tự động gán quyền manager cho admin hoặc email @ktxhcm.edu.vn
+    auto_manager_conditions = [
+        user.login == 'admin',
+        user.login.endswith('@ktxhcm.edu.vn'),
+        'admin' in user.login.lower(),
+        'manager' in user.login.lower(),
+    ]
+    
+    if any(auto_manager_conditions) and manager_group not in user.groups_id:
+        user.write({'groups_id': [(4, manager_group.id)]})
+        assigned_manager.append(user.name)
+
+# Hiển thị kết quả
+message = f"""
+✅ Hoàn thành tự động gán quyền:
+• Gán quyền User: {len(assigned_user)} users
+• Gán quyền Manager: {len(assigned_manager)} users
+
+Manager được gán: {', '.join(assigned_manager) if assigned_manager else 'Không có'}
+"""
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': 'Tự động gán quyền hoàn thành',
+        'message': message,
+        'type': 'success',
+        'sticky': True,
+    }
+}
+            </field>
+        </record>
+
+        <menuitem id="menu_auto_assign_all"
+                  name="Tự động gán quyền tất cả User"
+                  parent="menu_permission_quick_actions"
+                  action="action_auto_assign_all_users"
+                  sequence="1"/>
+
+    </data>
+</odoo>

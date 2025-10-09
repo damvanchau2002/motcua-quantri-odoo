@@ -1,0 +1,52 @@
+/* Ẩn hoàn toàn chức năng download trong many2many_binary widget */
+
+/* Ẩn tất cả nút download */
+.o_field_many2many_binary .o_attachment .o_attachment_download,
+.o_field_many2many_binary .o_attachment a[href*="/web/content/"],
+.o_field_many2many_binary .o_attachment a[href*="download"],
+.o_field_many2many_binary .o_attachment .btn:contains("Download"),
+.o_field_many2many_binary .o_attachment button:contains("Download") {
+    display: none !important;
+}
+
+/* Ẩn text "Download" */
+.o_field_many2many_binary .o_attachment a:contains("Download") {
+    display: none !important;
+}
+
+/* Ẩn các link có thể download */
+.o_field_many2many_binary .o_attachment a {
+    pointer-events: none !important;
+    text-decoration: none !important;
+    color: #333 !important;
+    cursor: default !important;
+}
+
+.o_field_many2many_binary .o_attachment a:hover {
+    color: #333 !important;
+    text-decoration: none !important;
+}
+
+/* Ẩn icon download */
+.o_field_many2many_binary .o_attachment .fa-download,
+.o_field_many2many_binary .o_attachment .oi-download {
+    display: none !important;
+}
+
+/* Ẩn toàn bộ phần download nếu có class riêng */
+.o_field_many2many_binary .o_attachment_download {
+    display: none !important;
+}
+
+/* Style cho tên file ảnh có thể click (sẽ được thêm bởi JavaScript) */
+.o_field_many2many_binary .o_attachment .o_attachment_name.image-clickable {
+    color: #007bff !important;
+    cursor: pointer !important;
+    text-decoration: underline !important;
+    pointer-events: auto !important;
+}
+
+.o_field_many2many_binary .o_attachment .o_attachment_name.image-clickable:hover {
+    color: #0056b3 !important;
+    text-decoration: underline !important;
+}

@@ -56,7 +56,7 @@
                     <group>
                         <group string="Nội dung yêu cầu">
                             <field name="service_id"/>
-                            <field name="image_attachment_ids" widget="many2many_binary"/>
+                            <field name="image_attachment_ids" widget="many2many_binary" options="{'accepted_file_extensions': '.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp', 'no_download': True}" class="image_attachment_field"/>
                             <field name="note"/>
                             <field name="request_user_id" domain="[('groups_id.name', '=', 'Public')]"/>
                         </group>
@@ -372,5 +372,6 @@
         <field name="view_mode">list,form</field>
     </record>
 
-    
+
+
 </odoo>

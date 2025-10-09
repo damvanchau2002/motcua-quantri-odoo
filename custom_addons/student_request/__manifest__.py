@@ -16,6 +16,8 @@
         'data/service_step_data.xml',
         'data/cron_data.xml',
         'data/email_templates.xml',
+        # 'data/automated_actions.xml',  # Tạm comment để kiểm tra
+        # 'data/permission_rules_data.xml',  # Tạm comment để server khởi động
         
         # View files
         'views/service_group_views.xml',
@@ -35,6 +37,8 @@
         'views/email_template.xml',
         'views/maintenance_simple_views.xml',
         'views/maintenance_user_friendly_views.xml',
+        'views/user_permission_views.xml',
+        'views/permission_manager_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',
@@ -46,6 +50,8 @@
         'web.assets_backend': [
             'student_request/static/src/css/hide_checkbox.css',
             'student_request/static/src/css/kanban.css',
+            'student_request/static/src/css/no_download.css',
+            'student_request/static/src/js/image_viewer.js',
         ],
     },
 }

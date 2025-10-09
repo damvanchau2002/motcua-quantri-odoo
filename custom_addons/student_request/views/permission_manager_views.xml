@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Permission Manager Tree View -->
+        <record id="view_permission_manager_tree" model="ir.ui.view">
+            <field name="name">student.permission.manager.tree</field>
+            <field name="model">student.permission.manager</field>
+            <field name="arch" type="xml">
+                <list string="Quy tắc phân quyền tự động">
+                    <field name="name"/>
+                    <field name="condition_type"/>
+                    <field name="condition_value"/>
+                    <field name="target_group"/>
+                    <field name="auto_assign"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Permission Manager Form View -->
+        <record id="view_permission_manager_form" model="ir.ui.view">
+            <field name="name">student.permission.manager.form</field>
+            <field name="model">student.permission.manager</field>
+            <field name="arch" type="xml">
+                <form string="Quy tắc phân quyền tự động">
+                    <header>
+                        <button name="action_apply_to_existing_users" 
+                                string="Áp dụng cho tất cả User hiện có" 
+                                type="object" 
+                                class="btn-primary"
+                                confirm="Bạn có chắc muốn áp dụng quy tắc này cho tất cả users hiện có?"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_button_box" name="button_box">
+                            <button name="toggle_active" type="object" class="oe_stat_button" icon="fa-archive">
+                                <field name="active" widget="boolean_button" options='{"terminology": "archive"}'/>
+                            </button>
+                        </div>
+                        
+                        <group>
+                            <group>
+                                <field name="name" placeholder="VD: Tự động gán Manager cho Admin"/>
+                                <field name="condition_type"/>
+                                <field name="condition_value" 
+                                       placeholder="VD: @ktxhcm.edu.vn hoặc admin*"
+                                       required="condition_type != 'manual'"/>
+                            </group>
+                            <group>
+                                <field name="target_group"/>
+                                <field name="auto_assign"/>
+                            </group>
+                        </group>
+                        
+                        <group string="Hướng dẫn">
+                            <div class="alert alert-info" role="alert">
+                                <h4>Cách sử dụng điều kiện:</h4>
+                                <ul>
+                                    <li><strong>Email domain:</strong> @ktxhcm.edu.vn (gán cho user có email kết thúc bằng domain này)</li>
+                                    <li><strong>Login pattern:</strong> 
+                                        <ul>
+                                            <li>admin* (bắt đầu bằng "admin")</li>
+                                            <li>*manager (kết thúc bằng "manager")</li>
+                                            <li>admin (chứa từ "admin")</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </div>
+                        </group>
+                        
+                        <field name="description" placeholder="Mô tả chi tiết về quy tắc này..."/>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Action for Permission Manager -->
+        <record id="action_permission_manager" model="ir.actions.act_window">
+            <field name="name">Quy tắc phân quyền tự động</field>
+            <field name="res_model">student.permission.manager</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Tạo quy tắc phân quyền tự động
+                </p>
+                <p>
+                    Tạo các quy tắc để tự động gán quyền Student Request cho users dựa trên:
+                    <ul>
+                        <li>Domain email (VD: @ktxhcm.edu.vn)</li>
+                        <li>Pattern login (VD: admin*, *manager)</li>
+                    </ul>
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu for Permission Manager -->
+        <menuitem id="menu_permission_manager"
+                  name="Quy tắc tự động"
+                  parent="menu_permission_quick_actions"
+                  action="action_permission_manager"
+                  sequence="2"/>
+
+        <!-- Enhanced User List with Actions -->
+        <record id="view_users_permission_tree_enhanced" model="ir.ui.view">
+            <field name="name">res.users.permission.tree.enhanced</field>
+            <field name="model">res.users</field>
+            <field name="inherit_id" ref="view_users_permission_tree"/>
+            <field name="arch" type="xml">
+                <list position="attributes">
+                    <attribute name="multi_edit">1</attribute>
+                </list>
+            </field>
+        </record>
+
+        <!-- Add Action Buttons to User Form -->
+        <record id="view_users_permission_form_enhanced" model="ir.ui.view">
+            <field name="name">res.users.permission.form.enhanced</field>
+            <field name="model">res.users</field>
+            <field name="inherit_id" ref="view_users_permission_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//page[@name='student_permissions']//group[2]" position="after">
+                    <group string="Thao tác nhanh">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <button name="action_assign_student_permissions" 
+                                        string="Gán quyền User" 
+                                        type="object" 
+                                        class="btn btn-primary btn-sm"/>
+                            </div>
+                            <div class="col-md-4">
+                                <button name="action_assign_manager_permissions" 
+                                        string="Gán quyền Manager" 
+                                        type="object" 
+                                        class="btn btn-success btn-sm"/>
+                            </div>
+                            <div class="col-md-4">
+                                <button name="action_remove_student_permissions" 
+                                        string="Gỡ tất cả quyền" 
+                                        type="object" 
+                                        class="btn btn-warning btn-sm"
+                                        confirm="Bạn có chắc muốn gỡ tất cả quyền Student Request?"/>
+                            </div>
+                        </div>
+                    </group>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Mass Action for Users -->
+        <record id="action_mass_assign_user_permissions" model="ir.actions.server">
+            <field name="name">Gán quyền User hàng loạt</field>
+            <field name="model_id" ref="base.model_res_users"/>
+            <field name="binding_model_id" ref="base.model_res_users"/>
+            <field name="state">code</field>
+            <field name="code">
+if records:
+    action = records.action_assign_student_permissions()
+            </field>
+        </record>
+
+        <record id="action_mass_assign_manager_permissions" model="ir.actions.server">
+            <field name="name">Gán quyền Manager hàng loạt</field>
+            <field name="model_id" ref="base.model_res_users"/>
+            <field name="binding_model_id" ref="base.model_res_users"/>
+            <field name="state">code</field>
+            <field name="code">
+if records:
+    action = records.action_assign_manager_permissions()
+            </field>
+        </record>
+
+        <record id="action_mass_remove_permissions" model="ir.actions.server">
+            <field name="name">Gỡ quyền Student Request hàng loạt</field>
+            <field name="model_id" ref="base.model_res_users"/>
+            <field name="binding_model_id" ref="base.model_res_users"/>
+            <field name="state">code</field>
+            <field name="code">
+if records:
+    action = records.action_remove_student_permissions()
+            </field>
+        </record>
+
+    </data>
+</odoo>
