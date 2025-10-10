@@ -17,7 +17,7 @@
         'data/cron_data.xml',
         'data/email_templates.xml',
         'data/automated_actions.xml',  # Fixed XML validation error
-        'data/permission_rules_data.xml',  # Tạm comment để server khởi động
+        # 'data/permission_rules_data.xml',  # Commented out to remove permission restrictions
         
         # View files
         'views/service_group_views.xml',
@@ -45,7 +45,7 @@
     ],
     'installable': True,
     'application': True,
-    'post_init_hook': 'post_init_hook',  # Temporarily commented out
+    # 'post_init_hook': 'post_init_hook',  # Commented out to remove permission setup
     'assets': {
         'web.assets_backend': [
             'student_request/static/src/css/hide_checkbox.css',
