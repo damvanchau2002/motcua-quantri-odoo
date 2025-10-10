@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime
 import os
 import json
@@ -762,7 +763,6 @@ class StudentUserProfile(models.Model):
     _description = 'Thông tin sinh viên KTX'
 
     user_id = fields.Many2one('res.users', string='User', ondelete='cascade')
-    
     avatar_url = fields.Char('Avatar URL')
     birthday = fields.Date('Ngày sinh')
     gender = fields.Boolean(string='Giới tính')
@@ -786,35 +786,7 @@ class StudentUserProfile(models.Model):
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
 
-    # def action_back(self):
-    #     return {
-    #         'type': 'ir.actions.act_window',
-    #         'name': 'Thông tin sinh viên KTX',
-    #         'res_model': 'student.user.profile',
-    #         'view_mode': 'list',
-    #         'target': 'current',
-    #     }
-    @api.model
-    def create(self, vals):
-        if vals.get("is_fetched_from_api"):
-            return super().create(vals)
-
-        id_card_number = vals.get("id_card_number")
-        if id_card_number and not self.env.context.get("skip_ktx_api"):
-            existing = self.search([("id_card_number", "=", id_card_number)], limit=1)
-            if existing:
-                return existing
-
-            self.with_context(skip_ktx_api=True)._fetch_and_update_from_ktx_api(id_card_number)
-            profile = self.search([("id_card_number", "=", id_card_number)], limit=1)
-            return profile or super().create(vals)
-
-        return super().create(vals)
-
-    # ==========================================================
-    # HÀM xử lý chính: gọi API hệ thống KTX
-    # ==========================================================
-    def _fetch_and_update_from_ktx_api(self, id_card_number):
+    def action_fetch_and_create_profile(self, id_card_number):
         external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/GetStudentInfo"
         payload = {
             "username": id_card_number,
@@ -944,7 +916,6 @@ class StudentUserProfile(models.Model):
                 # Tạo student.user.profile mới
                 self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].create(
                     {
-                        "is_fetched_from_api": True,
                         "user_id": user.id,
                         "student_code": student_code,
                         "avatar_url": avatar_url,
@@ -1040,6 +1011,43 @@ class StudentUserProfile(models.Model):
         #             "func": "_fetch_and_update_from_ktx_api",
         #         }
         #     )
+
+class StudentUserProfileWizard(models.TransientModel):
+    _name = "student.user.profile.wizard"
+    _description = "Quản lý sinh viên KTX"
+
+    id_card_number = fields.Char("Số CCCD")
+    student_profile_ids = fields.Many2many(
+        "student.user.profile",
+        string="Danh sách sinh viên"
+    )
+
+    @api.model
+    def default_get(self, fields_list):
+        """Tự động load danh sách sinh viên khi mở wizard"""
+        res = super().default_get(fields_list)
+        students = self.env["student.user.profile"].search([])
+        res["student_profile_ids"] = [(6, 0, students.ids)]
+        return res
+
+    def action_create_profile(self):
+        """Gọi hàm tạo profile từ model chính."""
+        self.ensure_one()
+        id_card = (self.id_card_number or "").strip()
+        if not id_card:
+            raise UserError("Vui lòng nhập số CCCD.")
+
+        self.env['student.user.profile'].action_fetch_and_create_profile(id_card)
+
+        # Reload lại wizard (có danh sách mới)
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'student.user.profile.wizard',
+            'view_mode': 'form',
+            'target': 'current',
+            'name': 'Quản lý sinh viên KTX',
+        }
+
 
 # Model quản lý thông tin quản trị viên
 class StudentAdminProfile(models.Model):

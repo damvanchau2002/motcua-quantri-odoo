@@ -1,58 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Cấu hình tài khoản duyệt -->
-    <record id="view_student_manage_admin_list" model="ir.ui.view">
+    <!-- List view -->
+    <record id="view_student_user_profile_list" model="ir.ui.view">
         <field name="name">student.user.profile.list</field>
         <field name="model">student.user.profile</field>
         <field name="arch" type="xml">
-            <list string="Quản lý sinh viên KTX">
-                <field name="user_id"/>
-                <field name="dormitory_full_name"/>
-                <field name="university_name"/>
+            <list string="Danh sách sinh viên" create="false" edit="false">
                 <field name="student_code"/>
                 <field name="id_card_number"/>
+                <field name="university_name"/>
+                <field name="dormitory_full_name"/>
                 <field name="dormitory_house_name"/>
+                <field name="dormitory_room_id"/>
                 <field name="dormitory_room_type_name"/>
             </list>
         </field>
     </record>
 
-    <record id="view_student_manage_admin_form" model="ir.ui.view">
-        <field name="name">student.user.profile.form</field>
-        <field name="model">student.user.profile</field>
+    <!-- Wizard -->
+    <record id="view_student_user_profile_wizard_form" model="ir.ui.view">
+        <field name="name">student.user.profile.wizard.form</field>
+        <field name="model">student.user.profile.wizard</field>
         <field name="arch" type="xml">
-            <form string="Thông tin sinh viên">
-                <!-- <header>
-                    <button name="action_back" string="Quay lại" type="object" class="btn-secondary"
-                            modifiers='{"invisible": [["id", "=", false]]}'/>
-                </header> -->
-                <sheet>
-                    <group string="Thông tin">
-                        <!-- Khi tạo mới: chỉ hiển thị trường CCCD -->
-                        <group invisible="user_id">
-                            <field name="user_id" readonly="1" invisible="True"/>
-                            <field name="id_card_number" placeholder="Nhập số CCCD" required="1"/>
-                        </group>
+            <form string="Quản lý sinh viên KTX">
+                <group>
+                    <field name="id_card_number" placeholder="Nhập số CCCD..."/>
+                    <button name="action_create_profile"
+                            type="object"
+                            string="Thêm sinh viên"
+                            class="btn-primary"
+                            icon="fa-plus"/>
+                </group>
 
-                        <!-- Khi đã có record -->
-                        <group invisible="not user_id">
-                            <field name="user_id" readonly="1"/>
-                            <field name="dormitory_full_name" readonly="1"/>
-                            <field name="university_name" readonly="1"/>
-                            <field name="student_code" readonly="1"/>
-                            <field name="id_card_number" readonly="1"/>
-                            <field name="dormitory_house_name" readonly="1"/>
-                            <field name="dormitory_room_type_name" readonly="1"/>
-                        </group>
-                    </group>
-                </sheet>
+                <separator string="Danh sách sinh viên KTX"/>
+
+                <field name="student_profile_ids"
+                    nolabel="1"
+                    context="{'tree_view_ref': 'student_request.view_student_user_profile_list'}"
+                    widget="many2many_tree"
+                    options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"
+                    readonly="1"/>
             </form>
         </field>
     </record>
 
+    <!-- Action mở wizard -->
     <record id="action_student_manage_admin_menu" model="ir.actions.act_window">
         <field name="name">Quản lý sinh viên KTX</field>
-        <field name="res_model">student.user.profile</field>
-        <field name="view_mode">list,form</field>
+        <field name="res_model">student.user.profile.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
     </record>
 </odoo>
