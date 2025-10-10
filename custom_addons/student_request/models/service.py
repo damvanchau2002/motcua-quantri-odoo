@@ -254,9 +254,83 @@ class ServiceRequestStep(models.Model):
 
     # BASE
     request_id = fields.Many2one('student.service.request', string='Dịch vụ', ondelete='cascade')
-    base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt', ondelete='cascade')
-    base_secquence = fields.Integer('Thứ tự', related='base_step_id.sequence', help='Thứ tự của bước duyệt trong quy trình')
+    # Liên kết bản ghi lựa chọn bước duyệt theo dịch vụ
+    selection_id = fields.Many2one(
+        'student.service.step.selection',
+        string='Bước duyệt (theo dịch vụ)',
+        compute='_compute_selection_id',
+        store=False,
+        readonly=True
+    )
+    # Giữ tương thích: lấy bước gốc từ selection_id.step_id
+    base_step_id = fields.Many2one(
+        'student.service.step',
+        string='Thông tin bước duyệt',
+        ondelete='set null'
+    )
+    # Thứ tự lấy theo cấu hình selection
+    base_secquence = fields.Integer(
+        'Thứ tự',
+        related='selection_id.sequence',
+        help='Thứ tự của bước duyệt trong quy trình',
+        readonly=True,
+        store=True
+    )
     activated = fields.Boolean('Đã kích hoạt', default=False)
+
+    # Hiển thị các bước duyệt cấu hình theo dịch vụ của yêu cầu hiện tại
+    # Liên kết trực tiếp từ request_id.service_step_selection_ids để dùng trong form bước duyệt
+    step_selection_ids = fields.Many2many(
+        related='request_id.service_step_selection_ids',
+        string='Các bước duyệt (theo dịch vụ)',
+        readonly=True
+    )
+
+    # Tên bước hiển thị theo cấu hình dịch vụ
+    display_step_name = fields.Char(
+        string='Tên bước hiển thị',
+        compute='_compute_display_step_name',
+        store=False,
+        readonly=True
+    )
+
+    @api.depends('selection_id', 'base_step_id', 'request_id.service_step_selection_ids')
+    def _compute_display_step_name(self):
+        for rec in self:
+            # Ưu tiên tên theo selection của chính dòng bước này
+            name = ''
+            if rec.selection_id:
+                name = rec.selection_id.name or rec.selection_id.step_name or ''
+            # Fallback theo bước gốc nếu selection chưa xác định
+            if not name:
+                name = rec.base_step_id.name if rec.base_step_id else ''
+            rec.display_step_name = name
+
+    @api.depends('request_id.service_step_selection_ids', 'request_id.step_ids', 'base_step_id')
+    def _compute_selection_id(self):
+        for rec in self:
+            selection = False
+            if rec.request_id:
+                # Lấy danh sách selection theo thứ tự cấu hình
+                selections = rec.request_id.service_step_selection_ids.sorted(lambda s: s.sequence)
+                # Lấy danh sách các bước của request theo thứ tự tạo (id tăng dần)
+                steps = rec.request_id.step_ids.sorted(lambda s: s.id)
+
+                # Ánh xạ theo vị trí tạo: index của rec trong steps -> selection cùng index
+                try:
+                    idx = steps.ids.index(rec.id)
+                    if idx < len(selections):
+                        selection = selections[idx]
+                except ValueError:
+                    selection = False
+
+                # Fallback: nếu không xác định theo vị trí, map theo step_id với sequence nhỏ nhất
+                if not selection and rec.base_step_id:
+                    matched = selections.filtered(lambda s: s.step_id.id == rec.base_step_id.id)
+                    if matched:
+                        selection = matched.sorted(lambda s: s.sequence)[0]
+
+            rec.selection_id = selection
 
     # TÌNH TRẠNG XỬ LÝ
     state = fields.Selection([
@@ -321,12 +395,12 @@ class ServiceRequestStep(models.Model):
             if not rec.request_id:
                 continue
 
-            # Lấy tất cả step trong request, sort theo sequence
-            steps = rec.request_id.step_ids.sorted(lambda s: s.base_step_id.sequence or 0)
+            # Lấy tất cả step trong request, sort theo thứ tự đã cấu hình (selection.sequence)
+            steps = rec.request_id.step_ids.sorted(lambda s: s.base_secquence or 0)
 
-            # Tìm step ngay trước step hiện tại
+            # Tìm step ngay trước step hiện tại theo thứ tự cấu hình
             prev_steps = steps.filtered(
-                lambda s: (s.base_step_id.sequence or 0) < (rec.base_step_id.sequence or 0)
+                lambda s: (s.base_secquence or 0) < (rec.base_secquence or 0)
             )
 
             if not prev_steps:
@@ -387,6 +461,15 @@ class ServiceRequest(models.Model):
     # NỘI DUNG YÊU CẦU
     # Đầu vào của yêu cầu dịch vụ:
     service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, help='Dịch vụ mà sinh viên yêu cầu')
+    # Các bước duyệt hiển thị theo dịch vụ của yêu cầu hiện tại
+    # Liên kết trực tiếp từ service_id.step_selection_ids để dùng ở form bước duyệt
+    service_step_selection_ids = fields.Many2many(
+        'student.service.step.selection',
+        string='Các bước duyệt (theo dịch vụ)',
+        compute='_compute_service_step_selection_ids',
+        store=False,
+        readonly=True
+    )
     name = fields.Char('Tên yêu cầu', required=False, help='Tên yêu cầu tạo bởi: Tên sv + Tên dịch vụ')
     note = fields.Text('Ghi chú', help='Ghi chú bổ sung cho yêu cầu dịch vụ do SV nhập')
     image_attachment_ids = fields.Many2many(
@@ -397,6 +480,11 @@ class ServiceRequest(models.Model):
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
         ondelete='cascade'
     )
+
+    @api.depends('service_id', 'service_id.step_selection_ids')
+    def _compute_service_step_selection_ids(self):
+        for rec in self:
+            rec.service_step_selection_ids = rec.service_id.step_selection_ids
 
     # SINH VIÊN GỬI YÊU CẦU
     request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ', ondelete='cascade')
@@ -419,7 +507,13 @@ class ServiceRequest(models.Model):
 
     # THÔNG TIN CÁC BƯỚC
     # Tạo tự động theo setup Service:
-    step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này',domain=[('disabled', '=', False)], order='sequence asc')
+    # Bao gồm đầy đủ các bước (cả đang khóa/mở) để đảm bảo logic thứ tự và ánh xạ chính xác
+    step_ids = fields.One2many(
+        'student.service.request.step',
+        'request_id',
+        string='Các bước quy trình của dịch vụ này',
+        order='base_secquence asc, id asc'
+    )
     
     # DUYỆT
     # Lấy user trong role_ids dồn vào đây, field users sẽ chứa tất cả người dùng có quyền duyệt, đã duyệt và sẽ duyệt dịch vụ này

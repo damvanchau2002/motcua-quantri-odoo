@@ -366,7 +366,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'is_new': False,
         'user_processing_id': nextuserid if nextuserid else department_user_id if department_user_id else None, # Phân công
         'final_state': act,
-        'final_data': final_data if step.base_step_id.sequence == 99 else '',
+        'final_data': final_data if step.base_secquence == 99 else '',
         'department_ids': [(4, department_id)] if department_id else [],
     })
 
