@@ -4,8 +4,11 @@ from dateutil.relativedelta import relativedelta
 import requests
 from odoo import models, fields, api
 from datetime import timedelta
+import logging
 
-from odoo.exceptions import UserError 
+from odoo.exceptions import UserError, ValidationError
+
+_logger = logging.getLogger(__name__) 
 from ..controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
 from ..controllers.service_api.request_api import create_request, update_request_step
 
@@ -117,6 +120,7 @@ class Service(models.Model):
     files = fields.Many2many('student.service.file', string='Files cần gửi kèm', ondelete='cascade')
 
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt', ondelete='cascade')
+    step_selection_ids = fields.One2many('student.service.step.selection', 'service_id', string='Thông tin duyệt dịch vụ', help='Các bước duyệt với thứ tự tùy chỉnh')
 
     users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này', ondelete='cascade')
     role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này', ondelete='cascade')
@@ -125,10 +129,44 @@ class Service(models.Model):
     def get_group_system_id(self):
         return self.env.ref('base.group_system').id
 
+    @api.constrains('step_selection_ids')
+    def _check_step_selection_ids_required(self):
+        for rec in self:
+            # Chỉ kiểm tra constraint khi record đã được tạo và có ID
+            if rec.id and not rec.step_selection_ids:
+                raise ValidationError('Vui lòng thêm ít nhất một bước duyệt cho dịch vụ.')
+
+    def write(self, vals):
+        _logger.info(f"Service write called with vals: {vals}")
+        
+        if 'step_selection_ids' in vals:
+            _logger.info(f"step_selection_ids being updated: {vals['step_selection_ids']}")
+        
+        try:
+            result = super().write(vals)
+            _logger.info(f"Service write completed successfully")
+            return result
+        except Exception as e:
+            _logger.error(f"Error in Service write: {str(e)}")
+            raise
+
+    def read(self, fields=None, load='_classic_read'):
+        _logger.info(f"Service read called for IDs: {self.ids}, fields: {fields}")
+        result = super().read(fields, load)
+        
+        # Log step_selection_ids data if it's being read
+        if not fields or 'step_selection_ids' in fields:
+            for record in result:
+                if 'step_selection_ids' in record:
+                    _logger.info(f"Service ID {record.get('id')}: step_selection_ids = {record['step_selection_ids']}")
+        
+        return result
+
+    # Giữ lại constraint cũ để tương thích ngược
     @api.constrains('step_ids')
     def _check_step_ids_required(self):
         for rec in self:
-            if not rec.step_ids:
+            if not rec.step_ids and not rec.step_selection_ids:
                 raise ValidationError('Vui lòng thêm ít nhất một bước duyệt cho dịch vụ.')
 
 
@@ -149,6 +187,15 @@ class ServiceStep(models.Model):
     role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này', ondelete='cascade')
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này', ondelete='cascade')
     # / tạm thời chưa dùng
+
+    def name_get(self):
+        """Hiển thị nhãn có STT: 'Bước <sequence>: <name>'"""
+        result = []
+        for record in self:
+            seq = record.sequence or 0
+            base = record.name or ''
+            result.append((record.id, f"Bước {seq}: {base}" if base else f"Bước {seq}"))
+        return result
 
     def action_back(self):
         return {
@@ -1210,3 +1257,76 @@ class StudentServiceReport(models.Model):
                 rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests 
             else: 
                 rec.processed_percent = 0.0
+
+
+# Model trung gian để lưu thứ tự tùy chỉnh và cho phép lặp lại các bước
+class ServiceStepSelection(models.Model):
+    _name = 'student.service.step.selection'
+    _description = 'Lựa chọn bước duyệt cho dịch vụ'
+    _order = 'sequence'
+    _rec_name = 'name'
+
+    service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, ondelete='cascade')
+    step_id = fields.Many2one('student.service.step', string='Bước duyệt', required=True, ondelete='cascade')
+    sequence = fields.Integer('Thứ tự', default=1, help='Thứ tự thực hiện bước trong dịch vụ')
+    
+    # Các trường liên quan từ step_id để hiển thị
+    step_name = fields.Char('Tên bước', related='step_id.name', readonly=True, store=True)
+    step_description = fields.Text('Mô tả bước', related='step_id.description', readonly=True, store=True)
+
+    # Tên hiển thị rõ ràng cho tag: "Bước <sequence>: <step_name>"
+    name = fields.Char(string='Tên hiển thị', compute='_compute_name', store=False)
+
+    @api.depends('sequence', 'step_name')
+    def _compute_name(self):
+        for record in self:
+            if record.step_name:
+                record.name = f"Bước {record.sequence}: {record.step_name}"
+            else:
+                record.name = f"Bước {record.sequence}"
+
+    def name_get(self):
+        """Override name_get to display both sequence and step name"""
+        result = []
+        stt = 1
+        for record in self:
+            display = record.name or (record.step_id.name if record.step_id else False)
+            if display:
+                result.append((record.id, display))
+            else:
+                result.append((record.id, f"Bước {record.sequence}"))
+            stt += 1
+        return result
+
+    @api.model
+    def create(self, vals):
+        _logger.info(f"ServiceStepSelection create called with vals: {vals}")
+        
+        # Tự động gán sequence nếu không có
+        if 'sequence' not in vals or vals['sequence'] == 0:
+            service_id = vals.get('service_id')
+            if service_id:
+                last_sequence = self.search([('service_id', '=', service_id)], order='sequence desc', limit=1)
+                vals['sequence'] = (last_sequence.sequence + 1) if last_sequence else 1
+                _logger.info(f"Auto-assigned sequence: {vals['sequence']}")
+        
+        try:
+            result = super().create(vals)
+            _logger.info(f"ServiceStepSelection created successfully with ID: {result.id}")
+            return result
+        except Exception as e:
+            _logger.error(f"Error creating ServiceStepSelection: {str(e)}")
+            raise
+
+    def read(self, fields=None, load='_classic_read'):
+        _logger.info(f"ServiceStepSelection read called for IDs: {self.ids}, fields: {fields}")
+        result = super().read(fields, load)
+        _logger.info(f"ServiceStepSelection read result: {result}")
+        return result
+
+    @api.model
+    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
+        _logger.info(f"ServiceStepSelection search_read called with domain: {domain}, fields: {fields}")
+        result = super().search_read(domain, fields, offset, limit, order)
+        _logger.info(f"ServiceStepSelection search_read result count: {len(result)}")
+        return result

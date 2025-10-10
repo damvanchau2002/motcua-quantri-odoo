@@ -3,6 +3,7 @@ access_student_request_bulk_assign_wizard,student.request.bulk.assign.wizard,mod
 access_student_service,student.service,model_student_service,,1,1,1,1
 access_student_service_file,student.service.file,model_student_service_file,,1,1,1,1
 access_student_service_step,student.service.step,model_student_service_step,,1,1,1,1
+access_student_service_step_selection,student.service.step.selection,model_student_service_step_selection,,1,1,1,1
 access_student_service_group_user,student.service.group,model_student_service_group,,1,1,1,1
 access_student_service_group_public,student.service.group,model_student_service_group,,1,0,0,0
 access_student_service_request_user,student.service.request user,model_student_service_request,base.group_user,1,1,1,1
