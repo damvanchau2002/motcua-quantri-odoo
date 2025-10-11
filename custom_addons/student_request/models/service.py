@@ -1414,48 +1414,37 @@ class StudentServiceReportWizard(models.TransientModel):
         total_pending = 0
         total_overdue = 0
 
-        for row in rows:
-            # Cộng tổng
-            total_requests += row.get("total_requests", 0)
-            total_processed += row.get("processed_requests", 0)
-            total_pending += row.get("pending_requests", 0)
-            total_overdue += row.get("overdue_requests", 0)
-
-            # Tạo bản ghi báo cáo
-            self.env['student.service.report'].create({
-                **row,
-                "wizard_id": self.id
-            })
-
-        # Tạo tổng cộng cuối cùng
-        if rows:
-            total_requests = sum(row.get("total_requests", 0) for row in rows)
-            total_processed = sum(row.get("processed_requests", 0) for row in rows)
-            total_pending = sum(row.get("pending_requests", 0) for row in rows)
-            total_overdue = sum(row.get("overdue_requests", 0) for row in rows)
-            percent = (total_processed * 100.0 / total_requests) if total_requests else 0.0
-
-            self.env['student.service.report'].create({
-                "wizard_id": self.id,
-                "period": "Tổng cộng",
-                "area_name": "",
-                "cluster_name": "",
-                "group_name": "",
-                "service_name": "",
-                "total_requests": total_requests,
-                "processed_requests": total_processed,
-                "pending_requests": total_pending,
-                "overdue_requests": total_overdue,
-                "processed_percent": percent,
-            })
-
-        # Hiển thị lại chính form này, có kết quả One2many
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'student.service.report.wizard',
-            'res_id': self.id,
-            'view_mode': 'form',
-            'target': 'current',
+        self.env.cr.execute(query, params) 
+        rows = self.env.cr.dictfetchall() 
+        total_requests = total_processed = total_pending = total_overdue = 0 
+        for row in rows: 
+            total_requests += row.get("total_requests", 0) 
+            total_processed += row.get("processed_requests", 0) 
+            total_pending += row.get("pending_requests", 0) 
+            total_overdue += row.get("overdue_requests", 0) 
+            self.env['student.service.report'].create({ **row, "wizard_id": self.id }) 
+        if rows: 
+            percent = (total_processed * 100.0 / total_requests) if total_requests else 0.0 
+            self.env['student.service.report'].create({ 
+                "wizard_id": self.id, 
+                "period": "Tổng cộng", 
+                "area_name": "", 
+                "cluster_name": "", 
+                "group_name": "", 
+                "service_name": "", 
+                "total_requests": total_requests, 
+                "processed_requests": total_processed, 
+                "pending_requests": total_pending, 
+                "overdue_requests": total_overdue, 
+                "processed_percent": percent, 
+            }) 
+        # ⚡ Không return act_window (để form không reload) 
+        return { 
+        'effect': { 
+            'fadeout': 'slow', 
+            'message': 'Đã cập nhật báo cáo', 
+            'type': 'rainbow_man', 
+            } 
         }
 
 

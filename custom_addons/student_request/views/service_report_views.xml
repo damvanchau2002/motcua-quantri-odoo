@@ -5,7 +5,7 @@
         <field name="name">student.service.report.wizard.form</field>
         <field name="model">student.service.report.wizard</field>
         <field name="arch" type="xml">
-            <form string="Báo cáo thống kê yêu cầu" create="false" edit="false">
+            <form string="Báo cáo thống kê yêu cầu" create="false" edit="true">
 
                 <!-- ===== Header Buttons ===== -->
                 <header>
