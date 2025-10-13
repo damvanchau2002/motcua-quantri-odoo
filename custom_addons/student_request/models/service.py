@@ -1,15 +1,16 @@
+import base64
+from datetime import datetime
 import os
 import json
 from dateutil.relativedelta import relativedelta
 import requests
 from odoo import models, fields, api
 from datetime import timedelta
-import logging
+import requests as py_requests
 
 from odoo.exceptions import UserError, ValidationError
-
-_logger = logging.getLogger(__name__) 
-from ..controllers.service_api.utils import send_fcm_notify, send_fcm_users, send_fcm_request
+from odoo.http import request 
+from ..controllers.service_api.utils import add_user_to_firebase_topic, convert_date, remove_user_from_all_firebase_topics, send_fcm_notify, send_fcm_users, send_fcm_request
 from ..controllers.service_api.request_api import create_request, update_request_step
 
 # Đồng bộ khu vực và cụm KTX
@@ -977,8 +978,7 @@ class StudentUserProfile(models.Model):
     _name = 'student.user.profile'
     _description = 'Thông tin sinh viên KTX'
 
-    user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
-    
+    user_id = fields.Many2one('res.users', string='User', ondelete='cascade')
     avatar_url = fields.Char('Avatar URL')
     birthday = fields.Date('Ngày sinh')
     gender = fields.Boolean(string='Giới tính')
@@ -1001,6 +1001,269 @@ class StudentUserProfile(models.Model):
     dormitory_room_type_name = fields.Char('Loại phòng ký túc xá')
     fcm_token = fields.Char('FCM Token', help='Firebase Cloud Messaging Token cho thông báo đẩy')
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
+
+    def action_fetch_and_create_profile(self, id_card_number):
+        external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/GetStudentInfo"
+        payload = {
+            "username": id_card_number,
+        }
+        resp = py_requests.post(
+            external_api_url,
+            json=payload,
+            timeout=10,
+            verify=False,
+            headers={"x-api-key": "motcua_ktx_maia_apikey"},
+        )
+
+        if resp.status_code != 200:
+            raise Exception(f"Lỗi kết nối API ({resp.status_code}): {resp.text}")
+
+        content_type = resp.headers.get("Content-Type", "")
+        if "application/json" not in content_type:
+            raise Exception("Phản hồi không đúng định dạng JSON")
+
+        external_data = resp.json()
+        success = external_data.get("Success", False)
+        data = external_data.get("Data")
+        message = external_data.get("Message") or "Lỗi không xác định từ hệ thống KTX."
+        if not success or data is None:
+            raise UserError(message)
+
+        # Thành công: xử lý dữ liệu từ external API
+        data = external_data.get("Data", {})
+
+        student_code = data.get("StudentCode")
+        full_name = data.get("FullName")
+        email = data.get("Email")
+        phone = data.get("Phone")
+        gender = data.get("Gender")
+        birthday = convert_date(data.get("Birthday"))
+        university_name = data.get("UniversityName")
+        id_card_number = data.get("IdCardNumber")
+        id_card_date = convert_date(data.get("IdCardDate"))
+        id_card_issued_name = data.get("IdCardIssuedName")
+        address = data.get("Address")
+        district_name = data.get("DistrictName")
+        province_name = data.get("ProvinceName")
+        dormitory_full_name = data.get("DormitoryFullName")
+        dormitory_area_id = data.get("DormitoryAreaId")
+        dormitory_house_name = data.get("DormitoryHouseName")
+        dormitory_cluster_id = data.get("DormitoryClusterId")
+        dormitory_room_type_name = data.get("DormitoryRoomTypeName")
+        dormitory_room_id = data.get("DormitoryRoomId")
+        rent_id = data.get("RentId")
+        avatar_url = data.get("Avatar")
+
+        # ================================================================
+        # Xử lý Area / Cluster (sử dụng self.env thay vì request.env)
+        # ================================================================
+        try:
+            dormitory_area = None
+            if dormitory_area_id:
+                dormitory_area = self.env["student.dormitory.area"].sudo().search(
+                    [("area_id", "=", dormitory_area_id)], limit=1
+                )
+                if not dormitory_area:
+                    dormitory_area = self.env["student.dormitory.area"].sudo().create(
+                        {
+                            "name": f"Area {dormitory_area_id}",
+                            "area_id": dormitory_area_id,
+                        }
+                    )
+
+            dormitory_cluster = None
+            if dormitory_cluster_id:
+                dormitory_cluster = self.env["student.dormitory.cluster"].sudo().search(
+                    [("qlsv_cluster_id", "=", dormitory_cluster_id)], limit=1
+                )
+                if not dormitory_cluster:
+                    dormitory_cluster = self.env["student.dormitory.cluster"].sudo().create(
+                        {
+                            "name": f"{dormitory_area.name if dormitory_area else ''} Cluster {dormitory_cluster_id}",
+                            "qlsv_cluster_id": dormitory_cluster_id,
+                            "qlsv_area_id": dormitory_area.area_id if dormitory_area else False,
+                            "area_id": dormitory_area.id if dormitory_area else False,
+                        }
+                    )
+        except Exception as e:
+            _logger = self.env["ir.logging"]
+            _logger.create(
+                {
+                    "name": "KTX API",
+                    "type": "server",
+                    "dbname": self._cr.dbname,
+                    "level": "ERROR",
+                    "message": f"Lỗi khi tạo area/cluster: {e}",
+                    "path": "student.user.profile",
+                    "func": "_fetch_and_update_from_ktx_api",
+                }
+            )
+            raise Exception(data.get("Message", e.message))
+
+        # ================================================================
+        # Xử lý ảnh avatar (base64)
+        # ================================================================
+        image_data = False
+        if avatar_url:
+            try:
+                resp = py_requests.get(avatar_url)
+                if resp.status_code == 200:
+                    image_data = base64.b64encode(resp.content).decode("utf-8")
+            except Exception:
+                image_data = False
+
+        # ================================================================
+        # Xử lý user và profile
+        # ================================================================
+        user = self.env["res.users"].sudo().search([("login", "=", id_card_number)], limit=1)
+        if not user:
+            vals = {
+                "name": full_name or id_card_number,
+                "login": id_card_number,
+                "active": True,
+                "groups_id": [(6, 0, [self.env.ref("base.group_public").id])],
+                "email": email,
+                "phone": phone,
+                "image_1920": image_data,
+            }
+            user = self.env["res.users"].sudo().create(vals)
+
+            if user:
+                # Tạo student.user.profile mới
+                self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].create(
+                    {
+                        "user_id": user.id,
+                        "student_code": student_code,
+                        "avatar_url": avatar_url,
+                        "birthday": birthday,
+                        "gender": gender,
+                        "university_name": university_name,
+                        "id_card_number": id_card_number,
+                        "id_card_date": id_card_date,
+                        "id_card_issued_name": id_card_issued_name,
+                        "address": address,
+                        "district_name": district_name,
+                        "province_name": province_name,
+                        "dormitory_full_name": dormitory_full_name,
+                        "dormitory_area_id": dormitory_area_id,
+                        "dormitory_house_name": dormitory_house_name,
+                        "dormitory_cluster_id": dormitory_cluster_id,
+                        "dormitory_room_type_name": dormitory_room_type_name,
+                        "dormitory_room_id": dormitory_room_id,
+                        "rent_id": rent_id,
+                        "fcm_token": None,
+                        "device_id": None,
+                    }
+                )
+
+                try:
+                    remove_user_from_all_firebase_topics(self.env, user.id)
+                    add_user_to_firebase_topic(self.env, user.id, dormitory_area_id, dormitory_cluster_id)
+                except Exception as e:
+                    _logger.create(
+                        {
+                            "name": "KTX API Firebase",
+                            "type": "server",
+                            "dbname": self._cr.dbname,
+                            "level": "ERROR",
+                            "message": f"Lỗi Firebase topic: {e}",
+                            "path": "student.user.profile",
+                            "func": "_fetch_and_update_from_ktx_api",
+                        }
+                    )
+        else:
+            # Cập nhật user đã tồn tại
+            user.sudo().write(
+                {
+                    "email": email,
+                    "phone": phone,
+                    "image_1920": image_data,
+                }
+            )
+
+            # Cập nhật hoặc tạo profile
+            profile = self.env["student.user.profile"].sudo().search([("user_id", "=", user.id)], limit=1)
+            profile_vals = {
+                "student_code": student_code,
+                "avatar_url": avatar_url,
+                "birthday": birthday,
+                "gender": gender,
+                "university_name": university_name,
+                "id_card_number": id_card_number,
+                "id_card_date": id_card_date,
+                "id_card_issued_name": id_card_issued_name,
+                "address": address,
+                "district_name": district_name,
+                "province_name": province_name,
+                "dormitory_full_name": dormitory_full_name,
+                "dormitory_area_id": dormitory_area_id,
+                "dormitory_house_name": dormitory_house_name,
+                "dormitory_cluster_id": dormitory_cluster_id,
+                "dormitory_room_type_name": dormitory_room_type_name,
+                "dormitory_room_id": dormitory_room_id,
+                "rent_id": rent_id,
+                "fcm_token": None,
+                "device_id": None,
+            }
+
+            if profile:
+                profile.sudo().write(profile_vals)
+            else:
+                self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].sudo().create(
+                    {"user_id": user.id, **profile_vals}
+                )
+
+        # except Exception as e:
+        #     _logger = self.env["ir.logging"]
+        #     _logger.create(
+        #         {
+        #             "name": "KTX API",
+        #             "type": "server",
+        #             "dbname": self._cr.dbname,
+        #             "level": "ERROR",
+        #             "message": f"Lỗi khi gọi API KTX: {e}",
+        #             "path": "student.user.profile",
+        #             "line": "0",
+        #             "func": "_fetch_and_update_from_ktx_api",
+        #         }
+        #     )
+
+class StudentUserProfileWizard(models.TransientModel):
+    _name = "student.user.profile.wizard"
+    _description = "Quản lý sinh viên KTX"
+
+    id_card_number = fields.Char("Số CCCD")
+    student_profile_ids = fields.Many2many(
+        "student.user.profile",
+        string="Danh sách sinh viên"
+    )
+
+    @api.model
+    def default_get(self, fields_list):
+        """Tự động load danh sách sinh viên khi mở wizard"""
+        res = super().default_get(fields_list)
+        students = self.env["student.user.profile"].search([])
+        res["student_profile_ids"] = [(6, 0, students.ids)]
+        return res
+
+    def action_create_profile(self):
+        """Gọi hàm tạo profile từ model chính."""
+        self.ensure_one()
+        id_card = (self.id_card_number or "").strip()
+        if not id_card:
+            raise UserError("Vui lòng nhập số CCCD.")
+
+        self.env['student.user.profile'].action_fetch_and_create_profile(id_card)
+
+        # Reload lại wizard (có danh sách mới)
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'student.user.profile.wizard',
+            'view_mode': 'form',
+            'target': 'current',
+            'name': 'Quản lý sinh viên KTX',
+        }
+
 
 # Model quản lý thông tin quản trị viên
 class StudentAdminProfile(models.Model):
@@ -1238,7 +1501,7 @@ class StudentServiceRequestResult(models.Model):
 
 class StudentServiceReportWizard(models.TransientModel):
     _name = "student.service.report.wizard"
-    _description = "Báo cáo"
+    _description = "Báo cáo thống kê yêu cầu"
 
     mode = fields.Selection([
         ('day', 'Ngày'),
@@ -1255,66 +1518,59 @@ class StudentServiceReportWizard(models.TransientModel):
     from_year = fields.Integer(string="Từ năm")
     to_year = fields.Integer(string="Đến năm")
 
+    report_line_ids = fields.One2many(
+        'student.service.report',
+        'wizard_id',
+        string="Kết quả báo cáo"
+    )
+
     @api.onchange('mode')
     def _onchange_mode(self):
         self.from_date = self.to_date = False
         self.from_month = self.to_month = False
         self.from_year = self.to_year = False
 
-    def _get_report_title(self):
-        if self.mode == 'day':
-            return f"Báo cáo thống kê số lượng yêu cầu theo Ngày (Từ {self.from_date} đến {self.to_date})"
-        elif self.mode == 'month':
-            return f"Báo cáo thống kê số lượng yêu cầu theo Tháng (Từ {self.from_month} đến {self.to_month})"
-        elif self.mode == 'year':
-            return f"Báo cáo thống kê số lượng yêu cầu theo Năm (Từ {self.from_year} đến {self.to_year})"
-        return "Báo cáo"
-
     def action_generate_report(self):
         self.ensure_one()
+
+        # Xóa kết quả cũ
+        self.report_line_ids.unlink()
+
         params = {"mode": self.mode}
         where_clause = ""
 
-        # --- DAY ---
         if self.mode == 'day':
             if not (self.from_date and self.to_date):
-                raise UserError("Vui lòng nhập khoảng từ ngày đến ngày.")
-
-            # cộng thêm 1 ngày để lọc đến 23:59:59
-            to_date_plus = self.to_date + relativedelta(days=1)
-
+                raise UserError("Vui lòng nhập khoảng ngày.")
+            formatted_from_date = self.from_date.strftime("%d/%m/%Y")
+            formatted_to_date = self.to_date.strftime("%d/%m/%Y")
+            parse_to_date = datetime.strptime(formatted_to_date, "%d/%m/%Y").date() + relativedelta(days=1)
+            parse_from_date = datetime.strptime(formatted_from_date, "%d/%m/%Y").date()
             where_clause = """
-                WHERE r.request_date >= %(from_date)s
-                  AND r.request_date < %(to_date_plus)s
+                WHERE r.request_date >= %(parse_from_date)s
+                  AND r.request_date < %(parse_to_date)s
             """
             params.update({
-                "from_date": self.from_date,
-                "to_date_plus": to_date_plus
+                "parse_from_date": parse_from_date,
+                "parse_to_date": parse_to_date
             })
 
-        # --- MONTH ---
         elif self.mode == 'month':
             if not (self.from_month and self.to_month):
-                raise UserError("Vui lòng nhập khoảng từ tháng đến tháng.")
-
-            # where_clause dùng TO_DATE để convert 'MM/YYYY' -> date
+                raise UserError("Vui lòng nhập khoảng tháng.")
             where_clause = """
                 WHERE r.request_date >= DATE_TRUNC('month', TO_DATE(%(from_month)s, 'MM/YYYY'))
                 AND r.request_date < DATE_TRUNC('month', TO_DATE(%(to_month)s, 'MM/YYYY') + INTERVAL '1 month')
             """
-
             params.update({
-                "from_month": self.from_month,   # dạng '09/2025'
-                "to_month": self.to_month,       # dạng '12/2025'
+                "from_month": self.from_month,
+                "to_month": self.to_month,
             })
 
-        # --- YEAR ---
         elif self.mode == 'year':
             if not (self.from_year and self.to_year):
-                raise UserError("Vui lòng nhập khoảng từ năm đến năm.")
-
+                raise UserError("Vui lòng nhập khoảng năm.")
             to_year_plus = self.to_year + 1
-
             where_clause = """
                 WHERE r.request_date >= MAKE_DATE(%(from_year)s, 1, 1)
                   AND r.request_date < MAKE_DATE(%(to_year_plus)s, 1, 1)
@@ -1335,7 +1591,6 @@ class StudentServiceReportWizard(models.TransientModel):
                     WHEN %(mode)s = 'month' THEN TO_CHAR(r.request_date, 'MM/YYYY')
                     WHEN %(mode)s = 'year'  THEN TO_CHAR(r.request_date, 'YYYY')
                 END AS period,
-                MIN(r.request_date)::date AS min_request_date,
                 COUNT(r.id) AS total_requests,
                 COUNT(CASE WHEN r.final_state NOT IN ('pending','assigned') THEN 1 END) AS processed_requests,
                 COUNT(CASE WHEN r.final_state IN ('pending','assigned') THEN 1 END) AS pending_requests,
@@ -1361,8 +1616,13 @@ class StudentServiceReportWizard(models.TransientModel):
         self.env.cr.execute(query, params)
         rows = self.env.cr.dictfetchall()
 
+        # for row in rows:
+        #     self.env['student.service.report'].create({
+        #         **row,
+        #         "wizard_id": self.id
+        #     })
         # Xóa dữ liệu cũ
-        self.env['student.service.report'].search([]).unlink()
+        self.report_line_ids.unlink()
 
         # Biến tổng
         total_requests = 0
@@ -1370,135 +1630,60 @@ class StudentServiceReportWizard(models.TransientModel):
         total_pending = 0
         total_overdue = 0
 
-        for row in rows:
-            row.pop("min_request_date", None)
-            total_requests += row.get("total_requests", 0)
-            total_processed += row.get("processed_requests", 0)
-            total_pending += row.get("pending_requests", 0)
-            total_overdue += row.get("overdue_requests", 0)
-            self.env['student.service.report'].create(row)
+        self.env.cr.execute(query, params) 
+        rows = self.env.cr.dictfetchall() 
+        total_requests = total_processed = total_pending = total_overdue = 0 
+        for row in rows: 
+            total_requests += row.get("total_requests", 0) 
+            total_processed += row.get("processed_requests", 0) 
+            total_pending += row.get("pending_requests", 0) 
+            total_overdue += row.get("overdue_requests", 0) 
+            self.env['student.service.report'].create({ **row, "wizard_id": self.id }) 
+        if rows: 
+            percent = (total_processed * 100.0 / total_requests) if total_requests else 0.0 
+            self.env['student.service.report'].create({ 
+                "wizard_id": self.id, 
+                "period": "Tổng cộng", 
+                "area_name": "", 
+                "cluster_name": "", 
+                "group_name": "", 
+                "service_name": "", 
+                "total_requests": total_requests, 
+                "processed_requests": total_processed, 
+                "pending_requests": total_pending, 
+                "overdue_requests": total_overdue, 
+                "processed_percent": percent, 
+            }) 
+        # ⚡ Không return act_window (để form không reload) 
+        # return { 
+        # 'effect': { 
+        #     'fadeout': 'slow', 
+        #     'message': 'Đã cập nhật báo cáo', 
+        #     'type': 'rainbow_man', 
+        #     } 
+        # }
 
-        # Thêm dòng tổng cộng
-        if rows:
-            percent = (total_processed * 100.0 / total_requests) if total_requests else 0.0
-            self.env['student.service.report'].create({
-                "period": "Tổng cộng",
-                "area_name": "",
-                "cluster_name": "",
-                "group_name": "",
-                "service_name": "",
-                "total_requests": total_requests,
-                "processed_requests": total_processed,
-                "pending_requests": total_pending,
-                "overdue_requests": total_overdue,
-                "processed_percent": percent,
-            })
 
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Báo cáo',
-            'res_model': 'student.service.report',
-            'view_mode': 'list',
-            'target': 'current',
-            'context': {
-                'report_title': self._get_report_title(),
-            }
-        }
+class StudentServiceReport(models.TransientModel):
+    _name = "student.service.report"
+    _description = "Chi tiết báo cáo"
 
-class StudentServiceReport(models.Model): 
-    _name = "student.service.report" 
-    _description = "Báo cáo" 
-    _rec_name = "period" 
-    _auto = True
-    # Model báo cáo không có bảng thật 
-    report_title = fields.Char( string="Tiêu đề báo cáo", compute="_compute_report_title", store=False ) 
-    period = fields.Char(string='Ngày/Tháng/Năm') 
-    area_name = fields.Char(string='Khu ký túc xá') 
-    cluster_name = fields.Char(string='Cụm') 
-    group_name = fields.Char(string='Nhóm') 
-    service_name = fields.Char(string='Dịch vụ') 
-    total_requests = fields.Integer(string='Tổng yêu cầu') 
-    processed_requests = fields.Integer(string='Đã xử lý') 
-    pending_requests = fields.Integer(string='Chưa xử lý') 
-    overdue_requests = fields.Integer(string='Quá hạn') 
-    processed_percent = fields.Float( string='% Xử lý', compute="_compute_processed_percent", store=False ) 
-    @api.depends('processed_requests', 'total_requests') 
-    def _compute_processed_percent(self): 
-        for rec in self: 
-            if rec.total_requests: 
-                rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests 
-            else: 
+    wizard_id = fields.Many2one('student.service.report.wizard')
+    period = fields.Char(string='Ngày/Tháng/Năm')
+    area_name = fields.Char(string='Khu ký túc xá')
+    cluster_name = fields.Char(string='Cụm')
+    group_name = fields.Char(string='Nhóm')
+    service_name = fields.Char(string='Dịch vụ')
+    total_requests = fields.Integer(string='Tổng yêu cầu')
+    processed_requests = fields.Integer(string='Đã xử lý')
+    pending_requests = fields.Integer(string='Chưa xử lý')
+    overdue_requests = fields.Integer(string='Quá hạn')
+    processed_percent = fields.Float(string='% Xử lý', compute="_compute_processed_percent", store=False)
+
+    @api.depends('processed_requests', 'total_requests')
+    def _compute_processed_percent(self):
+        for rec in self:
+            if rec.total_requests:
+                rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests
+            else:
                 rec.processed_percent = 0.0
-
-
-# Model trung gian để lưu thứ tự tùy chỉnh và cho phép lặp lại các bước
-class ServiceStepSelection(models.Model):
-    _name = 'student.service.step.selection'
-    _description = 'Lựa chọn bước duyệt cho dịch vụ'
-    _order = 'sequence'
-    _rec_name = 'name'
-
-    service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, ondelete='cascade')
-    step_id = fields.Many2one('student.service.step', string='Bước duyệt', required=True, ondelete='cascade')
-    sequence = fields.Integer('Thứ tự', default=1, help='Thứ tự thực hiện bước trong dịch vụ')
-    
-    # Các trường liên quan từ step_id để hiển thị
-    step_name = fields.Char('Tên bước', related='step_id.name', readonly=True, store=True)
-    step_description = fields.Text('Mô tả bước', related='step_id.description', readonly=True, store=True)
-
-    # Tên hiển thị rõ ràng cho tag: "Bước <sequence>: <step_name>"
-    name = fields.Char(string='Tên hiển thị', compute='_compute_name', store=False)
-
-    @api.depends('sequence', 'step_name')
-    def _compute_name(self):
-        for record in self:
-            if record.step_name:
-                record.name = f"Bước {record.sequence}: {record.step_name}"
-            else:
-                record.name = f"Bước {record.sequence}"
-
-    def name_get(self):
-        """Override name_get to display both sequence and step name"""
-        result = []
-        stt = 1
-        for record in self:
-            display = record.name or (record.step_id.name if record.step_id else False)
-            if display:
-                result.append((record.id, display))
-            else:
-                result.append((record.id, f"Bước {record.sequence}"))
-            stt += 1
-        return result
-
-    @api.model
-    def create(self, vals):
-        _logger.info(f"ServiceStepSelection create called with vals: {vals}")
-        
-        # Tự động gán sequence nếu không có
-        if 'sequence' not in vals or vals['sequence'] == 0:
-            service_id = vals.get('service_id')
-            if service_id:
-                last_sequence = self.search([('service_id', '=', service_id)], order='sequence desc', limit=1)
-                vals['sequence'] = (last_sequence.sequence + 1) if last_sequence else 1
-                _logger.info(f"Auto-assigned sequence: {vals['sequence']}")
-        
-        try:
-            result = super().create(vals)
-            _logger.info(f"ServiceStepSelection created successfully with ID: {result.id}")
-            return result
-        except Exception as e:
-            _logger.error(f"Error creating ServiceStepSelection: {str(e)}")
-            raise
-
-    def read(self, fields=None, load='_classic_read'):
-        _logger.info(f"ServiceStepSelection read called for IDs: {self.ids}, fields: {fields}")
-        result = super().read(fields, load)
-        _logger.info(f"ServiceStepSelection read result: {result}")
-        return result
-
-    @api.model
-    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
-        _logger.info(f"ServiceStepSelection search_read called with domain: {domain}, fields: {fields}")
-        result = super().search_read(domain, fields, offset, limit, order)
-        _logger.info(f"ServiceStepSelection search_read result count: {len(result)}")
-        return result
