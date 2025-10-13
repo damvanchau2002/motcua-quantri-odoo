@@ -212,47 +212,27 @@ def send_fcm_users(env, user_ids, title, body, data):
     """
     Send FCM to specific users with improved error handling
     """
-    # Sanitize and normalize target user IDs
-    safe_user_ids = []
-    try:
-        safe_user_ids = [int(u) for u in user_ids if u]
-    except Exception:
-        # In case of unexpected types, fallback to empty list
-        safe_user_ids = [u.id for u in user_ids if getattr(u, 'id', None)]
-
-    if not safe_user_ids:
-        # Still create a notify record for tracking with a meaningful message
-        return env['student.notify'].sudo().create({
-            'notify_type': 'users',
-            'title': title,
-            'body': body,
-            'data': data,
-            'user_ids': [(6, 0, [])],
-            'fcm_success_count': 0,
-            'fcm_failure_count': 0,
-            'fcm_responses': 'No target users to send notification',
-        })
     try:
         firebase_app = get_firebase_app()
     except Exception as e:
         print(f"Failed to get Firebase app in send_fcm_users: {str(e)}")
-        # Still create notify record for tracking, using proper M2M command and sanitized IDs
+        # Still create notify record for tracking
         return env['student.notify'].sudo().create({
             'notify_type': 'users',
             'title': title,
             'body': body,
             'data': data,
-            'user_ids': [(6, 0, safe_user_ids)],
+            'user_ids': user_ids,
             'fcm_success_count': 0,
-            'fcm_failure_count': len(safe_user_ids),
+            'fcm_failure_count': len(user_ids),
             'fcm_responses': f'Firebase initialization error: {str(e)}',
         })
 
     # Get FCM tokens from both admin and user profiles
     tokens = []
     try:
-        admins_profiles = env['student.admin.profile'].sudo().search([('user_id', 'in', safe_user_ids)])
-        users_profiles = env['student.user.profile'].sudo().search([('user_id', 'in', safe_user_ids)])
+        admins_profiles = env['student.admin.profile'].sudo().search([('user_id', 'in', user_ids)])
+        users_profiles = env['student.user.profile'].sudo().search([('user_id', 'in', user_ids)])
         tokens += [p.fcm_token for p in admins_profiles if p.fcm_token]
         tokens += [p.fcm_token for p in users_profiles if p.fcm_token]
     except Exception as e:
@@ -264,7 +244,7 @@ def send_fcm_users(env, user_ids, title, body, data):
         'title': title,
         'body': body,
         'data': data,
-        'user_ids': [(6, 0, safe_user_ids)],
+        'user_ids': [(6, 0, user_ids)],
         'fcm_success_count': 0,
         'fcm_failure_count': 0,
         'fcm_responses': '',
@@ -470,18 +450,7 @@ def send_fcm_request(env, request_obj, send_type=0):
 
         elif send_type == 13: # Gửi thông báo yêu cầu sắp hết hạn
             action = 'Thông báo yêu cầu sắp hết hạn'
-            # Ưu tiên gửi cho người đang xử lý, nếu không có thì gửi cho danh sách người duyệt dịch vụ
-            recipients = []
-            try:
-                if getattr(request_obj, 'user_processing_id', False) and request_obj.user_processing_id:
-                    recipients = [request_obj.user_processing_id.id] if request_obj.user_processing_id.id else []
-                else:
-                    recipients = [u.id for u in (request_obj.users or []) if u and u.id]
-            except Exception:
-                recipients = []
-
-            if recipients:
-                send_fcm_users(env, recipients, f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn sắp hết hạn', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} sắp hết hạn, cần bạn xử lý gấp hoặc gia hạn yêu cầu này', data)
+            send_fcm_users(env, [request_obj.user_processing_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn sắp hết hạn', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} sắp hết hạn, cần bạn xử lý gấp hoặc gia hạn yêu cầu này', data)
             title = f"{action}: {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
             body = f"Yêu cầu {request_obj.name} sắp hết hạn xử lý: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
 

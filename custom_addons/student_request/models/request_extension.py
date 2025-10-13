@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import logging
 
 _logger = logging.getLogger(__name__)
-from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
 
 
 class RequestExtension(models.Model):
@@ -160,29 +159,6 @@ class RequestExtension(models.Model):
                         f"chỉ có thể gia hạn thêm tối đa {max_hours - (total_hours - record.hours)} giờ."
                     )
 
-    def _format_dt_for_user(self, dt, user_id=None, fmt='%d/%m/%Y %H:%M'):
-        """Trả về chuỗi thời gian theo múi giờ người dùng.
-        Ưu tiên dùng format_datetime_local; fallback context timezone rồi strftime.
-        """
-        if not dt:
-            return 'N/A'
-        try:
-            text = format_datetime_local(dt, user_id=user_id)
-            if text:
-                return text
-        except Exception:
-            pass
-        try:
-            local_dt = fields.Datetime.context_timestamp(self, dt)
-            if local_dt:
-                return local_dt.strftime(fmt)
-        except Exception:
-            pass
-        try:
-            return dt.strftime(fmt)
-        except Exception:
-            return str(dt)
-
     def action_submit(self):
         """Gửi yêu cầu gia hạn"""
         self.ensure_one()
@@ -199,18 +175,7 @@ class RequestExtension(models.Model):
             message_type='notification'
         )
         
-        # Gửi email thông báo cho người xử lý/manager
-        try:
-            template = self.env.ref('student_request.email_template_extension_submitted', raise_if_not_found=False)
-            if template:
-                # Sử dụng sudo để đảm bảo có quyền đọc request_id khi render email
-                request_date_text = self._format_dt_for_user(self.request_date, user_id=(self.requested_by.id if self.requested_by else None))
-                template.sudo().with_context(request_date_text=request_date_text).send_mail(self.id, force_send=True)
-                _logger.info(f"Đã gửi email thông báo gửi gia hạn cho extension ID: {self.id}")
-            else:
-                _logger.warning("Không tìm thấy template email_template_extension_submitted")
-        except Exception as e:
-            _logger.error(f"Lỗi khi gửi email thông báo gửi gia hạn: {e}")
+        # TODO: Gửi email thông báo cho manager
         return True
 
     def action_approve(self):
@@ -234,29 +199,12 @@ class RequestExtension(models.Model):
         })
         
         # Ghi log vào chatter
-        # Hiển thị deadline theo múi giờ của người dùng
-        try:
-            local_deadline = fields.Datetime.context_timestamp(self, new_deadline)
-            deadline_text = local_deadline.strftime('%d/%m/%Y %H:%M') if local_deadline else new_deadline.strftime('%d/%m/%Y %H:%M')
-        except Exception:
-            deadline_text = new_deadline.strftime('%d/%m/%Y %H:%M')
         self.message_post(
-            body=f"Yêu cầu gia hạn đã được duyệt. Deadline mới: {deadline_text}",
+            body=f"Yêu cầu gia hạn đã được duyệt. Deadline mới: {new_deadline.strftime('%d/%m/%Y %H:%M')}",
             message_type='notification'
         )
         
-        # Gửi email thông báo cho người yêu cầu
-        try:
-            template = self.env.ref('student_request.email_template_extension_approved', raise_if_not_found=False)
-            if template:
-                # Sử dụng sudo để đảm bảo có quyền đọc request_id khi render email
-                new_deadline_text = self._format_dt_for_user(self.new_deadline, user_id=(self.requested_by.id if self.requested_by else None))
-                template.sudo().with_context(new_deadline_text=new_deadline_text).send_mail(self.id, force_send=True)
-                _logger.info(f"Đã gửi email duyệt gia hạn cho extension ID: {self.id}")
-            else:
-                _logger.warning("Không tìm thấy template email_template_extension_approved")
-        except Exception as e:
-            _logger.error(f"Lỗi khi gửi email duyệt gia hạn: {e}")
+        # TODO: Gửi email thông báo cho người yêu cầu
         return True
 
     def action_reject(self):
@@ -287,28 +235,6 @@ class RequestExtension(models.Model):
         })
         
         return True
-
-    def write(self, vals):
-        """Đảm bảo luôn có rejection_date khi chuyển sang trạng thái 'rejected' và gửi email tự động."""
-        # Nếu chuyển sang 'rejected' mà chưa cung cấp rejection_date thì tự động set tại đây
-        vals_to_write = dict(vals)
-        if vals_to_write.get('state') == 'rejected' and not vals_to_write.get('rejection_date'):
-            vals_to_write['rejection_date'] = fields.Datetime.now()
-
-        res = super(RequestExtension, self).write(vals_to_write)
-        try:
-            if vals_to_write.get('state') == 'rejected':
-                template = self.env.ref('student_request.email_template_extension_rejected', raise_if_not_found=False)
-                if template:
-                    for record in self:
-                        rejection_date_text = record._format_dt_for_user(record.rejection_date, user_id=(record.requested_by.id if record.requested_by else None))
-                        template.sudo().with_context(rejection_date_text=rejection_date_text).send_mail(record.id, force_send=True)
-                        _logger.info(f"Đã gửi email từ chối gia hạn (auto) cho extension ID: {record.id}")
-                else:
-                    _logger.warning("Không tìm thấy template email_template_extension_rejected khi auto-send")
-        except Exception as e:
-            _logger.error(f"Lỗi auto-send email khi từ chối gia hạn: {e}")
-        return res
 
     @api.model
     def _setup_admin_permissions(self):
@@ -354,9 +280,7 @@ class RequestExtensionRejectWizard(models.TransientModel):
         try:
             template = self.env.ref('student_request.email_template_extension_rejected')
             if template:
-                # Sử dụng sudo để đảm bảo có quyền đọc request_id khi render email
-                rejection_date_text = self.extension_id._format_dt_for_user(self.extension_id.rejection_date, user_id=(self.extension_id.requested_by.id if self.extension_id.requested_by else None))
-                template.sudo().with_context(rejection_date_text=rejection_date_text).send_mail(self.extension_id.id, force_send=True)
+                template.send_mail(self.extension_id.id, force_send=True)
                 _logger.info(f"Đã gửi email từ chối gia hạn cho extension ID: {self.extension_id.id}")
         except Exception as e:
             _logger.error(f"Lỗi khi gửi email từ chối gia hạn: {e}")

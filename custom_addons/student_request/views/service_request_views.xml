@@ -97,7 +97,7 @@
                                             <!-- field disabled để tính toán, không hiển thị -->
                                             <field name="disabled" invisible="1"/>
                                             <div class="card-header oe_kanban_header">
-                                                <strong><field name="display_step_name"/></strong>
+                                                <strong><field name="base_step_id"/></strong>
                                             </div>
                                             <div class="oe_kanban_details card-body">
                                                 <div>
@@ -106,7 +106,7 @@
                                                 </div>
                                                 <div>Nội dung duyệt: <field name="approve_content"/></div>
                                                 <div>
-                                                    <t t-if="record.base_secquence == 1 and record.request_id and record.request_id.service_id and record.request_id.service_id.files">
+                                                    <t t-if="record.base_step_id and record.base_step_id.sequence == 1 and record.request_id and record.request_id.service_id and record.request_id.service_id.files">
                                                         <div>
                                                             <strong>Files của dịch vụ:</strong>
                                                             <ul style="padding-left: 18px;">
@@ -326,10 +326,7 @@
                     <group>
                         <group string="Thông tin yêu cầu dịch vụ">
                             <field name="request_id" readonly="1"/>
-                            <field name="display_step_name" readonly="1"/>
-                        </group>
-                        <group string="Các bước duyệt (theo dịch vụ)">
-                            <field name="step_selection_ids" widget="many2many_tags" readonly="1"/>
+                            <field name="base_step_id"  readonly="1"/>
                         </group>
                         <group string="Thông tin duyệt">
                             <field name="state"/>

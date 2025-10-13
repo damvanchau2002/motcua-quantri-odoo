@@ -121,7 +121,6 @@ class Service(models.Model):
     files = fields.Many2many('student.service.file', string='Files cần gửi kèm', ondelete='cascade')
 
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt', ondelete='cascade')
-    step_selection_ids = fields.One2many('student.service.step.selection', 'service_id', string='Thông tin duyệt dịch vụ', help='Các bước duyệt với thứ tự tùy chỉnh')
 
     users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này', ondelete='cascade')
     role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này', ondelete='cascade')
@@ -130,44 +129,10 @@ class Service(models.Model):
     def get_group_system_id(self):
         return self.env.ref('base.group_system').id
 
-    @api.constrains('step_selection_ids')
-    def _check_step_selection_ids_required(self):
-        for rec in self:
-            # Chỉ kiểm tra constraint khi record đã được tạo và có ID
-            if rec.id and not rec.step_selection_ids:
-                raise ValidationError('Vui lòng thêm ít nhất một bước duyệt cho dịch vụ.')
-
-    def write(self, vals):
-        _logger.info(f"Service write called with vals: {vals}")
-        
-        if 'step_selection_ids' in vals:
-            _logger.info(f"step_selection_ids being updated: {vals['step_selection_ids']}")
-        
-        try:
-            result = super().write(vals)
-            _logger.info(f"Service write completed successfully")
-            return result
-        except Exception as e:
-            _logger.error(f"Error in Service write: {str(e)}")
-            raise
-
-    def read(self, fields=None, load='_classic_read'):
-        _logger.info(f"Service read called for IDs: {self.ids}, fields: {fields}")
-        result = super().read(fields, load)
-        
-        # Log step_selection_ids data if it's being read
-        if not fields or 'step_selection_ids' in fields:
-            for record in result:
-                if 'step_selection_ids' in record:
-                    _logger.info(f"Service ID {record.get('id')}: step_selection_ids = {record['step_selection_ids']}")
-        
-        return result
-
-    # Giữ lại constraint cũ để tương thích ngược
     @api.constrains('step_ids')
     def _check_step_ids_required(self):
         for rec in self:
-            if not rec.step_ids and not rec.step_selection_ids:
+            if not rec.step_ids:
                 raise ValidationError('Vui lòng thêm ít nhất một bước duyệt cho dịch vụ.')
 
 
@@ -188,15 +153,6 @@ class ServiceStep(models.Model):
     role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này', ondelete='cascade')
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này', ondelete='cascade')
     # / tạm thời chưa dùng
-
-    def name_get(self):
-        """Hiển thị nhãn có STT: 'Bước <sequence>: <name>'"""
-        result = []
-        for record in self:
-            seq = record.sequence or 0
-            base = record.name or ''
-            result.append((record.id, f"Bước {seq}: {base}" if base else f"Bước {seq}"))
-        return result
 
     def action_back(self):
         return {
@@ -255,83 +211,9 @@ class ServiceRequestStep(models.Model):
 
     # BASE
     request_id = fields.Many2one('student.service.request', string='Dịch vụ', ondelete='cascade')
-    # Liên kết bản ghi lựa chọn bước duyệt theo dịch vụ
-    selection_id = fields.Many2one(
-        'student.service.step.selection',
-        string='Bước duyệt (theo dịch vụ)',
-        compute='_compute_selection_id',
-        store=False,
-        readonly=True
-    )
-    # Giữ tương thích: lấy bước gốc từ selection_id.step_id
-    base_step_id = fields.Many2one(
-        'student.service.step',
-        string='Thông tin bước duyệt',
-        ondelete='set null'
-    )
-    # Thứ tự lấy theo cấu hình selection
-    base_secquence = fields.Integer(
-        'Thứ tự',
-        related='selection_id.sequence',
-        help='Thứ tự của bước duyệt trong quy trình',
-        readonly=True,
-        store=True
-    )
+    base_step_id = fields.Many2one('student.service.step', string='Thông tin bước duyệt', ondelete='cascade')
+    base_secquence = fields.Integer('Thứ tự', related='base_step_id.sequence', help='Thứ tự của bước duyệt trong quy trình')
     activated = fields.Boolean('Đã kích hoạt', default=False)
-
-    # Hiển thị các bước duyệt cấu hình theo dịch vụ của yêu cầu hiện tại
-    # Liên kết trực tiếp từ request_id.service_step_selection_ids để dùng trong form bước duyệt
-    step_selection_ids = fields.Many2many(
-        related='request_id.service_step_selection_ids',
-        string='Các bước duyệt (theo dịch vụ)',
-        readonly=True
-    )
-
-    # Tên bước hiển thị theo cấu hình dịch vụ
-    display_step_name = fields.Char(
-        string='Tên bước hiển thị',
-        compute='_compute_display_step_name',
-        store=False,
-        readonly=True
-    )
-
-    @api.depends('selection_id', 'base_step_id', 'request_id.service_step_selection_ids')
-    def _compute_display_step_name(self):
-        for rec in self:
-            # Ưu tiên tên theo selection của chính dòng bước này
-            name = ''
-            if rec.selection_id:
-                name = rec.selection_id.name or rec.selection_id.step_name or ''
-            # Fallback theo bước gốc nếu selection chưa xác định
-            if not name:
-                name = rec.base_step_id.name if rec.base_step_id else ''
-            rec.display_step_name = name
-
-    @api.depends('request_id.service_step_selection_ids', 'request_id.step_ids', 'base_step_id')
-    def _compute_selection_id(self):
-        for rec in self:
-            selection = False
-            if rec.request_id:
-                # Lấy danh sách selection theo thứ tự cấu hình
-                selections = rec.request_id.service_step_selection_ids.sorted(lambda s: s.sequence)
-                # Lấy danh sách các bước của request theo thứ tự tạo (id tăng dần)
-                steps = rec.request_id.step_ids.sorted(lambda s: s.id)
-
-                # Ánh xạ theo vị trí tạo: index của rec trong steps -> selection cùng index
-                try:
-                    idx = steps.ids.index(rec.id)
-                    if idx < len(selections):
-                        selection = selections[idx]
-                except ValueError:
-                    selection = False
-
-                # Fallback: nếu không xác định theo vị trí, map theo step_id với sequence nhỏ nhất
-                if not selection and rec.base_step_id:
-                    matched = selections.filtered(lambda s: s.step_id.id == rec.base_step_id.id)
-                    if matched:
-                        selection = matched.sorted(lambda s: s.sequence)[0]
-
-            rec.selection_id = selection
 
     # TÌNH TRẠNG XỬ LÝ
     state = fields.Selection([
@@ -396,12 +278,12 @@ class ServiceRequestStep(models.Model):
             if not rec.request_id:
                 continue
 
-            # Lấy tất cả step trong request, sort theo thứ tự đã cấu hình (selection.sequence)
-            steps = rec.request_id.step_ids.sorted(lambda s: s.base_secquence or 0)
+            # Lấy tất cả step trong request, sort theo sequence
+            steps = rec.request_id.step_ids.sorted(lambda s: s.base_step_id.sequence or 0)
 
-            # Tìm step ngay trước step hiện tại theo thứ tự cấu hình
+            # Tìm step ngay trước step hiện tại
             prev_steps = steps.filtered(
-                lambda s: (s.base_secquence or 0) < (rec.base_secquence or 0)
+                lambda s: (s.base_step_id.sequence or 0) < (rec.base_step_id.sequence or 0)
             )
 
             if not prev_steps:
@@ -459,44 +341,9 @@ class ServiceRequest(models.Model):
     _name = 'student.service.request'
     _description = 'Yêu cầu dịch vụ của sinh viên'
 
-    def _format_dt_for_user(self, dt, user_id=None, fmt='%d/%m/%Y %H:%M'):
-        """Định dạng datetime theo múi giờ người nhận email.
-
-        Ưu tiên dùng util `format_datetime_local` nếu có, fallback về
-        `context_timestamp` rồi tới `strftime` mặc định.
-        """
-        if not dt:
-            return ''
-        try:
-            from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
-            text = format_datetime_local(dt, user_id=user_id)
-            if text:
-                return text
-        except Exception:
-            pass
-        try:
-            local_dt = fields.Datetime.context_timestamp(self, dt)
-            if local_dt:
-                return local_dt.strftime(fmt)
-        except Exception:
-            pass
-        try:
-            return dt.strftime(fmt)
-        except Exception:
-            return str(dt)
-
     # NỘI DUNG YÊU CẦU
     # Đầu vào của yêu cầu dịch vụ:
     service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, help='Dịch vụ mà sinh viên yêu cầu')
-    # Các bước duyệt hiển thị theo dịch vụ của yêu cầu hiện tại
-    # Liên kết trực tiếp từ service_id.step_selection_ids để dùng ở form bước duyệt
-    service_step_selection_ids = fields.Many2many(
-        'student.service.step.selection',
-        string='Các bước duyệt (theo dịch vụ)',
-        compute='_compute_service_step_selection_ids',
-        store=False,
-        readonly=True
-    )
     name = fields.Char('Tên yêu cầu', required=False, help='Tên yêu cầu tạo bởi: Tên sv + Tên dịch vụ')
     note = fields.Text('Ghi chú', help='Ghi chú bổ sung cho yêu cầu dịch vụ do SV nhập')
     image_attachment_ids = fields.Many2many(
@@ -507,11 +354,6 @@ class ServiceRequest(models.Model):
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
         ondelete='cascade'
     )
-
-    @api.depends('service_id', 'service_id.step_selection_ids')
-    def _compute_service_step_selection_ids(self):
-        for rec in self:
-            rec.service_step_selection_ids = rec.service_id.step_selection_ids
 
     # SINH VIÊN GỬI YÊU CẦU
     request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ', ondelete='cascade')
@@ -534,13 +376,7 @@ class ServiceRequest(models.Model):
 
     # THÔNG TIN CÁC BƯỚC
     # Tạo tự động theo setup Service:
-    # Bao gồm đầy đủ các bước (cả đang khóa/mở) để đảm bảo logic thứ tự và ánh xạ chính xác
-    step_ids = fields.One2many(
-        'student.service.request.step',
-        'request_id',
-        string='Các bước quy trình của dịch vụ này',
-        order='base_secquence asc, id asc'
-    )
+    step_ids = fields.One2many('student.service.request.step', 'request_id', string='Các bước quy trình của dịch vụ này',domain=[('disabled', '=', False)], order='sequence asc')
     
     # DUYỆT
     # Lấy user trong role_ids dồn vào đây, field users sẽ chứa tất cả người dùng có quyền duyệt, đã duyệt và sẽ duyệt dịch vụ này
@@ -813,28 +649,22 @@ class ServiceRequest(models.Model):
                     if email_template:
                         # Xác định người nhận email (người xử lý hoặc admin)
                         recipient_email = None
-                        target_user_id = None
                         if request.user_processing_id and request.user_processing_id.email:
                             recipient_email = request.user_processing_id.email
-                            target_user_id = request.user_processing_id.id
                         elif request.service_id.users:
                             # Lấy email của người duyệt đầu tiên
                             for user in request.service_id.users:
                                 if user.email:
                                     recipient_email = user.email
-                                    target_user_id = user.id
                                     break
                         
                         if recipient_email:
                             # Gửi email với phương pháp đúng - sử dụng send_mail
                             try:
                                 # Tạo context với email_to
-                                from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
                                 email_context = {
                                     'email_to': recipient_email,
-                                    'auto_delete': False,
-                                    'request_date_text': format_datetime_local(request.request_date, user_id=target_user_id) if target_user_id else None,
-                                    'expired_date_text': format_datetime_local(request.expired_date, user_id=target_user_id) if target_user_id else None,
+                                    'auto_delete': False
                                 }
                                 mail_id = email_template.with_context(**email_context).send_mail(request.id, force_send=True)
                                 print(f"Sent expired email notification to {recipient_email} for request {request.name} - Mail ID: {mail_id}")
@@ -902,76 +732,30 @@ class ServiceRequest(models.Model):
             if request.user_processing_id:
                 template = self.env.ref('student_request.email_template_request_expired', raise_if_not_found=False)
                 if template:
-                    target_user_id = request.user_processing_id.id
-                    ctx_vals = {
-                        'request_date_text': self._format_dt_for_user(request.request_date, user_id=target_user_id),
-                        'expired_date_text': self._format_dt_for_user(request.expired_date, user_id=target_user_id),
-                    }
-                    template.sudo().with_context(**ctx_vals).send_mail(request.id, force_send=True)
+                    template.send_mail(request.id, force_send=True)
                     
         except Exception as e:
             print(f"Error sending expiry notification: {str(e)}")
 
     def _send_daily_expired_report(self, expired_requests):
-        """Gửi báo cáo hàng ngày về yêu cầu quá hạn cho lãnh đạo với nội dung chi tiết."""
+        """Gửi báo cáo hàng ngày về yêu cầu quá hạn cho lãnh đạo"""
         try:
+            # Tìm các manager để gửi báo cáo
             managers = self.env['res.users'].search([
                 ('groups_id', 'in', [self.env.ref('student_request.group_student_request_manager').id])
             ])
-
-            # Chuẩn bị dữ liệu báo cáo chi tiết từng yêu cầu
-            report_rows = []
-            for req in expired_requests:
-                # Tính tổng số giờ đã gia hạn (chỉ tính các lần đã được duyệt)
-                approved_ext = req.extension_ids.filtered(lambda e: e.state == 'approved')
-                total_hours = sum(approved_ext.mapped('hours')) if approved_ext else 0
-                extended_days = round(total_hours / 24, 2) if total_hours else 0
-
-                report_rows.append({
-                    'id': req.id,
-                    'code': req.name,
-                    'name': req.name,
-                    'deadline': req.expired_date,
-                    'extended_hours': total_hours,
-                    'extended_days': extended_days,
-                    'reason': req.final_data or req.approve_content or '',
-                })
-
-            template = self.env.ref('student_request.email_template_daily_expired_report', raise_if_not_found=False)
-            if template and managers:
-                now_dt = fields.Datetime.now()
-                for manager in managers:
-                    email_vals = {'email_to': manager.email} if manager.email else {}
-                    # Ánh xạ thời gian theo múi giờ của manager
-                    rows_with_text = []
-                    for row in report_rows:
-                        rows_with_text.append({**row, 'deadline_text': self._format_dt_for_user(row.get('deadline'), user_id=manager.id)})
-                    report_date_text = self._format_dt_for_user(now_dt, user_id=manager.id)
-                    template.sudo().with_context(
-                        report_rows=rows_with_text,
-                        expired_count=len(expired_requests),
-                        manager=manager,
-                        email_to=manager.email,
-                        manager_email=manager.email,
-                        report_date=now_dt,
-                        report_date_text=report_date_text,
-                    ).send_mail(expired_requests[0].id, force_send=True, email_values=email_vals)
+            
+            if managers:
+                template = self.env.ref('student_request.email_template_daily_expired_report', raise_if_not_found=False)
+                if template:
+                    for manager in managers:
+                        template.with_context(
+                            expired_requests=expired_requests,
+                            manager=manager
+                        ).send_mail(expired_requests[0].id, force_send=True)
+                        
         except Exception as e:
             print(f"Error sending daily expired report: {str(e)}")
-
-    @api.model
-    def cron_send_daily_expired_report(self):
-        """Cron hằng ngày: tổng hợp yêu cầu quá hạn và gửi báo cáo cho lãnh đạo"""
-        try:
-            now = fields.Datetime.now()
-            expired_requests = self.search([
-                ('expired_date', '<', now),
-                ('final_state', 'not in', ['closed', 'cancelled', 'approved'])
-            ])
-            if expired_requests:
-                self._send_daily_expired_report(expired_requests)
-        except Exception as e:
-            print(f"Error in cron_send_daily_expired_report: {str(e)}")
     
 # Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):

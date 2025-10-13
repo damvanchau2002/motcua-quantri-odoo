@@ -121,15 +121,14 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
     # Tạo mới yêu cầu các bước xử lý
     received_users = [] # Danh sách user sẽ nhận yêu cầu
     step_ids = [] # Danh sách các bước duyệt
-    for step_selection in service.step_selection_ids.sorted('sequence'):
-        step = step_selection.step_id
+    for step in service.step_ids.sorted('sequence'):
         step_vals = {
             'request_id': False,
             'base_step_id': step.id,
             'state': 'pending',
         }
         step_request = env['student.service.request.step'].sudo().create(step_vals)
-        if step_selection == service.step_selection_ids.sorted('sequence')[0] and service.files:
+        if step == service.step_ids.sorted('sequence')[0] and service.files:
             # Nếu là bước đầu tiên thì gán file_ids từ service.files
             step_request.file_ids = [(6, 0, service.files.ids)]
             # Lấy user duyệt trong cấu hình step đầu tiên
@@ -366,7 +365,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'is_new': False,
         'user_processing_id': nextuserid if nextuserid else department_user_id if department_user_id else None, # Phân công
         'final_state': act,
-        'final_data': final_data if step.base_secquence == 99 else '',
+        'final_data': final_data if step.base_step_id.sequence == 99 else '',
         'department_ids': [(4, department_id)] if department_id else [],
     })
 
