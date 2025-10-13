@@ -27,7 +27,7 @@
                     <field name="id_card_number" placeholder="Nhập số CCCD..."/>
                     <button name="action_create_profile"
                             type="object"
-                            string="Thêm sinh viên"
+                            string="Đồng bộ sinh viên"
                             class="btn-primary"
                             icon="fa-plus"/>
                 </group>

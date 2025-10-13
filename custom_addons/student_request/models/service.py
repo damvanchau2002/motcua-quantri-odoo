@@ -1439,13 +1439,13 @@ class StudentServiceReportWizard(models.TransientModel):
                 "processed_percent": percent, 
             }) 
         # ⚡ Không return act_window (để form không reload) 
-        return { 
-        'effect': { 
-            'fadeout': 'slow', 
-            'message': 'Đã cập nhật báo cáo', 
-            'type': 'rainbow_man', 
-            } 
-        }
+        # return { 
+        # 'effect': { 
+        #     'fadeout': 'slow', 
+        #     'message': 'Đã cập nhật báo cáo', 
+        #     'type': 'rainbow_man', 
+        #     } 
+        # }
 
 
 class StudentServiceReport(models.TransientModel):
