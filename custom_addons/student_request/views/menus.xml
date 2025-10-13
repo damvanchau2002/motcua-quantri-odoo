@@ -33,8 +33,5 @@
     <menuitem id="menu_extension_pending" name="Chờ duyệt gia hạn" parent="menu_extension_management" action="action_request_extension_pending"/>
     <menuitem id="menu_extension_approved" name="Đã duyệt gia hạn" parent="menu_extension_management" action="action_request_extension_approved"/>
 
-    <menuitem id="student_request_review" name="Duyệt comments " parent="student_request_root" />
-    <menuitem id="student_request_review_menu" name="Đánh giá yêu cầu" parent="student_request_review" action="action_student_service_request_review"/>
-    <menuitem id="student_request_complaint_menu" name="Khiếu nại yêu cầu" parent="student_request_review" action="action_student_service_request_complaint"/>
-
+    
 </odoo>

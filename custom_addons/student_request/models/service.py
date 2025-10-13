@@ -458,6 +458,32 @@ class ServiceRequest(models.Model):
     _name = 'student.service.request'
     _description = 'Yêu cầu dịch vụ của sinh viên'
 
+    def _format_dt_for_user(self, dt, user_id=None, fmt='%d/%m/%Y %H:%M'):
+        """Định dạng datetime theo múi giờ người nhận email.
+
+        Ưu tiên dùng util `format_datetime_local` nếu có, fallback về
+        `context_timestamp` rồi tới `strftime` mặc định.
+        """
+        if not dt:
+            return ''
+        try:
+            from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
+            text = format_datetime_local(dt, user_id=user_id)
+            if text:
+                return text
+        except Exception:
+            pass
+        try:
+            local_dt = fields.Datetime.context_timestamp(self, dt)
+            if local_dt:
+                return local_dt.strftime(fmt)
+        except Exception:
+            pass
+        try:
+            return dt.strftime(fmt)
+        except Exception:
+            return str(dt)
+
     # NỘI DUNG YÊU CẦU
     # Đầu vào của yêu cầu dịch vụ:
     service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, help='Dịch vụ mà sinh viên yêu cầu')
@@ -786,22 +812,28 @@ class ServiceRequest(models.Model):
                     if email_template:
                         # Xác định người nhận email (người xử lý hoặc admin)
                         recipient_email = None
+                        target_user_id = None
                         if request.user_processing_id and request.user_processing_id.email:
                             recipient_email = request.user_processing_id.email
+                            target_user_id = request.user_processing_id.id
                         elif request.service_id.users:
                             # Lấy email của người duyệt đầu tiên
                             for user in request.service_id.users:
                                 if user.email:
                                     recipient_email = user.email
+                                    target_user_id = user.id
                                     break
                         
                         if recipient_email:
                             # Gửi email với phương pháp đúng - sử dụng send_mail
                             try:
                                 # Tạo context với email_to
+                                from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
                                 email_context = {
                                     'email_to': recipient_email,
-                                    'auto_delete': False
+                                    'auto_delete': False,
+                                    'request_date_text': format_datetime_local(request.request_date, user_id=target_user_id) if target_user_id else None,
+                                    'expired_date_text': format_datetime_local(request.expired_date, user_id=target_user_id) if target_user_id else None,
                                 }
                                 mail_id = email_template.with_context(**email_context).send_mail(request.id, force_send=True)
                                 print(f"Sent expired email notification to {recipient_email} for request {request.name} - Mail ID: {mail_id}")
@@ -869,30 +901,78 @@ class ServiceRequest(models.Model):
             if request.user_processing_id:
                 template = self.env.ref('student_request.email_template_request_expired', raise_if_not_found=False)
                 if template:
-                    template.send_mail(request.id, force_send=True)
+                    from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
+                    target_user_id = request.user_processing_id.id
+                    ctx_vals = {
+                        'request_date_text': format_datetime_local(request.request_date, user_id=target_user_id),
+                        'expired_date_text': format_datetime_local(request.expired_date, user_id=target_user_id),
+                    }
+                    template.with_context(**ctx_vals).send_mail(request.id, force_send=True)
                     
         except Exception as e:
             print(f"Error sending expiry notification: {str(e)}")
 
     def _send_daily_expired_report(self, expired_requests):
-        """Gửi báo cáo hàng ngày về yêu cầu quá hạn cho lãnh đạo"""
+        """Gửi báo cáo hàng ngày về yêu cầu quá hạn cho lãnh đạo với nội dung chi tiết."""
         try:
-            # Tìm các manager để gửi báo cáo
             managers = self.env['res.users'].search([
                 ('groups_id', 'in', [self.env.ref('student_request.group_student_request_manager').id])
             ])
-            
-            if managers:
-                template = self.env.ref('student_request.email_template_daily_expired_report', raise_if_not_found=False)
-                if template:
-                    for manager in managers:
-                        template.with_context(
-                            expired_requests=expired_requests,
-                            manager=manager
-                        ).send_mail(expired_requests[0].id, force_send=True)
-                        
+
+            # Chuẩn bị dữ liệu báo cáo chi tiết từng yêu cầu
+            report_rows = []
+            for req in expired_requests:
+                # Tính tổng số giờ đã gia hạn (chỉ tính các lần đã được duyệt)
+                approved_ext = req.extension_ids.filtered(lambda e: e.state == 'approved')
+                total_hours = sum(approved_ext.mapped('hours')) if approved_ext else 0
+                extended_days = round(total_hours / 24, 2) if total_hours else 0
+
+                report_rows.append({
+                    'id': req.id,
+                    'code': req.name,
+                    'name': req.name,
+                    'deadline': req.expired_date,
+                    'extended_hours': total_hours,
+                    'extended_days': extended_days,
+                    'reason': req.final_data or req.approve_content or '',
+                })
+
+            template = self.env.ref('student_request.email_template_daily_expired_report', raise_if_not_found=False)
+            if template and managers:
+                from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
+                now_dt = fields.Datetime.now()
+                for manager in managers:
+                    email_vals = {'email_to': manager.email} if manager.email else {}
+                    # Ánh xạ thời gian theo múi giờ của manager
+                    rows_with_text = []
+                    for row in report_rows:
+                        rows_with_text.append({**row, 'deadline_text': format_datetime_local(row.get('deadline'), user_id=manager.id)})
+                    report_date_text = format_datetime_local(now_dt, user_id=manager.id)
+                    template.with_context(
+                        report_rows=rows_with_text,
+                        expired_count=len(expired_requests),
+                        manager=manager,
+                        email_to=manager.email,
+                        manager_email=manager.email,
+                        report_date=now_dt,
+                        report_date_text=report_date_text,
+                    ).send_mail(expired_requests[0].id, force_send=True, email_values=email_vals)
         except Exception as e:
             print(f"Error sending daily expired report: {str(e)}")
+
+    @api.model
+    def cron_send_daily_expired_report(self):
+        """Cron hằng ngày: tổng hợp yêu cầu quá hạn và gửi báo cáo cho lãnh đạo"""
+        try:
+            now = fields.Datetime.now()
+            expired_requests = self.search([
+                ('expired_date', '<', now),
+                ('final_state', 'not in', ['closed', 'cancelled', 'approved'])
+            ])
+            if expired_requests:
+                self._send_daily_expired_report(expired_requests)
+        except Exception as e:
+            print(f"Error in cron_send_daily_expired_report: {str(e)}")
     
 # Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):
