@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List view -->
+    <record id="view_student_user_profile_list" model="ir.ui.view">
+        <field name="name">student.user.profile.list</field>
+        <field name="model">student.user.profile</field>
+        <field name="arch" type="xml">
+            <list string="Danh sách sinh viên" create="false" edit="false">
+                <field name="student_code"/>
+                <field name="id_card_number"/>
+                <field name="university_name"/>
+                <field name="dormitory_full_name"/>
+                <field name="dormitory_house_name"/>
+                <field name="dormitory_room_id"/>
+                <field name="dormitory_room_type_name"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Wizard -->
+    <record id="view_student_user_profile_wizard_form" model="ir.ui.view">
+        <field name="name">student.user.profile.wizard.form</field>
+        <field name="model">student.user.profile.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Quản lý sinh viên KTX">
+                <group>
+                    <field name="id_card_number" placeholder="Nhập số CCCD..."/>
+                    <button name="action_create_profile"
+                            type="object"
+                            string="Đồng bộ sinh viên"
+                            class="btn-primary"
+                            icon="fa-plus"/>
+                </group>
+
+                <separator string="Danh sách sinh viên KTX"/>
+
+                <field name="student_profile_ids"
+                    nolabel="1"
+                    context="{'tree_view_ref': 'student_request.view_student_user_profile_list'}"
+                    widget="many2many_tree"
+                    options="{'no_create': True, 'no_create_edit': True, 'no_open': True}"
+                    readonly="1"/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action mở wizard -->
+    <record id="action_student_manage_admin_menu" model="ir.actions.act_window">
+        <field name="name">Quản lý sinh viên KTX</field>
+        <field name="res_model">student.user.profile.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>
