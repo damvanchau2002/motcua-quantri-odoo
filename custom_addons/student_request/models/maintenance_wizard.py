@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from datetime import datetime, timezone
 
 
 class MaintenanceDashboard(models.TransientModel):
@@ -19,11 +20,11 @@ class MaintenanceDashboard(models.TransientModel):
 
         if status == 'on':
             status_label = '🔴 Đang bảo trì'
-            when = start_time or ''
+            when = self._to_local_str(start_time) if start_time else ''
             prefix = 'Bắt đầu: '
         else:
             status_label = '🟢 Hoạt động bình thường'
-            when = end_time or ''
+            when = self._to_local_str(end_time) if end_time else ''
             prefix = 'Kết thúc: '
 
         updated = f"{prefix}{when}" if when else 'Chưa có thông tin thời gian'
@@ -56,8 +57,28 @@ class MaintenanceDashboard(models.TransientModel):
             rec.maintenance_status = status
             rec.maintenance_message = message or ''
             rec.maintenance_duration = duration or ''
-            rec.maintenance_start_time = start_time or ''
-            rec.maintenance_end_time = end_time or ''
+            rec.maintenance_start_time = self._to_local_str(start_time) if start_time else ''
+            rec.maintenance_end_time = self._to_local_str(end_time) if end_time else ''
+
+    def _to_local_str(self, iso_str):
+        """Convert ISO datetime string (UTC or with tz) to user's local time string (VN format)."""
+        try:
+            # Support both 'Z' suffix and explicit offset
+            dt = datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
+        except Exception:
+            # Fallback to raw string if parsing fails
+            return iso_str
+
+        # Normalize to UTC naive for context_timestamp
+        if dt.tzinfo is not None:
+            dt_utc_naive = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        else:
+            dt_utc_naive = dt
+
+        # Force conversion to Vietnam time regardless of user tz
+        local_dt = fields.Datetime.context_timestamp(self.with_context(tz='Asia/Ho_Chi_Minh'), dt_utc_naive)
+        # VN-friendly format: HH:MM DD/MM/YYYY
+        return local_dt.strftime('%H:%M %d/%m/%Y')
 
 
 class MaintenanceMessageWizard(models.TransientModel):

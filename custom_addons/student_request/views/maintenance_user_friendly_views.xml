@@ -9,13 +9,13 @@
 current_status = env['ir.config_parameter'].sudo().get_param('maintenance.status', 'off')
 if current_status == 'on':
     env['ir.config_parameter'].sudo().set_param('maintenance.status', 'off')
-    env['ir.config_parameter'].sudo().set_param('maintenance.end_time', datetime.datetime.now().isoformat())
+    env['ir.config_parameter'].sudo().set_param('maintenance.end_time', datetime.datetime.utcnow().isoformat() + 'Z')
     title = '🟢 Đã tắt bảo trì'
     message = 'Hệ thống đã hoạt động bình thường'
     notification_type = 'success'
 else:
     env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-    env['ir.config_parameter'].sudo().set_param('maintenance.start_time', datetime.datetime.now().isoformat())
+    env['ir.config_parameter'].sudo().set_param('maintenance.start_time', datetime.datetime.utcnow().isoformat() + 'Z')
     title = '🔴 Đã bật bảo trì'
     message = 'Hệ thống đã chuyển sang chế độ bảo trì'
     notification_type = 'warning'
@@ -33,7 +33,7 @@ action = {
         <field name="state">code</field>
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', datetime.datetime.now().isoformat())
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', datetime.datetime.utcnow().isoformat() + 'Z')
 
 action = {
     'type': 'ir.actions.client',
@@ -48,7 +48,7 @@ action = {
         <field name="state">code</field>
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'off')
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', datetime.datetime.now().isoformat())
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', datetime.datetime.utcnow().isoformat() + 'Z')
 
 action = {
     'type': 'ir.actions.client',
@@ -65,10 +65,10 @@ action = {
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.duration', '30 phút')
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-base = datetime.datetime.now()
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat())
+base = datetime.datetime.utcnow()
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat() + 'Z')
 end_time = base + datetime.timedelta(minutes=30)
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat() + 'Z')
 
 action = {
     'type': 'ir.actions.client',
@@ -84,10 +84,10 @@ action = {
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.duration', '1 giờ')
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-base = datetime.datetime.now()
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat())
+base = datetime.datetime.utcnow()
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat() + 'Z')
 end_time = base + datetime.timedelta(hours=1)
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat() + 'Z')
 
 action = {
     'type': 'ir.actions.client',
@@ -103,10 +103,10 @@ action = {
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.duration', '2 giờ')
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-base = datetime.datetime.now()
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat())
+base = datetime.datetime.utcnow()
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat() + 'Z')
 end_time = base + datetime.timedelta(hours=2)
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat() + 'Z')
 
 action = {
     'type': 'ir.actions.client',
