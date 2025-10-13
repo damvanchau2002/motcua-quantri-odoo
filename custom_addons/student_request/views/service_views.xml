@@ -14,7 +14,7 @@
                 <field name="duration"/>
                 <field name="files" widget="many2many_tags"/>
                 <field name="users" widget="many2many_tags"/>
-                <field name="step_ids" widget="many2many_tags" />
+                <field name="step_selection_ids" widget="many2many_tags" />
                 <button name="unlink" type="object" icon="fa-trash" string="Xóa" title="Xóa Service" confirm="Bạn có chắc chắn muốn xóa Service này?"/>
             </list>
         </field>
@@ -36,11 +36,13 @@
                         </group>
                         <group string="Thông tin duyệt dịch vụ">
                             <field name="files" widget="many2many_tags"/>
-                            <field name="step_ids" widget="many2many_tags" required="1"
-                                domain="[]"
-                                context="{'default_sequence': 1, 'default_nextstep': 99}"
-                                options="{'no_create': true, 'no_create_edit': true}"
-                            />
+                            <field name="step_selection_ids">
+                                <list editable="bottom" default_order="sequence">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="step_id" required="1" options="{'no_create': true, 'no_create_edit': true}" string="Bước duyệt"/>
+                                    <field name="step_description" readonly="1"/>
+                                </list>
+                            </field>
                         </group>
                         <group string="Phân công duyệt">
                             <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Settings')]" help="Người cụ thể nhận được thông báo duyệt dịch vụ này"/>

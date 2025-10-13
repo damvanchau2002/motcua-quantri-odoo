@@ -12,5 +12,19 @@
             <field name="active" eval="True"/>
             <field name="nextcall">2025-10-08 04:00:00</field>
         </record>
+
+        <!-- Cron: Gửi báo cáo quá hạn hằng ngày cho lãnh đạo -->
+        <record id="cron_send_daily_expired_report" model="ir.cron">
+            <field name="name">Gửi báo cáo hằng ngày: Yêu cầu quá hạn</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="state">code</field>
+            <field name="code">env['student.service.request'].cron_send_daily_expired_report()</field>
+            <field name="user_id" ref="base.user_root"/>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+            <!-- Chạy vào cuối ngày (23:00) theo giờ máy chủ -->
+            <field name="nextcall">2025-10-12 23:00:00</field>
+        </record>
     </data>
 </odoo>

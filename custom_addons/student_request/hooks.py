@@ -1,1 +1,0 @@
-# All permission setup hooks have been removed to eliminate access restrictions

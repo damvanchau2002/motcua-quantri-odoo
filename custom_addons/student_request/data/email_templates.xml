@@ -6,18 +6,19 @@
         <record id="email_template_extension_submitted" model="mail.template">
             <field name="name">Thông báo yêu cầu gia hạn được gửi</field>
             <field name="model_id" ref="model_request_extension"/>
-            <field name="subject">Yêu cầu gia hạn đã được gửi - {{ object.request_id.name or 'N/A' }}</field>
+            <field name="subject">Yêu cầu gia hạn đã được gửi - ID: {{ (object.request_id and object.request_id.id) or 'N/A' }}</field>
             <field name="email_to">{{ object.request_id.user_processing_id.email or 'admin@example.com' }}</field>
             <field name="body_html" type="html">
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
                     <h3>Thông báo yêu cầu gia hạn mới</h3>
                     <p>Xin chào,</p>
                     <p>Có một yêu cầu gia hạn mới cần được xử lý:</p>
-                    <ul>
+                        <ul>
                         <li><strong>Mã yêu cầu:</strong> <t t-out="object.request_id.name or 'N/A'"/></li>
+                        <li><strong>ID yêu cầu:</strong> <t t-out="(object.request_id and object.request_id.id) or 'N/A'"/></li>
                         <li><strong>Người yêu cầu:</strong> <t t-out="object.requested_by.name or 'N/A'"/></li>
                         <li><strong>Lý do gia hạn:</strong> <t t-out="object.reason or 'Không có'"/></li>
-                        <li><strong>Ngày yêu cầu:</strong> <t t-out="object.request_date or 'N/A'"/></li>
+                        <li><strong>Ngày yêu cầu:</strong> <t t-out="ctx.get('request_date_text') or format_datetime(object.request_date)"/></li>
                     </ul>
                     <p>Vui lòng đăng nhập vào hệ thống để xử lý yêu cầu này.</p>
                     <p>Trân trọng,<br/>Hệ thống quản lý sinh viên</p>
@@ -29,16 +30,17 @@
         <record id="email_template_extension_approved" model="mail.template">
             <field name="name">Thông báo yêu cầu gia hạn được duyệt</field>
             <field name="model_id" ref="model_request_extension"/>
-            <field name="subject">Yêu cầu gia hạn đã được duyệt - {{ object.request_id.name or 'N/A' }}</field>
+            <field name="subject">Yêu cầu gia hạn đã được duyệt - ID: {{ (object.request_id and object.request_id.id) or 'N/A' }}</field>
             <field name="email_to">{{ object.requested_by.email or 'user@example.com' }}</field>
             <field name="body_html" type="html">
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
                     <h3 style="color: #28a745;">Yêu cầu gia hạn đã được phê duyệt</h3>
                     <p>Xin chào <strong><t t-out="object.requested_by.name or 'Bạn'"/></strong>,</p>
                     <p>Chúng tôi xin thông báo rằng yêu cầu gia hạn của bạn đã được phê duyệt:</p>
-                    <ul>
+                        <ul>
                         <li><strong>Mã yêu cầu:</strong> <t t-out="object.request_id.name or 'N/A'"/></li>
-                        <li><strong>Ngày gia hạn mới:</strong> <t t-out="object.new_deadline or 'N/A'"/></li>
+                        <li><strong>ID yêu cầu:</strong> <t t-out="(object.request_id and object.request_id.id) or 'N/A'"/></li>
+                        <li><strong>Ngày gia hạn mới:</strong> <t t-out="ctx.get('new_deadline_text') or format_datetime(object.new_deadline)"/></li>
                         <li><strong>Lý do gia hạn:</strong> <t t-out="object.reason or 'Không có'"/></li>
                     </ul>
                     <p>Bạn có thể tiếp tục thực hiện yêu cầu của mình trong thời hạn mới.</p>
@@ -51,17 +53,18 @@
         <record id="email_template_extension_rejected" model="mail.template">
             <field name="name">Thông báo yêu cầu gia hạn bị từ chối</field>
             <field name="model_id" ref="model_request_extension"/>
-            <field name="subject">Yêu cầu gia hạn bị từ chối - {{ object.request_id.name or 'N/A' }}</field>
+            <field name="subject">Yêu cầu gia hạn bị từ chối - ID: {{ (object.request_id and object.request_id.id) or 'N/A' }}</field>
             <field name="email_to">{{ object.requested_by.email or 'user@example.com' }}</field>
             <field name="body_html" type="html">
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
                     <h3 style="color: #dc3545;">Yêu cầu gia hạn bị từ chối</h3>
                     <p>Xin chào <strong><t t-out="object.requested_by.name or 'Bạn'"/></strong>,</p>
                     <p>Chúng tôi xin thông báo rằng yêu cầu gia hạn của bạn đã bị từ chối:</p>
-                    <ul>
+                        <ul>
                         <li><strong>Mã yêu cầu:</strong> <t t-out="object.request_id.name or 'N/A'"/></li>
+                        <li><strong>ID yêu cầu:</strong> <t t-out="(object.request_id and object.request_id.id) or 'N/A'"/></li>
                         <li><strong>Lý do từ chối:</strong> <t t-out="object.rejection_reason or 'Không có lý do cụ thể'"/></li>
-                        <li><strong>Ngày từ chối:</strong> <t t-out="object.rejection_date or 'N/A'"/></li>
+                        <li><strong>Ngày từ chối:</strong> <t t-out="ctx.get('rejection_date_text') or format_datetime(object.rejection_date)"/></li>
                     </ul>
                     <p>Nếu bạn có thắc mắc, vui lòng liên hệ với Phòng Đào tạo để được hỗ trợ.</p>
                     <p>Trân trọng,<br/>Phòng Đào tạo</p>
@@ -73,8 +76,8 @@
         <record id="email_template_request_expired" model="mail.template">
             <field name="name">Thông báo yêu cầu quá hạn</field>
             <field name="model_id" ref="model_student_service_request"/>
-            <field name="subject">CẢNH BÁO: Yêu cầu {{ object.name or 'N/A' }} đã quá hạn</field>
-            <field name="email_to">{{ object.user_processing_id.email or 'admin@example.com' }}</field>
+            <field name="subject">CẢNH BÁO: Yêu cầu ${object.name or 'N/A'} đã quá hạn</field>
+            <field name="email_to">${object.user_processing_id.email or 'admin@example.com'}</field>
             <field name="body_html" type="html">
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
                     <h3 style="color: #dc3545;">⚠️ CẢNH BÁO: Yêu cầu quá hạn xử lý</h3>
@@ -83,10 +86,11 @@
                     <div style="background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 10px 0;">
                         <ul>
                             <li><strong>Mã yêu cầu:</strong> <t t-out="object.name or 'N/A'"/></li>
+                            <li><strong>ID yêu cầu:</strong> <t t-out="object.id or 'N/A'"/></li>
                             <li><strong>Loại yêu cầu:</strong> <t t-out="object.service_id.name or 'N/A'"/></li>
                             <li><strong>Sinh viên:</strong> <t t-out="object.request_user_id.name or 'N/A'"/></li>
-                            <li><strong>Ngày tạo:</strong> <t t-out="object.request_date or 'N/A'"/></li>
-                            <li><strong>Hạn xử lý:</strong> <t t-out="object.expired_date or 'N/A'"/></li>
+                            <li><strong>Ngày tạo:</strong> <t t-out="ctx.get('request_date_text') or format_datetime(object.request_date) or 'N/A'"/></li>
+                            <li><strong>Hạn xử lý:</strong> <t t-out="ctx.get('expired_date_text') or format_datetime(object.expired_date) or 'N/A'"/></li>
                             <li><strong>Trạng thái:</strong> <t t-out="object.final_state or 'N/A'"/></li>
                         </ul>
                     </div>
@@ -100,27 +104,60 @@
         <record id="email_template_daily_expired_report" model="mail.template">
             <field name="name">Báo cáo hàng ngày - Yêu cầu quá hạn</field>
             <field name="model_id" ref="model_student_service_request"/>
-            <field name="subject">Báo cáo hàng ngày: Yêu cầu quá hạn - {{ datetime.datetime.now().strftime('%d/%m/%Y') }}</field>
-            <field name="email_to">admin@example.com</field>
+            <field name="subject">Báo cáo hàng ngày: Yêu cầu quá hạn</field>
+            <field name="email_to">{{ ctx.get('manager_email') or 'admin@example.com' }}</field>
             <field name="body_html" type="html">
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
                     <h3>📊 Báo cáo hàng ngày - Yêu cầu quá hạn</h3>
-                    <p>Ngày báo cáo: <strong><t t-out="datetime.datetime.now().strftime('%d/%m/%Y')"/></strong></p>
-                    
+                    <p>Ngày báo cáo: <strong><t t-out="ctx.get('report_date_text') or format_datetime(ctx.get('report_date'))"/></strong></p>
+
                     <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 10px 0;">
                         <h4>Tổng quan:</h4>
                         <p>Đây là báo cáo tự động về các yêu cầu đã quá hạn xử lý trong hệ thống.</p>
                         <p>Vui lòng kiểm tra và xử lý các yêu cầu quá hạn để đảm bảo chất lượng dịch vụ.</p>
+                        <p>Tổng số yêu cầu quá hạn: <strong><t t-out="(ctx.get('expired_count') or 0)"/></strong></p>
+                </div>
+
+                    <t t-set="rows" t-value="ctx.get('report_rows') or []"/>
+                    <t t-if="rows">
+                        <table style="width:100%; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background:#f2f2f2;">
+                                    <th style="border:1px solid #ddd; padding:8px; text-align:left;">Mã yêu cầu</th>
+                                    <!-- Thống nhất hiển thị ID thay vì mã -->
+                                    <!-- Đổi nhãn cột để tránh nhầm lẫn -->
+                                    <th style="display:none">placeholder</th>
+                                    <th style="border:1px solid #ddd; padding:8px; text-align:left;">Tên yêu cầu</th>
+                                    <th style="border:1px solid #ddd; padding:8px; text-align:left;">Deadline</th>
+                                    <th style="border:1px solid #ddd; padding:8px; text-align:left;">Số giờ gia hạn</th>
+                                    <th style="border:1px solid #ddd; padding:8px; text-align:left;">Lý do quá hạn</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="rows" t-as="row">
+                                    <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('id')"/></td>
+                                    <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('name')"/></td>
+                                    <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('deadline_text') or format_datetime(row.get('deadline'))"/></td>
+                                    <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('extended_hours')"/></td>
+                                    <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('reason') or ''"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </t>
+                    <t t-if="not rows">
+                        <p><em>Không có yêu cầu quá hạn trong ngày.</em></p>
+                    </t>
+
+                    <div style="margin-top:16px;">
+                        <h4>Hành động cần thực hiện:</h4>
+                        <ul>
+                            <li>Đăng nhập vào hệ thống để xem chi tiết các yêu cầu quá hạn</li>
+                            <li>Liên hệ với các bộ phận liên quan để xử lý</li>
+                            <li>Cập nhật trạng thái xử lý cho các yêu cầu</li>
+                        </ul>
                     </div>
-                    
-                    <p><strong>Hành động cần thực hiện:</strong></p>
-                    <ul>
-                        <li>Đăng nhập vào hệ thống để xem chi tiết các yêu cầu quá hạn</li>
-                        <li>Liên hệ với các bộ phận liên quan để xử lý</li>
-                        <li>Cập nhật trạng thái xử lý cho các yêu cầu</li>
-                    </ul>
-                    
-                    <p>Trân trọng,<br/>Hệ thống quản lý sinh viên</p>
+
+                    <p style="margin-top:12px;">Trân trọng,<br/>Hệ thống quản lý sinh viên</p>
                 </div>
             </field>
         </record>

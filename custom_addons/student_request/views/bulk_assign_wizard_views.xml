@@ -7,13 +7,13 @@
         <field name="arch" type="xml">
             <form string="Phân công hàng loạt">
                 <group>
-                    <field name="request_ids" widget="many2many_tags"/>
+                    <field name="line_ids" context="{'tree_view_ref': 'student_request.view_student_request_bulk_assign_line_tree'}"/>
                     <field name="assign_user_id"/>
                     <field name="department_id"/>
                     <field name="note"/>
                 </group>
                 <footer>
-                    <button name="action_assign" type="object" string="Phân công" class="btn-primary"/>
+                    <button name="action_assign_by_service" type="object" string="Phân công (theo dịch vụ)" class="btn-primary"/>
                     <button string="Đóng" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>
@@ -31,5 +31,86 @@
         <field name="binding_type">action</field>
         <field name="context">{}</field>
 
+    </record>
+
+    <!-- Full-page View for Bulk Assign -->
+    <record id="view_student_request_bulk_assign_wizard_full" model="ir.ui.view">
+        <field name="name">student.request.bulk.assign.wizard.full</field>
+        <field name="model">student.request.bulk.assign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Phân công hàng loạt - Trang riêng">
+                <header>
+                    <button name="action_load_requests_by_service" type="object" string="Tải danh sách (theo dịch vụ)" class="btn-primary"/>
+                    <button name="action_clear_requests_by_service" type="object" string="Xóa danh sách (theo dịch vụ)" class="btn-secondary"/>
+                    <button name="action_select_all" type="object" string="Chọn tất cả" class="btn-secondary"/>
+                    <button name="action_deselect_all" type="object" string="Bỏ chọn tất cả" class="btn-secondary"/>
+                    <button name="action_assign_by_service" type="object" string="Phân công (theo dịch vụ)" class="oe_highlight"/>
+                    <button name="action_assign_by_requests" type="object" string="Phân công (theo yêu cầu)" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <notebook>
+                        <page string="Phân công theo dịch vụ">
+                            <group string="Bộ lọc">
+                                <group>
+                                    <field name="service_id"/>
+                                    <field name="step_state"/>
+                                    <field name="only_unassigned"/>
+                                </group>
+                            </group>
+                            <group string="Phân công">
+                                <group>
+                                    <field name="assign_user_id"/>
+                                    <field name="department_id"/>
+                                    <field name="note"/>
+                                </group>
+                            </group>
+                            <group string="Danh sách yêu cầu theo dịch vụ">
+                                <field name="request_count" readonly="1"/>
+                                <field name="line_ids" context="{'tree_view_ref': 'student_request.view_student_request_bulk_assign_line_tree'}"/>
+                            </group>
+                        </page>
+                        <page string="Phân công theo yêu cầu">
+                            <group string="Chọn yêu cầu">
+                                <field name="request_ids" widget="many2many" options="{'no_create': True}"/>
+                            </group>
+                            <group string="Phân công">
+                                <group>
+                                    <field name="assign_user_id"/>
+                                    <field name="department_id"/>
+                                    <field name="note"/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree view for bulk assign lines -->
+    <record id="view_student_request_bulk_assign_line_tree" model="ir.ui.view">
+        <field name="name">student.request.bulk.assign.line.tree</field>
+        <field name="model">student.request.bulk.assign.line</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="selected"/>
+                <field name="request_id"/>
+                <field name="service_id"/>
+                <field name="final_state"/>
+                <field name="user_processing_id"/>
+                <field name="request_date"/>
+                <field name="expired_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Full-page Action -->
+    <record id="action_student_request_bulk_assign_page" model="ir.actions.act_window">
+        <field name="name">Phân công hàng loạt</field>
+        <field name="res_model">student.request.bulk.assign.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_student_request_bulk_assign_wizard_full"/>
+        <field name="target">current</field>
+        <field name="context">{}</field>
     </record>
 </odoo>
