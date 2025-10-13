@@ -1,4 +1,5 @@
 import base64
+import logging
 from datetime import datetime
 import os
 import json
@@ -12,6 +13,9 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.http import request 
 from ..controllers.service_api.utils import add_user_to_firebase_topic, convert_date, remove_user_from_all_firebase_topics, send_fcm_notify, send_fcm_users, send_fcm_request
 from ..controllers.service_api.request_api import create_request, update_request_step
+
+# Logger cho module
+_logger = logging.getLogger(__name__)
 
 # Đồng bộ khu vực và cụm KTX
 def action_sync_area_cluster(self):
@@ -1687,3 +1691,75 @@ class StudentServiceReport(models.TransientModel):
                 rec.processed_percent = rec.processed_requests * 100.0 / rec.total_requests
             else:
                 rec.processed_percent = 0.0
+
+# Model trung gian để lưu thứ tự tùy chỉnh và cho phép lặp lại các bước
+class ServiceStepSelection(models.Model):
+    _name = 'student.service.step.selection'
+    _description = 'Lựa chọn bước duyệt cho dịch vụ'
+    _order = 'sequence'
+    _rec_name = 'name'
+
+    service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, ondelete='cascade')
+    step_id = fields.Many2one('student.service.step', string='Bước duyệt', required=True, ondelete='cascade')
+    sequence = fields.Integer('Thứ tự', default=1, help='Thứ tự thực hiện bước trong dịch vụ')
+    
+    # Các trường liên quan từ step_id để hiển thị
+    step_name = fields.Char('Tên bước', related='step_id.name', readonly=True, store=True)
+    step_description = fields.Text('Mô tả bước', related='step_id.description', readonly=True, store=True)
+
+    # Tên hiển thị rõ ràng cho tag: "Bước <sequence>: <step_name>"
+    name = fields.Char(string='Tên hiển thị', compute='_compute_name', store=False)
+
+    @api.depends('sequence', 'step_name')
+    def _compute_name(self):
+        for record in self:
+            if record.step_name:
+                record.name = f"Bước {record.sequence}: {record.step_name}"
+            else:
+                record.name = f"Bước {record.sequence}"
+
+    def name_get(self):
+        """Override name_get to display both sequence and step name"""
+        result = []
+        stt = 1
+        for record in self:
+            display = record.name or (record.step_id.name if record.step_id else False)
+            if display:
+                result.append((record.id, display))
+            else:
+                result.append((record.id, f"Bước {record.sequence}"))
+            stt += 1
+        return result
+
+    @api.model
+    def create(self, vals):
+        _logger.info(f"ServiceStepSelection create called with vals: {vals}")
+        
+        # Tự động gán sequence nếu không có
+        if 'sequence' not in vals or vals['sequence'] == 0:
+            service_id = vals.get('service_id')
+            if service_id:
+                last_sequence = self.search([('service_id', '=', service_id)], order='sequence desc', limit=1)
+                vals['sequence'] = (last_sequence.sequence + 1) if last_sequence else 1
+                _logger.info(f"Auto-assigned sequence: {vals['sequence']}")
+        
+        try:
+            result = super().create(vals)
+            _logger.info(f"ServiceStepSelection created successfully with ID: {result.id}")
+            return result
+        except Exception as e:
+            _logger.error(f"Error creating ServiceStepSelection: {str(e)}")
+            raise
+
+    def read(self, fields=None, load='_classic_read'):
+        _logger.info(f"ServiceStepSelection read called for IDs: {self.ids}, fields: {fields}")
+        result = super().read(fields, load)
+        _logger.info(f"ServiceStepSelection read result: {result}")
+        return result
+
+    @api.model
+    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
+        _logger.info(f"ServiceStepSelection search_read called with domain: {domain}, fields: {fields}")
+        result = super().search_read(domain, fields, offset, limit, order)
+        _logger.info(f"ServiceStepSelection search_read result count: {len(result)}")
+        return result
