@@ -9,26 +9,20 @@
 current_status = env['ir.config_parameter'].sudo().get_param('maintenance.status', 'off')
 if current_status == 'on':
     env['ir.config_parameter'].sudo().set_param('maintenance.status', 'off')
-    env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(datetime.datetime.now()))
+    env['ir.config_parameter'].sudo().set_param('maintenance.end_time', datetime.datetime.now().isoformat())
     title = '🟢 Đã tắt bảo trì'
     message = 'Hệ thống đã hoạt động bình thường'
     notification_type = 'success'
 else:
     env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-    env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
+    env['ir.config_parameter'].sudo().set_param('maintenance.start_time', datetime.datetime.now().isoformat())
     title = '🔴 Đã bật bảo trì'
     message = 'Hệ thống đã chuyển sang chế độ bảo trì'
     notification_type = 'warning'
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': title,
-        'message': message,
-        'type': notification_type,
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -39,17 +33,11 @@ action = {
         <field name="state">code</field>
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', datetime.datetime.now().isoformat())
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '🔴 Đã bật bảo trì',
-        'message': 'Hệ thống đã chuyển sang chế độ bảo trì',
-        'type': 'warning',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -60,17 +48,11 @@ action = {
         <field name="state">code</field>
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'off')
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(datetime.datetime.now()))
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', datetime.datetime.now().isoformat())
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '🟢 Đã tắt bảo trì',
-        'message': 'Hệ thống đã hoạt động bình thường',
-        'type': 'success',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -83,19 +65,14 @@ action = {
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.duration', '30 phút')
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
-end_time = datetime.datetime.now() + datetime.timedelta(minutes=30)
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(end_time))
+base = datetime.datetime.now()
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat())
+end_time = base + datetime.timedelta(minutes=30)
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '⏰ Đã cài đặt bảo trì 30 phút',
-        'message': 'Hệ thống sẽ bảo trì trong 30 phút',
-        'type': 'info',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -107,19 +84,14 @@ action = {
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.duration', '1 giờ')
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
-end_time = datetime.datetime.now() + datetime.timedelta(hours=1)
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(end_time))
+base = datetime.datetime.now()
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat())
+end_time = base + datetime.timedelta(hours=1)
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '⏰ Đã cài đặt bảo trì 1 giờ',
-        'message': 'Hệ thống sẽ bảo trì trong 1 giờ',
-        'type': 'info',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -131,19 +103,14 @@ action = {
         <field name="code">
 env['ir.config_parameter'].sudo().set_param('maintenance.duration', '2 giờ')
 env['ir.config_parameter'].sudo().set_param('maintenance.status', 'on')
-env['ir.config_parameter'].sudo().set_param('maintenance.start_time', str(datetime.datetime.now()))
-end_time = datetime.datetime.now() + datetime.timedelta(hours=2)
-env['ir.config_parameter'].sudo().set_param('maintenance.end_time', str(end_time))
+base = datetime.datetime.now()
+env['ir.config_parameter'].sudo().set_param('maintenance.start_time', base.isoformat())
+end_time = base + datetime.timedelta(hours=2)
+env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '⏰ Đã cài đặt bảo trì 2 giờ',
-        'message': 'Hệ thống sẽ bảo trì trong 2 giờ',
-        'type': 'info',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -158,13 +125,7 @@ env['ir.config_parameter'].sudo().set_param('maintenance.message', 'Hệ thống
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '📝 Đã cập nhật thông báo',
-        'message': 'Thông báo: Hệ thống đang cập nhật',
-        'type': 'success',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -178,13 +139,7 @@ env['ir.config_parameter'].sudo().set_param('maintenance.message', 'Hệ thống
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '📝 Đã cập nhật thông báo',
-        'message': 'Thông báo: Hệ thống đang bảo trì định kỳ',
-        'type': 'success',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -198,13 +153,7 @@ env['ir.config_parameter'].sudo().set_param('maintenance.message', 'Đang nâng 
 
 action = {
     'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': '📝 Đã cập nhật thông báo',
-        'message': 'Thông báo: Đang nâng cấp hệ thống',
-        'type': 'success',
-        'sticky': False,
-    }
+    'tag': 'reload',
 }
         </field>
     </record>
@@ -231,89 +180,117 @@ action = {
         <field name="arch" type="xml">
             <form string="Quản lý bảo trì hệ thống" create="false" edit="false" delete="false">
                 <header>
-                    <button name="%(action_toggle_maintenance)d" 
-                            string="🔄 Bật/Tắt bảo trì" 
-                            type="action" 
-                            class="btn-primary btn-lg"/>
-                    <button name="%(action_set_maintenance_on)d" 
-                            string="🔴 Bật bảo trì" 
-                            type="action" 
-                            class="btn-warning"/>
-                    <button name="%(action_set_maintenance_off)d" 
-                            string="🟢 Tắt bảo trì" 
-                            type="action" 
-                            class="btn-success"/>
+                    <div class="btn-toolbar" role="toolbar">
+                        <div class="btn-group me-2" role="group">
+                            <button name="%(action_toggle_maintenance)d" 
+                                    string="🔄 Bật/Tắt bảo trì" 
+                                    type="action" 
+                                    class="btn-primary"/>
+                            <button name="%(action_set_maintenance_on)d" 
+                                    string="🔴 Bật bảo trì" 
+                                    type="action" 
+                                    class="btn-outline-warning"/>
+                            <button name="%(action_set_maintenance_off)d" 
+                                    string="🟢 Tắt bảo trì" 
+                                    type="action" 
+                                    class="btn-outline-success"/>
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button name="%(action_set_custom_message)d" 
+                                    string="✏️ Tùy chỉnh thông báo" 
+                                    type="action" 
+                                    class="btn-outline-secondary"/>
+                        </div>
+                    </div>
                 </header>
                 <sheet>
-                    <div class="oe_title">
-                        <h1>🛠️ Bảng điều khiển bảo trì</h1>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3>📊 Trạng thái hiện tại</h3>
+                    <div class="container-fluid py-2">
+                        <div class="oe_title text-center mb-3">
+                            <h1 class="display-6">🛠️ Bảng điều khiển bảo trì</h1>
+                            <p class="text-muted">Quản lý trạng thái hệ thống, thời lượng và thông báo một cách nhanh chóng</p>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Status card -->
+                            <div class="col-lg-6">
+                                <div class="card shadow-sm">
+                                    <div class="card-header d-flex align-items-center justify-content-between">
+                                        <h3 class="h5 mb-0">📊 Trạng thái hiện tại</h3>
+                                        <span class="badge bg-info">Live</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-light border">
+                                            <field name="status_text" class="h4 mb-2" readonly="1" nolabel="1"/>
+                                            <field name="message_text" class="mb-1" readonly="1" nolabel="1"/>
+                                            <field name="updated_text" class="text-muted" readonly="1" nolabel="1"/>
+                                            <hr/>
+                                            <div class="small">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="text-muted">⏱ Thời lượng dự kiến</span>
+                                                    <field name="maintenance_duration" readonly="1" nolabel="1"/>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="text-muted">🟡 Bắt đầu</span>
+                                                    <field name="maintenance_start_time" readonly="1" nolabel="1"/>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="text-muted">🔵 Kết thúc dự kiến</span>
+                                                    <field name="maintenance_end_time" readonly="1" nolabel="1"/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="card-body">
-                                    <div class="alert alert-info">
-                                        <h4 id="current_status">Đang tải...</h4>
-                                        <p id="current_message">Đang tải thông tin...</p>
-                                        <small id="current_time">Cập nhật: Đang tải...</small>
+                            </div>
+
+                            <!-- Quick settings card -->
+                            <div class="col-lg-6">
+                                <div class="card shadow-sm">
+                                    <div class="card-header">
+                                        <h3 class="h5 mb-0">⚙️ Cài đặt nhanh</h3>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <button name="%(action_set_duration_30min)d" 
+                                                    string="⏰ Bảo trì 30 phút" 
+                                                    type="action" 
+                                                    class="btn btn-outline-primary"/>
+                                            <button name="%(action_set_duration_1hour)d" 
+                                                    string="⏰ Bảo trì 1 giờ" 
+                                                    type="action" 
+                                                    class="btn btn-outline-primary"/>
+                                            <button name="%(action_set_duration_2hour)d" 
+                                                    string="⏰ Bảo trì 2 giờ" 
+                                                    type="action" 
+                                                    class="btn btn-outline-primary"/>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3>⚙️ Cài đặt nhanh</h3>
-                                </div>
-                                <div class="card-body">
-                                    <div class="btn-group-vertical d-grid gap-2">
-                                        <button name="%(action_set_duration_30min)d" 
-                                                string="⏰ Bảo trì 30 phút" 
-                                                type="action" 
-                                                class="btn btn-outline-primary"/>
-                                        <button name="%(action_set_duration_1hour)d" 
-                                                string="⏰ Bảo trì 1 giờ" 
-                                                type="action" 
-                                                class="btn btn-outline-primary"/>
-                                        <button name="%(action_set_duration_2hour)d" 
-                                                string="⏰ Bảo trì 2 giờ" 
-                                                type="action" 
-                                                class="btn btn-outline-primary"/>
-                                        <button name="%(action_set_custom_message)d" 
-                                                string="✏️ Tùy chỉnh thông báo" 
-                                                type="action" 
-                                                class="btn btn-outline-secondary"/>
+
+                        <!-- Preset messages -->
+                        <div class="row g-3 mt-1">
+                            <div class="col-12">
+                                <div class="card shadow-sm">
+                                    <div class="card-header">
+                                        <h3 class="h5 mb-0">📝 Thông báo mẫu</h3>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row mt-3">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h3>📝 Thông báo mẫu</h3>
-                                </div>
-                                <div class="card-body">
-                                    <div class="btn-group-vertical d-grid gap-2">
-                                        <button name="%(action_set_message_update)d" 
-                                                string="🔄 Hệ thống đang cập nhật, vui lòng quay lại sau" 
-                                                type="action" 
-                                                class="btn btn-outline-info"/>
-                                        <button name="%(action_set_message_maintenance)d" 
-                                                string="🛠️ Hệ thống đang bảo trì định kỳ" 
-                                                type="action" 
-                                                class="btn btn-outline-info"/>
-                                        <button name="%(action_set_message_upgrade)d" 
-                                                string="⬆️ Đang nâng cấp hệ thống, xin lỗi vì sự bất tiện" 
-                                                type="action" 
-                                                class="btn btn-outline-info"/>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <button name="%(action_set_message_update)d" 
+                                                    string="🔄 Hệ thống đang cập nhật, vui lòng quay lại sau" 
+                                                    type="action" 
+                                                    class="btn btn-outline-info"/>
+                                            <button name="%(action_set_message_maintenance)d" 
+                                                    string="🛠️ Hệ thống đang bảo trì định kỳ" 
+                                                    type="action" 
+                                                    class="btn btn-outline-info"/>
+                                            <button name="%(action_set_message_upgrade)d" 
+                                                    string="⬆️ Đang nâng cấp hệ thống, xin lỗi vì sự bất tiện" 
+                                                    type="action" 
+                                                    class="btn btn-outline-info"/>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -334,6 +311,25 @@ action = {
         <field name="view_id" ref="view_maintenance_dashboard_form"/>
         <field name="target">current</field>
         <!-- Dashboard không gắn với ir.config_parameter để tránh tự tạo bản ghi -->
+    </record>
+
+    <!-- Server Action mở dashboard và tạo bản ghi để đảm bảo computed fields có dữ liệu -->
+    <record id="action_open_maintenance_dashboard" model="ir.actions.server">
+        <field name="name">Mở bảng điều khiển bảo trì</field>
+        <field name="model_id" ref="base.model_res_users"/>
+        <field name="state">code</field>
+        <field name="code">
+wizard = env['maintenance.dashboard'].create({})
+action = {
+    'type': 'ir.actions.act_window',
+    'name': '🛠️ Bảng điều khiển bảo trì',
+    'res_model': 'maintenance.dashboard',
+    'view_mode': 'form',
+    'views': [(env.ref('student_request.view_maintenance_dashboard_form').id, 'form')],
+    'res_id': wizard.id,
+    'target': 'current',
+}
+        </field>
     </record>
 
     <!-- Wizard chỉnh sửa thông báo bảo trì -->

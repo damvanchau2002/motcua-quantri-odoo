@@ -35,3 +35,5 @@ access_request_extension_wizard_user,request.extension.wizard.user,model_request
 access_request_extension_reject_wizard_manager,request.extension.reject.wizard.manager,model_request_extension_reject_wizard,base.group_system,1,1,1,1
 access_student_permission_manager_admin,student.permission.manager.admin,model_student_permission_manager,base.group_system,1,1,1,1
 access_student_request_bulk_assign_line_admin,student.request.bulk.assign.line,model_student_request_bulk_assign_line,base.group_system,1,1,1,1
+access_maintenance_message_wizard,maintenance.message.wizard,model_maintenance_message_wizard,base.group_system,1,1,1,1
+access_maintenance_dashboard,maintenance.dashboard,model_maintenance_dashboard,base.group_system,1,1,1,1
