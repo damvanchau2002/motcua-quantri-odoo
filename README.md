@@ -74,7 +74,8 @@ python odoo-bin -c odoo.cfg -i base
 Tài liệu này mô tả tất cả các API trong file `service_api.py`, bao gồm input (request) và output (response).
 
 ---
-
+Thiết lập định dạng ngày tháng:
+Settings → Manage Languages → [Chọn ngôn ngữ] → Date Format = %d/%m/%Y
 ## 1. GET `/api/service/groups`
 
 **Mô tả:** Lấy danh sách nhóm dịch vụ và các dịch vụ trong nhóm.

@@ -217,14 +217,9 @@ action = {
 action = {
     'type': 'ir.actions.act_window',
     'name': 'Tùy chỉnh thông báo bảo trì',
-    'res_model': 'ir.config_parameter',
+    'res_model': 'maintenance.message.wizard',
     'view_mode': 'form',
     'target': 'new',
-    'context': {
-        'default_key': 'maintenance.message',
-        'default_value': env['ir.config_parameter'].sudo().get_param('maintenance.message', 'Hệ thống đang bảo trì')
-    },
-    'domain': [('key', '=', 'maintenance.message')]
 }
         </field>
     </record>
@@ -232,7 +227,7 @@ action = {
     <!-- Model để quản lý maintenance dễ dàng hơn -->
     <record id="view_maintenance_dashboard_form" model="ir.ui.view">
         <field name="name">maintenance.dashboard.form</field>
-        <field name="model">ir.config_parameter</field>
+        <field name="model">maintenance.dashboard</field>
         <field name="arch" type="xml">
             <form string="Quản lý bảo trì hệ thống" create="false" edit="false" delete="false">
                 <header>
@@ -334,15 +329,30 @@ action = {
     <!-- Action cho dashboard -->
     <record id="action_maintenance_dashboard" model="ir.actions.act_window">
         <field name="name">🛠️ Bảng điều khiển bảo trì</field>
-        <field name="res_model">ir.config_parameter</field>
+        <field name="res_model">maintenance.dashboard</field>
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_maintenance_dashboard_form"/>
         <field name="target">current</field>
-        <field name="context">{
-            'default_key': 'maintenance.status',
-            'default_value': 'off'
-        }</field>
-        <field name="domain">[('key', '=', 'maintenance.status')]</field>
+        <!-- Dashboard không gắn với ir.config_parameter để tránh tự tạo bản ghi -->
+    </record>
+
+    <!-- Wizard chỉnh sửa thông báo bảo trì -->
+    <record id="view_maintenance_message_wizard_form" model="ir.ui.view">
+        <field name="name">maintenance.message.wizard.form</field>
+        <field name="model">maintenance.message.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Tùy chỉnh thông báo bảo trì" create="false" edit="false">
+                <sheet>
+                    <group>
+                        <field name="message" string="Thông báo"/> 
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_save" string="Lưu" type="object" class="btn-primary"/>
+                    <button string="Đóng" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
     </record>
 
 </odoo>

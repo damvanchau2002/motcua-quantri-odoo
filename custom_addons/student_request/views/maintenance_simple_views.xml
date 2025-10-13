@@ -1,137 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Server action để toggle maintenance - định nghĩa trước -->
-    <record id="action_toggle_maintenance" model="ir.actions.server">
-        <field name="name">Toggle Maintenance Mode</field>
-        <field name="model_id" ref="base.model_ir_config_parameter"/>
-        <field name="state">code</field>
-        <field name="code">
-# Toggle maintenance status
-current_status = env['ir.config_parameter'].sudo().get_param('maintenance.status', 'off')
-new_status = 'off' if current_status == 'on' else 'on'
-
-env['ir.config_parameter'].sudo().set_param('maintenance.status', new_status)
-
-# Update times
-current_time = fields.Datetime.now().isoformat()
-
-if new_status == 'on':
-    env['ir.config_parameter'].sudo().set_param('maintenance.start_time', current_time)
-    # Calculate end time based on duration
-    duration = env['ir.config_parameter'].sudo().get_param('maintenance.duration', '30 phút')
-    try:
-        end_time = None
-        if 'phút' in duration.lower():
-            minutes = int(''.join(filter(str.isdigit, duration)))
-            end_time = fields.Datetime.now() + relativedelta(minutes=minutes)
-        elif 'giờ' in duration.lower():
-            hours = int(''.join(filter(str.isdigit, duration)))
-            end_time = fields.Datetime.now() + relativedelta(hours=hours)
-        elif 'ngày' in duration.lower():
-            days = int(''.join(filter(str.isdigit, duration)))
-            end_time = fields.Datetime.now() + relativedelta(days=days)
-        
-        if end_time:
-            env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
-    except:
-        pass
-else:
-    env['ir.config_parameter'].sudo().set_param('maintenance.end_time', current_time)
-
-# Show notification
-action = {
-    'type': 'ir.actions.client',
-    'tag': 'display_notification',
-    'params': {
-        'title': 'Thành công',
-        'message': 'Đã chuyển chế độ bảo trì sang: %s' % new_status,
-        'type': 'success',
-        'sticky': False,
-    }
-}
-        </field>
-    </record>
-
-    <!-- Simplified maintenance mode management -->
+    <!-- Simple Maintenance Dashboard (an toàn, không tạo bản ghi trùng khóa) -->
     <record id="view_maintenance_simple_form" model="ir.ui.view">
         <field name="name">maintenance.simple.form</field>
         <field name="model">ir.config_parameter</field>
         <field name="arch" type="xml">
-            <form string="Quản lý chế độ bảo trì">
+            <form string="Quản lý chế độ bảo trì" create="false" edit="false" delete="false">
                 <header>
                     <button name="%(action_toggle_maintenance)d" 
-                            string="Bật/Tắt bảo trì" 
+                            string="🔄 Bật/Tắt bảo trì" 
                             type="action" 
                             class="btn-primary"/>
+                    <button name="%(action_set_maintenance_on)d" 
+                            string="🔴 Bật bảo trì" 
+                            type="action" 
+                            class="btn-warning"/>
+                    <button name="%(action_set_maintenance_off)d" 
+                            string="🟢 Tắt bảo trì" 
+                            type="action" 
+                            class="btn-success"/>
                 </header>
                 <sheet>
-                    <div class="oe_title">
-                        <h1>Quản lý chế độ bảo trì</h1>
-                    </div>
-                    <group>
-                        <group string="Cấu hình hiện tại">
-                            <field name="key" readonly="1"/>
-                            <field name="value"/>
-                        </group>
+                    <group string="Trạng thái hiện tại">
+                        <field name="maintenance_status" readonly="1"/>
+                        <field name="maintenance_message" readonly="1"/>
+                        <field name="maintenance_duration" readonly="1"/>
+                        <field name="maintenance_start_time" readonly="1"/>
+                        <field name="maintenance_end_time" readonly="1"/>
                     </group>
-                    <notebook>
-                        <page string="Hướng dẫn">
-                            <div class="alert alert-info">
-                                <h4>Cách sử dụng:</h4>
-                                <ul>
-                                    <li><strong>maintenance.status:</strong> "on" để bật bảo trì, "off" để tắt</li>
-                                    <li><strong>maintenance.message:</strong> Nội dung thông báo hiển thị cho người dùng</li>
-                                    <li><strong>maintenance.duration:</strong> Thời gian dự kiến (ví dụ: "30 phút", "2 giờ")</li>
-                                </ul>
-                                <p>Hoặc sử dụng API:</p>
-                                <ul>
-                                    <li><code>GET /api/maintenance/status</code> - Lấy trạng thái</li>
-                                    <li><code>POST /api/maintenance/set</code> - Cập nhật trạng thái</li>
-                                    <li><code>POST /api/maintenance/toggle</code> - Chuyển đổi trạng thái</li>
-                                </ul>
-                            </div>
-                        </page>
-                    </notebook>
+                    <group string="Cài đặt nhanh">
+                        <button name="%(action_set_duration_30min)d" 
+                                string="⏰ Bảo trì 30 phút" 
+                                type="action" 
+                                class="btn btn-outline-primary"/>
+                        <button name="%(action_set_duration_1hour)d" 
+                                string="⏰ Bảo trì 1 giờ" 
+                                type="action" 
+                                class="btn btn-outline-primary"/>
+                        <button name="%(action_set_duration_2hour)d" 
+                                string="⏰ Bảo trì 2 giờ" 
+                                type="action" 
+                                class="btn btn-outline-primary"/>
+                        <button name="%(action_set_custom_message)d" 
+                                string="✏️ Tùy chỉnh thông báo" 
+                                type="action" 
+                                class="btn btn-outline-secondary"/>
+                    </group>
+                    <group string="Thông báo mẫu">
+                        <button name="%(action_set_message_update)d" 
+                                string="🔄 Hệ thống đang cập nhật, vui lòng quay lại sau" 
+                                type="action" 
+                                class="btn btn-outline-info"/>
+                        <button name="%(action_set_message_maintenance)d" 
+                                string="🛠️ Hệ thống đang bảo trì định kỳ" 
+                                type="action" 
+                                class="btn btn-outline-info"/>
+                        <button name="%(action_set_message_upgrade)d" 
+                                string="⬆️ Đang nâng cấp hệ thống, xin lỗi vì sự bất tiện" 
+                                type="action" 
+                                class="btn btn-outline-info"/>
+                    </group>
                 </sheet>
             </form>
         </field>
     </record>
 
-    <record id="view_maintenance_config_tree" model="ir.ui.view">
-        <field name="name">maintenance.config.tree</field>
-        <field name="model">ir.config_parameter</field>
-        <field name="arch" type="xml">
-            <list string="Cấu hình bảo trì" editable="bottom">
-                <field name="key"/>
-                <field name="value"/>
-            </list>
-        </field>
-    </record>
-
-    <!-- Action for maintenance config -->
-    <record id="action_maintenance_config" model="ir.actions.act_window">
-        <field name="name">Cấu hình bảo trì</field>
+    <!-- Action mở dashboard cho bản ghi trạng thái hiện có -->
+    <record id="action_maintenance_simple_dashboard" model="ir.actions.act_window">
+        <field name="name">Quản lý chế độ bảo trì</field>
         <field name="res_model">ir.config_parameter</field>
-        <field name="view_mode">list,form</field>
-        <field name="view_id" ref="view_maintenance_config_tree"/>
-        <field name="domain">[('key', 'like', 'maintenance.%')]</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_maintenance_simple_form"/>
+        <field name="target">current</field>
+        <field name="domain">[('key', '=', 'maintenance.status')]</field>
         <field name="context">{
             'default_key': 'maintenance.status',
             'default_value': 'off'
         }</field>
     </record>
 
-    <!-- Menu items -->
+    <!-- Menu -->
     <menuitem id="menu_maintenance_root"
               name="Bảo trì hệ thống"
               parent="base.menu_administration"
               sequence="100"
               groups="base.group_system"/>
 
-    <menuitem id="menu_maintenance_config"
-              name="Cấu hình bảo trì"
+    <menuitem id="menu_maintenance_dashboard_simple"
+              name="Bảng điều khiển"
               parent="menu_maintenance_root"
-              action="action_maintenance_config"
+              action="action_maintenance_simple_dashboard"
               sequence="10"/>
 
 </odoo>

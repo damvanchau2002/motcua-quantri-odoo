@@ -23,7 +23,7 @@
 
     <menuitem id="menu_student_email_template" name="Mẫu gửi Email" parent="student_request_config" action="action_student_email_template"/>
     <menuitem id="menu_maintenance_system" name="Bảo trì hệ thống" parent="student_request_config" action="action_maintenance_dashboard"/>
-    <menuitem id="menu_maintenance_advanced" name="Cấu hình nâng cao" parent="student_request_config" action="action_maintenance_config"/>
+    <menuitem id="menu_maintenance_advanced" name="Cấu hình nâng cao" parent="student_request_config" action="action_maintenance_simple_dashboard"/>
 
     <!-- Phân công hàng loạt yêu cầu dịch vụ -->
     <menuitem id="menu_student_request_bulk_assign" name="Phân công hàng loạt" parent="student_request_root" action="action_student_request_bulk_assign_page"/>

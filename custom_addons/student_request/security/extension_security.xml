@@ -15,7 +15,7 @@
             <field name="comment">Users can create and view their own extension requests</field>
         </record>
 
-        <!-- All record rules have been removed to eliminate access restrictions -->
+        <!-- Removed global allow-all rule; access now governed by ACLs and model override -->
 
     </data>
 </odoo>
