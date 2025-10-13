@@ -25,7 +25,7 @@
     <menuitem id="menu_maintenance_advanced" name="Cấu hình nâng cao" parent="student_request_config" action="action_maintenance_config"/>
 
     <!-- Phân công hàng loạt yêu cầu dịch vụ -->
-    <menuitem id="menu_student_request_bulk_assign" name="Phân công hàng loạt" parent="student_request_root" action="action_student_request_bulk_assign_wizard"/>
+    <menuitem id="menu_student_request_bulk_assign" name="Phân công hàng loạt" parent="student_request_root" action="action_student_request_bulk_assign_page"/>
 
     <!-- Extension Management -->
     <menuitem id="menu_extension_management" name="Quản lý gia hạn" parent="student_request_root"/>

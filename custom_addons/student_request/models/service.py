@@ -901,13 +901,12 @@ class ServiceRequest(models.Model):
             if request.user_processing_id:
                 template = self.env.ref('student_request.email_template_request_expired', raise_if_not_found=False)
                 if template:
-                    from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
                     target_user_id = request.user_processing_id.id
                     ctx_vals = {
-                        'request_date_text': format_datetime_local(request.request_date, user_id=target_user_id),
-                        'expired_date_text': format_datetime_local(request.expired_date, user_id=target_user_id),
+                        'request_date_text': self._format_dt_for_user(request.request_date, user_id=target_user_id),
+                        'expired_date_text': self._format_dt_for_user(request.expired_date, user_id=target_user_id),
                     }
-                    template.with_context(**ctx_vals).send_mail(request.id, force_send=True)
+                    template.sudo().with_context(**ctx_vals).send_mail(request.id, force_send=True)
                     
         except Exception as e:
             print(f"Error sending expiry notification: {str(e)}")
@@ -939,16 +938,15 @@ class ServiceRequest(models.Model):
 
             template = self.env.ref('student_request.email_template_daily_expired_report', raise_if_not_found=False)
             if template and managers:
-                from odoo.addons.student_request.controllers.service_api.utils import format_datetime_local
                 now_dt = fields.Datetime.now()
                 for manager in managers:
                     email_vals = {'email_to': manager.email} if manager.email else {}
                     # Ánh xạ thời gian theo múi giờ của manager
                     rows_with_text = []
                     for row in report_rows:
-                        rows_with_text.append({**row, 'deadline_text': format_datetime_local(row.get('deadline'), user_id=manager.id)})
-                    report_date_text = format_datetime_local(now_dt, user_id=manager.id)
-                    template.with_context(
+                        rows_with_text.append({**row, 'deadline_text': self._format_dt_for_user(row.get('deadline'), user_id=manager.id)})
+                    report_date_text = self._format_dt_for_user(now_dt, user_id=manager.id)
+                    template.sudo().with_context(
                         report_rows=rows_with_text,
                         expired_count=len(expired_requests),
                         manager=manager,
