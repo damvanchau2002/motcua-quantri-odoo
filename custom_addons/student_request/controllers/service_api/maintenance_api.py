@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from odoo import http
 from odoo.http import request
 
@@ -45,16 +45,86 @@ class MaintenanceAPI(http.Controller):
             maintenance_start_time = config_param.get_param('maintenance.start_time', '')
             maintenance_end_time = config_param.get_param('maintenance.end_time', '')
             
-            # Kiểm tra nếu thời gian bảo trì đã hết
+            # Chuẩn hóa thời gian để tránh trường hợp start_time > end_time hoặc thiếu end_time
+            def _parse_duration(duration_str):
+                try:
+                    d = (duration_str or '').lower()
+                    if 'phút' in d:
+                        minutes = int(''.join(filter(str.isdigit, d)))
+                        return timedelta(minutes=minutes)
+                    if 'giờ' in d:
+                        hours = int(''.join(filter(str.isdigit, d)))
+                        return timedelta(hours=hours)
+                    if 'ngày' in d:
+                        days = int(''.join(filter(str.isdigit, d)))
+                        return timedelta(days=days)
+                except Exception:
+                    return None
+                return None
+            
+            def _iso_to_dt(iso_str):
+                try:
+                    s = (iso_str or '')
+                    if not s:
+                        return None
+                    dt = datetime.fromisoformat(s.replace('Z', '+00:00'))
+                    # Đảm bảo timezone-aware theo UTC để so sánh đúng
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    else:
+                        dt = dt.astimezone(timezone.utc)
+                    return dt
+                except Exception:
+                    return None
+            
+            def _dt_to_iso_utc(dt):
+                try:
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    else:
+                        dt = dt.astimezone(timezone.utc)
+                    return dt.isoformat().replace('+00:00', 'Z')
+                except Exception:
+                    return None
+            
+            try:
+                if maintenance_status == 'on':
+                    now_utc = datetime.now(timezone.utc)
+                    # Bổ sung start_time nếu thiếu
+                    if not maintenance_start_time:
+                        maintenance_start_time = _dt_to_iso_utc(now_utc)
+                        config_param.set_param('maintenance.start_time', maintenance_start_time)
+                    start_dt = _iso_to_dt(maintenance_start_time)
+                    # Bổ sung hoặc sửa end_time nếu thiếu hoặc nhỏ hơn start_time
+                    end_dt = _iso_to_dt(maintenance_end_time)
+                    if end_dt is None or (start_dt and end_dt < start_dt):
+                        td = _parse_duration(maintenance_duration) or timedelta(minutes=30)
+                        end_dt = (start_dt or now_utc) + td
+                        maintenance_end_time = _dt_to_iso_utc(end_dt)
+                        config_param.set_param('maintenance.end_time', maintenance_end_time)
+                else:
+                    # Khi status = off, nếu end_time < start_time thì đưa end_time về start_time để tránh nghịch lý
+                    start_dt = _iso_to_dt(maintenance_start_time)
+                    end_dt = _iso_to_dt(maintenance_end_time)
+                    if start_dt and end_dt and end_dt < start_dt:
+                        maintenance_end_time = maintenance_start_time
+                        config_param.set_param('maintenance.end_time', maintenance_end_time)
+            except Exception as _norm_e:
+                _logger.warning(f"Normalization maintenance times failed: {str(_norm_e)}")
+            
+            # Kiểm tra nếu thời gian bảo trì đã hết (so sánh timezone-aware UTC)
             if maintenance_status == 'on' and maintenance_end_time:
                 try:
-                    end_time = datetime.fromisoformat(maintenance_end_time.replace('Z', '+00:00'))
-                    if datetime.now() > end_time:
-                        # Tự động tắt bảo trì khi hết thời gian
+                    end_dt = _iso_to_dt(maintenance_end_time)
+                    now_utc = datetime.now(timezone.utc)
+                    if end_dt and now_utc > end_dt:
+                        # Tự động tắt bảo trì khi hết thời gian, đồng thời chuẩn hoá lại end_time
                         config_param.set_param('maintenance.status', 'off')
                         maintenance_status = 'off'
-                except:
-                    pass
+                        maintenance_end_time = _dt_to_iso_utc(end_dt)
+                        config_param.set_param('maintenance.end_time', maintenance_end_time)
+                except Exception as _auto_off_e:
+                    _logger.warning(f"Auto-off maintenance compare failed: {str(_auto_off_e)}")
             
             response_data = {
                 'status': maintenance_status,
@@ -166,8 +236,8 @@ class MaintenanceAPI(http.Controller):
             config_param.set_param('maintenance.message', message)
             config_param.set_param('maintenance.duration', duration)
             
-            # Cập nhật thời gian
-            current_time = datetime.now().isoformat()
+            # Cập nhật thời gian (UTC + 'Z')
+            current_time = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
             if status == 'on':
                 config_param.set_param('maintenance.start_time', current_time)
                 
@@ -176,16 +246,16 @@ class MaintenanceAPI(http.Controller):
                     end_time = None
                     if 'phút' in duration.lower():
                         minutes = int(''.join(filter(str.isdigit, duration)))
-                        end_time = datetime.now() + timedelta(minutes=minutes)
+                        end_time = datetime.now(timezone.utc) + timedelta(minutes=minutes)
                     elif 'giờ' in duration.lower():
                         hours = int(''.join(filter(str.isdigit, duration)))
-                        end_time = datetime.now() + timedelta(hours=hours)
+                        end_time = datetime.now(timezone.utc) + timedelta(hours=hours)
                     elif 'ngày' in duration.lower():
                         days = int(''.join(filter(str.isdigit, duration)))
-                        end_time = datetime.now() + timedelta(days=days)
+                        end_time = datetime.now(timezone.utc) + timedelta(days=days)
                     
                     if end_time:
-                        config_param.set_param('maintenance.end_time', end_time.isoformat())
+                        config_param.set_param('maintenance.end_time', end_time.isoformat().replace('+00:00', 'Z'))
                 except Exception as e:
                     _logger.warning(f"Could not parse duration: {duration}, error: {str(e)}")
             else:

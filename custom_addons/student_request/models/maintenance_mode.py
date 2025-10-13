@@ -1,5 +1,5 @@
 from odoo import models, fields, api
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -92,7 +92,8 @@ class ConfigParameter(models.Model):
 
     def _update_maintenance_times(self, status):
         """Cập nhật thời gian bảo trì"""
-        current_time = datetime.now().isoformat()
+        # Lưu thời gian theo UTC với hậu tố 'Z' để đồng bộ API/UI
+        current_time = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         
         if status == 'on':
             # Bắt đầu bảo trì
@@ -104,16 +105,16 @@ class ConfigParameter(models.Model):
                 end_time = None
                 if 'phút' in duration.lower():
                     minutes = int(''.join(filter(str.isdigit, duration)))
-                    end_time = datetime.now() + timedelta(minutes=minutes)
+                    end_time = datetime.now(timezone.utc) + timedelta(minutes=minutes)
                 elif 'giờ' in duration.lower():
                     hours = int(''.join(filter(str.isdigit, duration)))
-                    end_time = datetime.now() + timedelta(hours=hours)
+                    end_time = datetime.now(timezone.utc) + timedelta(hours=hours)
                 elif 'ngày' in duration.lower():
                     days = int(''.join(filter(str.isdigit, duration)))
-                    end_time = datetime.now() + timedelta(days=days)
+                    end_time = datetime.now(timezone.utc) + timedelta(days=days)
                 
                 if end_time:
-                    self.env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat())
+                    self.env['ir.config_parameter'].sudo().set_param('maintenance.end_time', end_time.isoformat().replace('+00:00', 'Z'))
             except Exception as e:
                 _logger.warning(f"Could not parse duration: {duration}, error: {str(e)}")
         else:
@@ -151,7 +152,8 @@ class ConfigParameter(models.Model):
         if maintenance_status == 'on' and maintenance_end_time:
             try:
                 end_time = datetime.fromisoformat(maintenance_end_time.replace('Z', '+00:00'))
-                if datetime.now() > end_time:
+                now_utc = datetime.now(timezone.utc)
+                if now_utc > end_time:
                     # Tự động tắt bảo trì khi hết thời gian
                     config_param.set_param('maintenance.status', 'off')
                     maintenance_status = 'off'
@@ -193,5 +195,5 @@ class ConfigParameter(models.Model):
             'status': status,
             'message': message,
             'duration': duration,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         }
