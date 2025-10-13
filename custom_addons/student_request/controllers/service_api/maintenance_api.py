@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 
 class MaintenanceAPI(http.Controller):
     
-    @http.route('/api/maintenance/status', type='http', auth='none', methods=['GET', 'OPTIONS'], csrf=False, cors='*')
+    @http.route('/api/maintenance/status', type='http', auth='none', methods=['GET', 'OPTIONS'], csrf=False)
     def get_maintenance_status(self, **kwargs):
         """
         API để lấy trạng thái bảo trì hiện tại
@@ -25,14 +25,26 @@ class MaintenanceAPI(http.Controller):
         }
         """
         try:
+            # Helpers for dynamic CORS
+            def _get_cors_headers(allow_methods='GET, OPTIONS'):
+                origin = request.httprequest.headers.get('Origin') or '*'
+                req_headers = request.httprequest.headers.get('Access-Control-Request-Headers') or 'Content-Type, Authorization'
+                return [
+                    ('Access-Control-Allow-Origin', origin),
+                    ('Vary', 'Origin'),
+                    ('Access-Control-Allow-Methods', allow_methods),
+                    ('Access-Control-Allow-Headers', req_headers),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '600'),
+                    ('Access-Control-Expose-Headers', 'Content-Type'),
+                ]
+
+            def _make_empty_cors_response(allow_methods='GET, OPTIONS'):
+                return request.make_response('', headers=_get_cors_headers(allow_methods))
+
             # Handle CORS preflight request
             if request.httprequest.method == 'OPTIONS':
-                response = request.make_response('', headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ])
-                return response
+                return _make_empty_cors_response('GET, OPTIONS')
 
             # Lấy thông tin bảo trì từ ir.config_parameter
             config_param = request.env['ir.config_parameter'].sudo()
@@ -86,6 +98,32 @@ class MaintenanceAPI(http.Controller):
                     return dt.isoformat().replace('+00:00', 'Z')
                 except Exception:
                     return None
+
+            # Chuyển đổi datetime sang giờ Việt Nam (UTC+7) ở định dạng ISO, bỏ microseconds
+            def _dt_to_iso_vn(dt):
+                try:
+                    # Chuẩn hoá về UTC trước khi đổi sang VN
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    else:
+                        dt = dt.astimezone(timezone.utc)
+                    vn_tz = timezone(timedelta(hours=7))
+                    dt_vn = dt.astimezone(vn_tz)
+                    dt_vn = dt_vn.replace(microsecond=0)
+                    # Trả về chuỗi ISO kèm offset +07:00
+                    return dt_vn.isoformat()
+                except Exception:
+                    return None
+
+            # Helper thống nhất cấu trúc JSON response
+            def _make_response(payload, status_code=200, allow_methods='GET, OPTIONS'):
+                headers = [('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers(allow_methods)
+                response = request.make_response(
+                    json.dumps(payload, ensure_ascii=False),
+                    headers=headers
+                )
+                response.status_code = status_code
+                return response
             
             try:
                 if maintenance_status == 'on':
@@ -126,42 +164,44 @@ class MaintenanceAPI(http.Controller):
                 except Exception as _auto_off_e:
                     _logger.warning(f"Auto-off maintenance compare failed: {str(_auto_off_e)}")
             
-            response_data = {
+            # Chuẩn hoá dữ liệu trả về với cấu trúc cố định
+            start_dt_resp = _iso_to_dt(maintenance_start_time) if maintenance_start_time else None
+            end_dt_resp = _iso_to_dt(maintenance_end_time) if maintenance_end_time else None
+            now_utc = datetime.now(timezone.utc)
+            data = {
                 'status': maintenance_status,
                 'message': maintenance_message,
                 'duration': maintenance_duration,
-                'start_time': maintenance_start_time if maintenance_start_time else None,
-                'end_time': maintenance_end_time if maintenance_end_time else None,
+                'start_time': _dt_to_iso_vn(start_dt_resp) if start_dt_resp else None,  # VN
+                'end_time': _dt_to_iso_vn(end_dt_resp) if end_dt_resp else None,      # VN
+                'start_time_utc': _dt_to_iso_utc(start_dt_resp) if start_dt_resp else None,
+                'end_time_utc': _dt_to_iso_utc(end_dt_resp) if end_dt_resp else None,
+                'now_utc': _dt_to_iso_utc(now_utc),
+                'now_vn': _dt_to_iso_vn(now_utc),
+                'timezone': 'Asia/Ho_Chi_Minh',
+                'offset': '+07:00',
             }
             
-            response = request.make_response(
-                json.dumps(response_data, ensure_ascii=False),
-                headers=[
-                    ('Content-Type', 'application/json; charset=utf-8'),
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
-            )
-            return response
+            payload = {
+                'success': True,
+                'data': data,
+                'error': None
+            }
+            return _make_response(payload, 200, 'GET, OPTIONS')
             
         except Exception as e:
             _logger.error(f"Error in get_maintenance_status: {str(e)}")
-            error_response = {
-                'error': 'Lỗi hệ thống',
-                'message': str(e)
+            payload = {
+                'success': False,
+                'data': None,
+                'error': {
+                    'code': 'SERVER_ERROR',
+                    'message': str(e)
+                }
             }
-            response = request.make_response(
-                json.dumps(error_response, ensure_ascii=False),
-                headers=[
-                    ('Content-Type', 'application/json; charset=utf-8'),
-                    ('Access-Control-Allow-Origin', '*'),
-                ]
-            )
-            response.status_code = 500
-            return response
+            return _make_response(payload, 500, 'GET, OPTIONS')
 
-    @http.route('/api/maintenance/set', type='http', auth='user', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route('/api/maintenance/set', type='http', auth='user', methods=['POST', 'OPTIONS'], csrf=False)
     def set_maintenance_status(self, **kwargs):
         """
         API để cập nhật trạng thái bảo trì (chỉ admin)
@@ -183,27 +223,40 @@ class MaintenanceAPI(http.Controller):
         }
         """
         try:
+            # Helpers for dynamic CORS (reuse definitions if needed)
+            def _get_cors_headers(allow_methods='POST, OPTIONS'):
+                origin = request.httprequest.headers.get('Origin') or '*'
+                req_headers = request.httprequest.headers.get('Access-Control-Request-Headers') or 'Content-Type, Authorization'
+                return [
+                    ('Access-Control-Allow-Origin', origin),
+                    ('Vary', 'Origin'),
+                    ('Access-Control-Allow-Methods', allow_methods),
+                    ('Access-Control-Allow-Headers', req_headers),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '600'),
+                    ('Access-Control-Expose-Headers', 'Content-Type'),
+                ]
+
+            def _make_empty_cors_response(allow_methods='POST, OPTIONS'):
+                return request.make_response('', headers=_get_cors_headers(allow_methods))
+
             # Handle CORS preflight request
             if request.httprequest.method == 'OPTIONS':
-                response = request.make_response('', headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ])
-                return response
+                return _make_empty_cors_response('POST, OPTIONS')
 
             # Kiểm tra quyền admin
             if not request.env.user.has_group('base.group_system'):
-                error_response = {
-                    'error': 'Không có quyền thực hiện thao tác này',
-                    'message': 'Chỉ admin mới có thể thay đổi trạng thái bảo trì'
+                payload = {
+                    'success': False,
+                    'data': None,
+                    'error': {
+                        'code': 'FORBIDDEN',
+                        'message': 'Chỉ admin mới có thể thay đổi trạng thái bảo trì'
+                    }
                 }
                 response = request.make_response(
-                    json.dumps(error_response, ensure_ascii=False),
-                    headers=[
-                        ('Content-Type', 'application/json; charset=utf-8'),
-                        ('Access-Control-Allow-Origin', '*'),
-                    ]
+                    json.dumps(payload, ensure_ascii=False),
+                    headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
                 )
                 response.status_code = 403
                 return response
@@ -216,16 +269,17 @@ class MaintenanceAPI(http.Controller):
             
             # Validate status
             if status not in ['on', 'off']:
-                error_response = {
-                    'error': 'Trạng thái không hợp lệ',
-                    'message': 'Status phải là "on" hoặc "off"'
+                payload = {
+                    'success': False,
+                    'data': None,
+                    'error': {
+                        'code': 'BAD_REQUEST',
+                        'message': 'Status phải là "on" hoặc "off"'
+                    }
                 }
                 response = request.make_response(
-                    json.dumps(error_response, ensure_ascii=False),
-                    headers=[
-                        ('Content-Type', 'application/json; charset=utf-8'),
-                        ('Access-Control-Allow-Origin', '*'),
-                    ]
+                    json.dumps(payload, ensure_ascii=False),
+                    headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
                 )
                 response.status_code = 400
                 return response
@@ -262,57 +316,79 @@ class MaintenanceAPI(http.Controller):
                 # Khi tắt bảo trì, cập nhật thời gian kết thúc
                 config_param.set_param('maintenance.end_time', current_time)
             
-            response_data = {
-                'success': True,
-                'status': status,
-                'message': message,
-                'duration': duration,
-                'timestamp': current_time
+            # Đọc lại thông số để xây response đồng nhất
+            maintenance_status = config_param.get_param('maintenance.status', 'off')
+            maintenance_message = config_param.get_param('maintenance.message', 'Hệ thống đang được bảo trì, vui lòng quay lại sau.')
+            maintenance_duration = config_param.get_param('maintenance.duration', '30 phút')
+            maintenance_start_time = config_param.get_param('maintenance.start_time', '')
+            maintenance_end_time = config_param.get_param('maintenance.end_time', '')
+
+            def _iso_to_dt_local(s):
+                return _iso_to_dt(s) if s else None
+
+            start_dt_resp = _iso_to_dt_local(maintenance_start_time)
+            end_dt_resp = _iso_to_dt_local(maintenance_end_time)
+            now_utc = datetime.now(timezone.utc)
+
+            data = {
+                'status': maintenance_status,
+                'message': maintenance_message,
+                'duration': maintenance_duration,
+                'start_time': _dt_to_iso_vn(start_dt_resp) if start_dt_resp else None,
+                'end_time': _dt_to_iso_vn(end_dt_resp) if end_dt_resp else None,
+                'start_time_utc': _dt_to_iso_utc(start_dt_resp) if start_dt_resp else None,
+                'end_time_utc': _dt_to_iso_utc(end_dt_resp) if end_dt_resp else None,
+                'timestamp_utc': _dt_to_iso_utc(now_utc),
+                'timestamp_vn': _dt_to_iso_vn(now_utc),
+                'timezone': 'Asia/Ho_Chi_Minh',
+                'offset': '+07:00',
             }
-            
+
+            payload = {
+                'success': True,
+                'data': data,
+                'error': None
+            }
             response = request.make_response(
-                json.dumps(response_data, ensure_ascii=False),
-                headers=[
-                    ('Content-Type', 'application/json; charset=utf-8'),
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ]
+                json.dumps(payload, ensure_ascii=False),
+                headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
             )
             return response
             
         except json.JSONDecodeError:
-            error_response = {
-                'error': 'Dữ liệu JSON không hợp lệ',
-                'message': 'Vui lòng kiểm tra định dạng JSON'
+            payload = {
+                'success': False,
+                'data': None,
+                'error': {
+                    'code': 'BAD_JSON',
+                    'message': 'Vui lòng kiểm tra định dạng JSON'
+                }
             }
             response = request.make_response(
-                json.dumps(error_response, ensure_ascii=False),
-                headers=[
-                    ('Content-Type', 'application/json; charset=utf-8'),
-                    ('Access-Control-Allow-Origin', '*'),
-                ]
+                json.dumps(payload, ensure_ascii=False),
+                headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
             )
             response.status_code = 400
             return response
             
         except Exception as e:
             _logger.error(f"Error in set_maintenance_status: {str(e)}")
-            error_response = {
-                'error': 'Lỗi hệ thống',
-                'message': str(e)
+            payload = {
+                'success': False,
+                'data': None,
+                'error': {
+                    'code': 'SERVER_ERROR',
+                    'message': str(e)
+                }
             }
             response = request.make_response(
-                json.dumps(error_response, ensure_ascii=False),
-                headers=[
-                    ('Content-Type', 'application/json; charset=utf-8'),
-                    ('Access-Control-Allow-Origin', '*'),
-                ]
+                json.dumps(payload, ensure_ascii=False),
+                headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
             )
             response.status_code = 500
             return response
 
-    @http.route('/api/maintenance/toggle', type='http', auth='user', methods=['POST', 'OPTIONS'], csrf=False, cors='*')
+    @http.route('/api/maintenance/toggle', type='http', auth='user', methods=['POST', 'OPTIONS'], csrf=False)
     def toggle_maintenance_status(self, **kwargs):
         """
         API để chuyển đổi trạng thái bảo trì (on <-> off)
@@ -326,14 +402,22 @@ class MaintenanceAPI(http.Controller):
         }
         """
         try:
-            # Handle CORS preflight request
+            # Handle CORS preflight request with dynamic headers
+            def _get_cors_headers(allow_methods='POST, OPTIONS'):
+                origin = request.httprequest.headers.get('Origin') or '*'
+                req_headers = request.httprequest.headers.get('Access-Control-Request-Headers') or 'Content-Type, Authorization'
+                return [
+                    ('Access-Control-Allow-Origin', origin),
+                    ('Vary', 'Origin'),
+                    ('Access-Control-Allow-Methods', allow_methods),
+                    ('Access-Control-Allow-Headers', req_headers),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '600'),
+                    ('Access-Control-Expose-Headers', 'Content-Type'),
+                ]
+
             if request.httprequest.method == 'OPTIONS':
-                response = request.make_response('', headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ])
-                return response
+                return request.make_response('', headers=_get_cors_headers('POST, OPTIONS'))
 
             # Kiểm tra quyền admin
             if not request.env.user.has_group('base.group_system'):
@@ -343,10 +427,7 @@ class MaintenanceAPI(http.Controller):
                 }
                 response = request.make_response(
                     json.dumps(error_response, ensure_ascii=False),
-                    headers=[
-                        ('Content-Type', 'application/json; charset=utf-8'),
-                        ('Access-Control-Allow-Origin', '*'),
-                    ]
+                    headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
                 )
                 response.status_code = 403
                 return response
