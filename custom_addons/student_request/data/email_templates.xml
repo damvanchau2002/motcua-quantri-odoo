@@ -76,8 +76,8 @@
         <record id="email_template_request_expired" model="mail.template">
             <field name="name">Thông báo yêu cầu quá hạn</field>
             <field name="model_id" ref="model_student_service_request"/>
-            <field name="subject">CẢNH BÁO: Yêu cầu ${object.name or 'N/A'} đã quá hạn</field>
-            <field name="email_to">${object.user_processing_id.email or 'admin@example.com'}</field>
+            <field name="subject">CẢNH BÁO: Yêu cầu {{ object.name or 'N/A' }} đã quá hạn</field>
+            <field name="email_to">{{ object.user_processing_id.email or 'admin@example.com' }}</field>
             <field name="body_html" type="html">
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
                     <h3 style="color: #dc3545;">⚠️ CẢNH BÁO: Yêu cầu quá hạn xử lý</h3>
@@ -109,7 +109,7 @@
             <field name="body_html" type="html">
                 <div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
                     <h3>📊 Báo cáo hàng ngày - Yêu cầu quá hạn</h3>
-                    <p>Ngày báo cáo: <strong><t t-out="ctx.get('report_date_text') or format_datetime(ctx.get('report_date'))"/></strong></p>
+                    <p>Ngày báo cáo: <strong><t t-out="format_datetime(ctx.get('report_date'), tz='Asia/Ho_Chi_Minh')"/></strong></p>
 
                     <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 10px 0;">
                         <h4>Tổng quan:</h4>
@@ -137,7 +137,7 @@
                                 <tr t-foreach="rows" t-as="row">
                                     <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('id')"/></td>
                                     <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('name')"/></td>
-                                    <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('deadline_text') or format_datetime(row.get('deadline'))"/></td>
+                                    <td style="border:1px solid #ddd; padding:8px;"><t t-out="format_datetime(row.get('deadline'), tz='Asia/Ho_Chi_Minh')"/></td>
                                     <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('extended_hours')"/></td>
                                     <td style="border:1px solid #ddd; padding:8px;"><t t-out="row.get('reason') or ''"/></td>
                                 </tr>

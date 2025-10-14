@@ -183,6 +183,21 @@ class RequestExtension(models.Model):
         except Exception:
             return str(dt)
 
+    def _get_default_sender(self):
+        """Trả về email_from hợp lệ để khớp với mail server cấu hình."""
+        try:
+            mail_server = self.env['ir.mail_server'].search([], limit=1)
+            sender = mail_server.smtp_user if mail_server and mail_server.smtp_user else False
+            if not sender:
+                sender = self.env['ir.config_parameter'].sudo().get_param('mail.default.from')
+            if not sender:
+                sender = (self.env.company.email or False)
+            if not sender:
+                sender = 'noreply@localhost'
+            return sender
+        except Exception:
+            return 'noreply@localhost'
+
     def action_submit(self):
         """Gửi yêu cầu gia hạn"""
         self.ensure_one()
@@ -205,7 +220,7 @@ class RequestExtension(models.Model):
             if template:
                 # Sử dụng sudo để đảm bảo có quyền đọc request_id khi render email
                 request_date_text = self._format_dt_for_user(self.request_date, user_id=(self.requested_by.id if self.requested_by else None))
-                template.sudo().with_context(request_date_text=request_date_text).send_mail(self.id, force_send=True)
+                template.sudo().with_context(request_date_text=request_date_text).send_mail(self.id, force_send=True, email_values={'email_from': self._get_default_sender()})
                 _logger.info(f"Đã gửi email thông báo gửi gia hạn cho extension ID: {self.id}")
             else:
                 _logger.warning("Không tìm thấy template email_template_extension_submitted")
@@ -251,7 +266,7 @@ class RequestExtension(models.Model):
             if template:
                 # Sử dụng sudo để đảm bảo có quyền đọc request_id khi render email
                 new_deadline_text = self._format_dt_for_user(self.new_deadline, user_id=(self.requested_by.id if self.requested_by else None))
-                template.sudo().with_context(new_deadline_text=new_deadline_text).send_mail(self.id, force_send=True)
+                template.sudo().with_context(new_deadline_text=new_deadline_text).send_mail(self.id, force_send=True, email_values={'email_from': self._get_default_sender()})
                 _logger.info(f"Đã gửi email duyệt gia hạn cho extension ID: {self.id}")
             else:
                 _logger.warning("Không tìm thấy template email_template_extension_approved")
@@ -302,7 +317,7 @@ class RequestExtension(models.Model):
                 if template:
                     for record in self:
                         rejection_date_text = record._format_dt_for_user(record.rejection_date, user_id=(record.requested_by.id if record.requested_by else None))
-                        template.sudo().with_context(rejection_date_text=rejection_date_text).send_mail(record.id, force_send=True)
+                        template.sudo().with_context(rejection_date_text=rejection_date_text).send_mail(record.id, force_send=True, email_values={'email_from': record._get_default_sender()})
                         _logger.info(f"Đã gửi email từ chối gia hạn (auto) cho extension ID: {record.id}")
                 else:
                     _logger.warning("Không tìm thấy template email_template_extension_rejected khi auto-send")
@@ -356,7 +371,7 @@ class RequestExtensionRejectWizard(models.TransientModel):
             if template:
                 # Sử dụng sudo để đảm bảo có quyền đọc request_id khi render email
                 rejection_date_text = self.extension_id._format_dt_for_user(self.extension_id.rejection_date, user_id=(self.extension_id.requested_by.id if self.extension_id.requested_by else None))
-                template.sudo().with_context(rejection_date_text=rejection_date_text).send_mail(self.extension_id.id, force_send=True)
+                template.sudo().with_context(rejection_date_text=rejection_date_text).send_mail(self.extension_id.id, force_send=True, email_values={'email_from': self.extension_id._get_default_sender()})
                 _logger.info(f"Đã gửi email từ chối gia hạn cho extension ID: {self.extension_id.id}")
         except Exception as e:
             _logger.error(f"Lỗi khi gửi email từ chối gia hạn: {e}")

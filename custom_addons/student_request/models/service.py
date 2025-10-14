@@ -848,7 +848,24 @@ class ServiceRequest(models.Model):
                                     'request_date_text': format_datetime_local(request.request_date, user_id=target_user_id) if target_user_id else None,
                                     'expired_date_text': format_datetime_local(request.expired_date, user_id=target_user_id) if target_user_id else None,
                                 }
-                                mail_id = email_template.with_context(**email_context).send_mail(request.id, force_send=True)
+                                # Xác định người gửi hợp lệ để khớp mail server
+                                sender = False
+                                try:
+                                    mail_server = self.env['ir.mail_server'].search([], limit=1)
+                                    sender = mail_server.smtp_user if mail_server and mail_server.smtp_user else False
+                                    if not sender:
+                                        sender = self.env['ir.config_parameter'].sudo().get_param('mail.default.from')
+                                    if not sender:
+                                        sender = (self.env.company.email or False)
+                                    if not sender:
+                                        sender = 'noreply@localhost'
+                                except Exception:
+                                    sender = 'noreply@localhost'
+                                email_values = {
+                                    'email_to': recipient_email,
+                                    'email_from': sender,
+                                }
+                                mail_id = email_template.with_context(**email_context).send_mail(request.id, force_send=True, email_values=email_values)
                                 print(f"Sent expired email notification to {recipient_email} for request {request.name} - Mail ID: {mail_id}")
                             except Exception as email_error:
                                 print(f"Error sending email: {email_error}")
@@ -910,17 +927,53 @@ class ServiceRequest(models.Model):
     def _send_expiry_notification(self, request):
         """Gửi thông báo yêu cầu quá hạn"""
         try:
-            # Gửi email cho người xử lý
-            if request.user_processing_id:
-                template = self.env.ref('student_request.email_template_request_expired', raise_if_not_found=False)
-                if template:
+            # Xác định địa chỉ người gửi hợp lệ để khớp mail server
+            def _get_default_sender():
+                sender = False
+                try:
+                    mail_server = self.env['ir.mail_server'].search([], limit=1)
+                    sender = mail_server.smtp_user if mail_server and mail_server.smtp_user else False
+                    if not sender:
+                        sender = self.env['ir.config_parameter'].sudo().get_param('mail.default.from')
+                    if not sender:
+                        sender = (self.env.company.email or False)
+                    if not sender:
+                        sender = 'noreply@localhost'
+                except Exception:
+                    sender = 'noreply@localhost'
+                return sender
+
+            # Gửi email cho người xử lý, với fallback khi thiếu email
+            template = self.env.ref('student_request.email_template_request_expired', raise_if_not_found=False)
+            if template:
+                recipient_email = False
+                target_user_id = False
+                # Ưu tiên người đang xử lý
+                if request.user_processing_id and request.user_processing_id.email:
+                    recipient_email = request.user_processing_id.email
                     target_user_id = request.user_processing_id.id
-                    ctx_vals = {
-                        'request_date_text': self._format_dt_for_user(request.request_date, user_id=target_user_id),
-                        'expired_date_text': self._format_dt_for_user(request.expired_date, user_id=target_user_id),
-                    }
-                    template.sudo().with_context(**ctx_vals).send_mail(request.id, force_send=True)
-                    
+                # Fallback: người duyệt dịch vụ đầu tiên có email
+                elif request.service_id and request.service_id.users:
+                    for u in request.service_id.users:
+                        if u.email:
+                            recipient_email = u.email
+                            target_user_id = u.id
+                            break
+                # Fallback cuối: email quản lý cấu hình hoặc admin
+                if not recipient_email:
+                    recipient_email = self.env['ir.config_parameter'].sudo().get_param('student_request.manager_email') \
+                        or (self.env.company.email or False) \
+                        or 'admin@example.com'
+                ctx_vals = {
+                    'request_date_text': self._format_dt_for_user(request.request_date, user_id=target_user_id),
+                    'expired_date_text': self._format_dt_for_user(request.expired_date, user_id=target_user_id),
+                }
+                email_vals = {
+                    'email_to': recipient_email,
+                    'email_from': _get_default_sender(),
+                }
+                template.sudo().with_context(**ctx_vals).send_mail(request.id, force_send=True, email_values=email_vals)
+            
         except Exception as e:
             print(f"Error sending expiry notification: {str(e)}")
 
@@ -953,7 +1006,21 @@ class ServiceRequest(models.Model):
             if template and managers:
                 now_dt = fields.Datetime.now()
                 for manager in managers:
-                    email_vals = {'email_to': manager.email} if manager.email else {}
+                    # Xác định người gửi hợp lệ để khớp mail server
+                    sender = False
+                    try:
+                        mail_server = self.env['ir.mail_server'].search([], limit=1)
+                        sender = mail_server.smtp_user if mail_server and mail_server.smtp_user else False
+                        if not sender:
+                            sender = self.env['ir.config_parameter'].sudo().get_param('mail.default.from')
+                        if not sender:
+                            sender = (self.env.company.email or False)
+                        if not sender:
+                            sender = 'noreply@localhost'
+                    except Exception:
+                        sender = 'noreply@localhost'
+
+                    email_vals = {'email_to': manager.email, 'email_from': sender} if manager.email else {'email_from': sender}
                     # Ánh xạ thời gian theo múi giờ của manager
                     rows_with_text = []
                     for row in report_rows:
