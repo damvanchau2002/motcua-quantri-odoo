@@ -609,6 +609,9 @@ class ServiceRequest(models.Model):
     total_extended_hours = fields.Integer('Tổng giờ gia hạn', compute='_compute_extension_stats', help='Tổng số giờ đã gia hạn')
     is_expired = fields.Boolean('Đã quá hạn', compute='_compute_is_expired', help='Yêu cầu đã quá hạn chưa hoàn thành')
     expiry_warning_sent = fields.Boolean('Đã gửi cảnh báo hết hạn', default=False, help='Đã gửi email cảnh báo hết hạn')
+    # Theo dõi số lần nhắc quá hạn trong ngày
+    expiry_reminder_count = fields.Integer('Số lần nhắc quá hạn trong ngày', default=0)
+    expiry_reminder_date = fields.Date('Ngày ghi nhận số lần nhắc', default=fields.Date.today)
 
 
     step_ids_active = fields.One2many(
@@ -889,43 +892,51 @@ class ServiceRequest(models.Model):
 
     @api.model
     def _cron_check_expired_requests(self):
-        """Cron job kiểm tra yêu cầu quá hạn hàng ngày"""
+        """Cron kiểm tra yêu cầu quá hạn (chạy thường xuyên, 5 phút/lần).
+        - Không lọc theo `expiry_warning_sent` để cho phép nhắc nhiều lần.
+        - Reset bộ đếm theo ngày và giới hạn tối đa 2 email nhắc/ngày/yêu cầu.
+        - Không gửi báo cáo ngày trong cron này (đã có cron riêng)."""
         try:
             now = fields.Datetime.now()
-            
-            # Tìm các yêu cầu quá hạn chưa được đánh dấu
+            today = fields.Date.today()
+
             expired_requests = self.search([
                 ('expired_date', '<', now),
-                ('final_state', 'not in', ['closed', 'cancelled', 'approved']),
-                ('expiry_warning_sent', '=', False)
+                ('final_state', 'not in', ['closed', 'cancelled', 'approved'])
             ])
-            
-            # Cập nhật trạng thái và gửi thông báo
+
+            processed = 0
+            total_overdue = len(expired_requests)
+
             for request in expired_requests:
-                # Đánh dấu đã gửi cảnh báo
-                request.expiry_warning_sent = True
-                
-                # Gửi email thông báo quá hạn
-                self._send_expiry_notification(request)
-                
-                # Ghi log vào chatter
-                request.message_post(
-                    body=f"Yêu cầu đã quá hạn từ {request.expired_date}. "
-                         f"Cần xử lý hoặc yêu cầu gia hạn.",
-                    message_type='notification'
-                )
-            
-            # Gửi báo cáo tổng hợp cho lãnh đạo
-            if expired_requests:
-                self._send_daily_expired_report(expired_requests)
-                
-            print(f"Processed {len(expired_requests)} expired requests")
-            
+                # Reset bộ đếm nếu sang ngày mới
+                if request.expiry_reminder_date != today:
+                    request.sudo().write({
+                        'expiry_reminder_date': today,
+                        'expiry_reminder_count': 0,
+                    })
+
+                # Giới hạn tối đa 2 lần/ngày
+                if request.expiry_reminder_count >= 2:
+                    continue
+
+                mail_id = self._send_expiry_notification(request)
+                if mail_id:
+                    # Ghi log vào chatter khi đã gửi thành công
+                    request.message_post(
+                        body=f"Yêu cầu đã quá hạn từ {request.expired_date}. Đã gửi email nhắc xử lý.",
+                        message_type='notification'
+                    )
+                    processed += 1
+
+            print(f"Processed {processed} expired requests out of {total_overdue} overdue")
+
         except Exception as e:
             print(f"Error in _cron_check_expired_requests: {str(e)}")
 
     def _send_expiry_notification(self, request):
-        """Gửi thông báo yêu cầu quá hạn"""
+        """Gửi thông báo yêu cầu quá hạn.
+        Trả về `mail_id` nếu tạo email thành công, False nếu không."""
         try:
             # Xác định địa chỉ người gửi hợp lệ để khớp mail server
             def _get_default_sender():
@@ -972,10 +983,20 @@ class ServiceRequest(models.Model):
                     'email_to': recipient_email,
                     'email_from': _get_default_sender(),
                 }
-                template.sudo().with_context(**ctx_vals).send_mail(request.id, force_send=True, email_values=email_vals)
-            
+                mail_id = template.sudo().with_context(**ctx_vals).send_mail(request.id, force_send=True, email_values=email_vals)
+                if mail_id:
+                    # Tăng bộ đếm và đánh dấu đã gửi cảnh báo
+                    request.sudo().write({
+                        'expiry_warning_sent': True,
+                        'expiry_reminder_count': (request.expiry_reminder_count or 0) + 1,
+                        'expiry_reminder_date': fields.Date.today(),
+                    })
+                    return mail_id
+                return False
+
         except Exception as e:
             print(f"Error sending expiry notification: {str(e)}")
+            return False
 
     def _send_daily_expired_report(self, expired_requests):
         """Gửi báo cáo hàng ngày về yêu cầu quá hạn cho lãnh đạo với nội dung chi tiết."""

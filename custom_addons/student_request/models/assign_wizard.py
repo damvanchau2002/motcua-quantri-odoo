@@ -24,6 +24,43 @@ class StudentRequestBulkAssignWizard(models.TransientModel):
     # Danh sách yêu cầu chọn tay cho phần "Phân công theo yêu cầu"
     request_ids = fields.Many2many('student.service.request', string='Yêu cầu dịch vụ (chọn tay)')
 
+    # Danh sách user cho phép phân công: admin đã kích hoạt + nhóm quyền xử lý
+    assignable_user_ids = fields.Many2many('res.users', compute='_compute_assignable_user_ids', store=False)
+
+    def _compute_assignable_user_ids(self):
+        final_users = self._get_assignable_users()
+        for w in self:
+            w.assignable_user_ids = [(6, 0, final_users.ids)]
+
+    def _get_assignable_users(self):
+        # Admin đã kích hoạt
+        admin_users = self.env['student.admin.profile'].sudo().search([
+            ('activated', '=', True)
+        ]).mapped('user_id')
+
+        # Thu hẹp tiếp: chỉ những user thuộc nhóm quyền xử lý
+        group_user = self.env.ref('student_request.group_student_request_user', raise_if_not_found=False)
+        group_manager = self.env.ref('student_request.group_student_request_manager', raise_if_not_found=False)
+        group_ids = [g.id for g in (group_user, group_manager) if g]
+        if group_ids:
+            group_users = self.env['res.users'].sudo().search([('groups_id', 'in', group_ids)])
+            eligible_users = admin_users & group_users
+        else:
+            eligible_users = admin_users
+
+        # Loại toàn bộ sinh viên
+        student_users = self.env['student.user.profile'].sudo().search([]).mapped('user_id')
+        final_users = eligible_users - student_users
+        return final_users
+
+    @api.model
+    def default_get(self, fields_list):
+        # Đảm bảo assignable_user_ids có giá trị ngay khi mở form
+        res = super().default_get(fields_list)
+        users = self._get_assignable_users()
+        res['assignable_user_ids'] = [(6, 0, users.ids)]
+        return res
+
     @api.depends('line_ids', 'line_ids.selected')
     def _compute_request_count(self):
         for w in self:

@@ -240,6 +240,15 @@ class RequestExtension(models.Model):
             'expired_date': new_deadline,
             'final_state': 'extended'
         })
+        # Reset bộ đếm nhắc quá hạn khi đã gia hạn
+        try:
+            self.request_id.sudo().write({
+                'expiry_reminder_count': 0,
+                'expiry_reminder_date': fields.Date.today(),
+            })
+        except Exception:
+            # Bỏ qua nếu phiên bản trước chưa có trường
+            pass
         
         # Cập nhật trạng thái gia hạn
         self.write({
