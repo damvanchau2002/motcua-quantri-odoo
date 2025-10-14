@@ -38,8 +38,9 @@
         'views/service_report_views.xml',
         'views/request_stats_wizard_views.xml',
         'views/email_template.xml',
-        'views/maintenance_simple_views.xml',
+        # Đảm bảo các server actions được định nghĩa trước khi view đơn giản tham chiếu
         'views/maintenance_user_friendly_views.xml',
+        'views/maintenance_simple_views.xml',
         'views/student_manage_views.xml',
         'views/user_permission_views.xml',
         'views/permission_manager_views.xml',

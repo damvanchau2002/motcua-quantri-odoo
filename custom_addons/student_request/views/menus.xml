@@ -6,6 +6,7 @@
     <menuitem id="menu_service_notify" name="Gửi thông báo" parent="student_request_root" action="action_student_notify"/>
     <menuitem id="student_request_config" name="Cấu hình" parent="student_request_root"/>
     <menuitem id="student_service_report" name="Báo cáo" parent="student_request_root" action="action_student_service_report_wizard"/>
+    <menuitem id="menu_student_request_dashboard_wizard" name="Bảng thống kê" parent="student_request_root" action="action_student_request_stats_wizard" sequence="90"/>
 
     
     <menuitem id="menu_service_group_root" name="Nhóm dịch vụ" parent="student_request_config" action="action_service_group"/>

@@ -41,7 +41,4 @@
         <field name="view_mode">form</field>
         <field name="target">current</field>
     </record>
-
-    <!-- Menu: open wizard -->
-    <menuitem id="menu_student_request_dashboard_wizard" name="Bảng thống kê" parent="student_request_root" action="action_student_request_stats_wizard" sequence="90"/>
 </odoo>
