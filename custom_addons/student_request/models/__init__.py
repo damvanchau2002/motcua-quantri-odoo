@@ -6,3 +6,5 @@ from . import maintenance_wizard
 from . import assign_wizard
 from . import request_extension
 from . import permission_manager
+from . import stats
+from . import dashboard_wizard

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Graph view: trạng thái yêu cầu theo ngày -->
+    <record id="view_student_request_stats_graph" model="ir.ui.view">
+        <field name="name">student.request.stats.graph</field>
+        <field name="model">student.request.stats</field>
+        <field name="arch" type="xml">
+            <graph string="Biểu đồ thống kê yêu cầu" type="bar">
+                <field name="stat_date" type="row"/>
+                <field name="new_requests" type="measure"/>
+                <field name="processing_requests" type="measure"/>
+                <field name="overdue_requests" type="measure"/>
+                <field name="near_overdue_requests" type="measure"/>
+                <field name="created_requests" type="measure"/>
+                <field name="visits" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Search view: lọc theo ngày -->
+    <record id="view_student_request_stats_search" model="ir.ui.view">
+        <field name="name">student.request.stats.search</field>
+        <field name="model">student.request.stats</field>
+        <field name="arch" type="xml">
+            <search string="Lọc thống kê">
+                <field name="stat_date"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action mở biểu đồ -->
+    <record id="action_student_request_stats_graph" model="ir.actions.act_window">
+        <field name="name">Biểu đồ thống kê</field>
+        <field name="res_model">student.request.stats</field>
+        <field name="view_mode">graph,list</field>
+        <field name="search_view_id" ref="view_student_request_stats_search"/>
+        <field name="context">{"graph_measure": "new_requests"}</field>
+    </record>
+
+</odoo>

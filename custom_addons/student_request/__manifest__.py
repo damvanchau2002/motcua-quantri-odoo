@@ -15,6 +15,7 @@
         # 'data/model_data.xml',  # Temporarily commented out
         'data/service_step_data.xml',
         'data/cron_data.xml',
+        'data/stats_cron.xml',
         'data/email_templates.xml',
         'data/automated_actions.xml',  # Fixed XML validation error
         # 'data/permission_rules_data.xml',  # Commented out to remove permission restrictions
@@ -26,6 +27,7 @@
         'views/service_file_views.xml',
         'views/service_request_views.xml',
         'views/request_extension_views.xml',
+        'views/request_stats_views.xml',
         'views/bulk_assign_wizard_views.xml',
         'views/admin_profile_views.xml',
         'views/notification_views.xml',
@@ -34,6 +36,7 @@
         'views/roles_views.xml',
         'views/department_views.xml',
         'views/service_report_views.xml',
+        'views/request_stats_wizard_views.xml',
         'views/email_template.xml',
         'views/maintenance_simple_views.xml',
         'views/maintenance_user_friendly_views.xml',

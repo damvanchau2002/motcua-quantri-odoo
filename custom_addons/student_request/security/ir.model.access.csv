@@ -37,3 +37,6 @@ access_student_permission_manager_admin,student.permission.manager.admin,model_s
 access_student_request_bulk_assign_line_admin,student.request.bulk.assign.line,model_student_request_bulk_assign_line,base.group_system,1,1,1,1
 access_maintenance_message_wizard,maintenance.message.wizard,model_maintenance_message_wizard,base.group_system,1,1,1,1
 access_maintenance_dashboard,maintenance.dashboard,model_maintenance_dashboard,base.group_system,1,1,1,1
+access_student_request_stats_all,student.request.stats all,model_student_request_stats,,1,0,0,0
+access_student_request_stats_admin,student.request.stats admin,model_student_request_stats,base.group_system,1,1,1,1
+access_student_request_stats_wizard,student.request.stats.wizard,model_student_request_stats_wizard,,1,1,1,1
