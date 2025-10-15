@@ -44,6 +44,7 @@
         'views/student_manage_views.xml',
         'views/user_permission_views.xml',
         'views/permission_manager_views.xml',
+        'views/ir_attachment_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',
@@ -56,7 +57,9 @@
             'student_request/static/src/css/hide_checkbox.css',
             'student_request/static/src/css/kanban.css',
             'student_request/static/src/css/no_download.css',
+            'student_request/static/src/css/image_gallery.css',
             'student_request/static/src/js/image_viewer.js',
+            'student_request/static/src/js/image_gallery.js',
         ],
     },
 }

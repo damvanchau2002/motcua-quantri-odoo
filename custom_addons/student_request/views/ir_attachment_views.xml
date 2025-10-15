@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Kanban view for image attachments -->
+    <record id="view_attachment_kanban_image" model="ir.ui.view">
+        <field name="name">ir.attachment.kanban.image</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="id"/>
+                <field name="name"/>
+                <field name="mimetype"/>
+                <field name="datas"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click" style="max-width: 300px;">
+                            <div class="o_kanban_image" style="text-align: center;">
+                                <field name="datas" widget="image" options="{'size': [200, 200], 'preview_image': 'datas'}" readonly="1"/>
+                            </div>
+                            <div class="oe_kanban_details">
+                                <strong><field name="name"/></strong>
+                                <div>
+                                    <span class="text-muted">Click để xem ảnh lớn</span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Form view for image attachments -->
+    <record id="view_attachment_form_image" model="ir.ui.view">
+        <field name="name">ir.attachment.form.image</field>
+        <field name="model">ir.attachment</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="mimetype" readonly="1"/>
+                            <field name="file_size" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Xem ảnh">
+                            <div style="text-align: center; padding: 20px;">
+                                <field name="datas" widget="image" options="{'size': [600, 600], 'preview_image': 'datas'}" readonly="1"/>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

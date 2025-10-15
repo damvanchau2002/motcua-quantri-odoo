@@ -56,7 +56,18 @@
                     <group>
                         <group string="Nội dung yêu cầu">
                             <field name="service_id"/>
-                            <field name="image_attachment_ids" widget="many2many_binary" options="{'accepted_file_extensions': '.jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp', 'no_download': True}" class="image_attachment_field"/>
+                            <field name="image_attachment_ids" mode="list,form" nolabel="1">
+                                <list string="Ảnh đính kèm" create="false" edit="false" delete="false">
+                                    <field name="name"/>
+                                    <field name="datas" widget="image" options="{'size': [100, 100]}" readonly="1"/>
+                                </list>
+                                <form string="Ảnh đính kèm">
+                                    <sheet>
+                                        <field name="name"/>
+                                        <field name="datas" widget="image" options="{'size': [400, 300]}"/>
+                                    </sheet>
+                                </form>
+                            </field>
                             <field name="note"/>
                             <field name="request_user_id" domain="[('groups_id.name', '=', 'Public')]"/>
                         </group>

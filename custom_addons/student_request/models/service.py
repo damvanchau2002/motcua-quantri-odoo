@@ -462,6 +462,7 @@ class ServiceRequestStep(models.Model):
 class ServiceRequest(models.Model):
     _name = 'student.service.request'
     _description = 'Yêu cầu dịch vụ của sinh viên'
+    _inherit = ['mail.thread']
 
     def _format_dt_for_user(self, dt, user_id=None, fmt='%d/%m/%Y %H:%M'):
         """Định dạng datetime theo múi giờ người nhận email.
@@ -1072,6 +1073,25 @@ class ServiceRequest(models.Model):
                 self._send_daily_expired_report(expired_requests)
         except Exception as e:
             print(f"Error in cron_send_daily_expired_report: {str(e)}")
+
+    def action_view_attachment(self):
+        """Mở cửa sổ xem ảnh đính kèm"""
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Ảnh đính kèm',
+            'res_model': 'ir.attachment',
+            'view_mode': 'kanban,form',
+            'views': [
+                (self.env.ref('student_request.view_attachment_kanban_image').id, 'kanban'),
+                (self.env.ref('student_request.view_attachment_form_image').id, 'form'),
+            ],
+            'domain': [('id', 'in', self.image_attachment_ids.ids)],
+            'context': {
+                'default_res_model': self._name,
+                'default_res_id': self.id,
+            },
+            'target': 'new',
+        }
     
 # Model quản lý thông tin sinh viên KTX
 class StudentUserProfile(models.Model):
