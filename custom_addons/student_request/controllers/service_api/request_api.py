@@ -875,6 +875,47 @@ class ServiceApiController(http.Controller):
                         'description': req.service_id.description,
                     } if req.service_id else {},
 
+                    # Thông tin các bước duyệt theo cấu hình dịch vụ
+                    'service_step_selection_ids': [{
+                        'id': selection.id,
+                        'sequence': selection.sequence,
+                        'step_id': selection.step_id.id if selection.step_id else None,
+                        'step_name': selection.step_name or '',
+                        'step_description': selection.step_description or '',
+                        'name': selection.name or '',
+                        
+                        # Thông tin từ ServiceStep (step_id)
+                        'base_step_name': selection.step_id.name if selection.step_id else '',
+                        'base_step_sequence': selection.step_id.sequence if selection.step_id else 0,
+                        'base_step_nextstep': selection.step_id.nextstep if selection.step_id else 99,
+                        'base_step_state': selection.step_id.state if selection.step_id else 1,
+                        
+                        # Thông tin phân công từ ServiceStep
+                        'step_user_ids': [{'id': u.id, 'name': u.name} for u in selection.step_id.user_ids] if selection.step_id else [],
+                        'step_role_ids': [{'id': r.id, 'name': r.name} for r in selection.step_id.role_ids] if selection.step_id else [],
+                        'step_department_id': selection.step_id.department_id.id if selection.step_id and selection.step_id.department_id else None,
+                        'step_department_name': selection.step_id.department_id.name if selection.step_id and selection.step_id.department_id else '',
+                        
+                        # Trạng thái mặc định cho selection (chưa có request step tương ứng)
+                        'state': 'pending',  # Trạng thái mặc định
+                        'activated': False,  # Chưa kích hoạt
+                        'disabled': True,    # Mặc định khóa
+                        'approve_content': '',
+                        'approve_date': '',
+                        'final_data': '',
+                        
+                        # Thông tin phân công (trống vì chưa có request step)
+                        'assign_user_id': None,
+                        'assign_user_name': '',
+                        'assigned_department_id': None,
+                        'assigned_department_name': '',
+                        
+                        # File và history (trống vì chưa có request step)
+                        'file_ids': [],
+                        'file_checkbox_ids': [],
+                        'history_ids': [],
+                    } for selection in req.service_id.step_selection_ids.sorted('sequence')] if req.service_id and req.service_id.step_selection_ids else [],
+
                     'steps': steps,
                     'is_new': req.is_new
                 }
@@ -1103,39 +1144,119 @@ class ServiceApiController(http.Controller):
                 ]
             )
 
+        # Sắp xếp steps theo base_secquence như trong model
+        sorted_steps = req.step_ids.sorted(lambda s: s.base_secquence or 0)
+        
         sumhistories = []
-        for step in req.step_ids:
+        for step in sorted_steps:
             for h in step.history_ids:
                 sumhistories.append({
                     'id': h.id,
                     'step_id': step.id,
-                    'step_name': step.base_step_id.name if step.base_step_id else '',
+                    'step_name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
                     'state': h.state,
                     'user_id': h.user_id.id if h.user_id else None,
                     'user_name': h.user_id.name if h.user_id else '',
                     'note': h.note,
                     'date': format_datetime_local(h.date),
                 })
+        
         req_data = {
             'id': req.id,
             
+            # Thông tin service đầy đủ
             'service_id': req.service_id.id if req.service_id else None,
+            'service_name': req.service_id.name if req.service_id else '',
+            'service_description': req.service_id.description if req.service_id else '',
+            
             'name': req.name,
             'note': req.note,
             
             'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
             'request_date': format_datetime_local(req.request_date),
+            'expired_date': format_datetime_local(req.expired_date) if hasattr(req, 'expired_date') and req.expired_date else None,
 
             'request_user_id': req.request_user_id.id if req.request_user_id else None,
             'request_user_name': req.request_user_id.name if req.request_user_id else '',
+            'request_user_phone': req.request_user_phone or '',
+            'request_user_dormitory_full': req.request_user_dormitory_full or '',
+            'request_user_dormitory_house': req.request_user_dormitory_house or '',
+            'request_user_dormitory_room': req.request_user_dormitory_room or '',
+            
+            # Thông tin người đang xử lý
+            'user_processing_id': req.user_processing_id.id if hasattr(req, 'user_processing_id') and req.user_processing_id else None,
+            'user_processing_name': req.user_processing_id.name if hasattr(req, 'user_processing_id') and req.user_processing_id else '',
+            
+            # Thông tin hủy yêu cầu
+            'cancel_reason': req.cancel_reason or '',
+            'cancel_date': format_datetime_local(req.cancel_date) if req.cancel_date else None,
+            'cancel_user_id': req.cancel_user_id.id if req.cancel_user_id else None,
+            'cancel_user_name': req.cancel_user_id.name if req.cancel_user_id else '',
 
+            # Service step selections được sắp xếp theo sequence
+            'service_step_selection_ids': [{
+                'id': selection.id,
+                'sequence': selection.sequence,
+                'step_id': selection.step_id.id if selection.step_id else None,
+                'step_name': selection.step_name or '',
+                'step_description': selection.step_description or '',
+                'name': selection.name or '',
+                
+                # Thông tin từ ServiceStep (step_id)
+                'base_step_name': selection.step_id.name if selection.step_id else '',
+                'base_step_sequence': selection.step_id.sequence if selection.step_id else 0,
+                'base_step_nextstep': selection.step_id.nextstep if selection.step_id else 99,
+                'base_step_state': selection.step_id.state if selection.step_id else 1,
+                
+                # Thông tin phân công từ ServiceStep
+                'step_user_ids': [{'id': u.id, 'name': u.name} for u in selection.step_id.user_ids] if selection.step_id else [],
+                'step_role_ids': [{'id': r.id, 'name': r.name} for r in selection.step_id.role_ids] if selection.step_id else [],
+                'step_department_id': selection.step_id.department_id.id if selection.step_id and selection.step_id.department_id else None,
+                'step_department_name': selection.step_id.department_id.name if selection.step_id and selection.step_id.department_id else '',
+                
+                # Trạng thái mặc định cho selection (chưa có request step tương ứng)
+                'state': 'pending',  # Trạng thái mặc định
+                'activated': False,  # Chưa kích hoạt
+                'disabled': True,    # Mặc định khóa
+                'approve_content': '',
+                'approve_date': '',
+                'final_data': '',
+                
+                # Thông tin phân công (trống vì chưa có request step)
+                'assign_user_id': None,
+                'assign_user_name': '',
+                'assigned_department_id': None,
+                'assigned_department_name': '',
+                
+                # File và history (trống vì chưa có request step)
+                'file_ids': [],
+                'file_checkbox_ids': [],
+                'history_ids': [],
+            } for selection in req.service_id.step_selection_ids.sorted('sequence')] if req.service_id and req.service_id.step_selection_ids else [],
+
+            # Steps được sắp xếp theo base_secquence và bao gồm đầy đủ thông tin từ model
             'step_ids': [{
                 'id': step.id,
-                'name': step.base_step_id.name if step.base_step_id else '',
+                'name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
+                'base_step_name': step.base_step_id.name if step.base_step_id else '',
                 'state': step.state,
-                'sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                'base_secquence': step.base_secquence or 0,  # Dùng base_secquence thay vì sequence
+                'sequence': step.base_step_id.sequence if step.base_step_id else 0,  # Giữ lại để tương thích
+                'disabled': step.disabled,  # Trạng thái khóa/mở
                 'approve_content': step.approve_content,
                 'approve_date': format_datetime_local(step.approve_date),
+                'final_data': step.final_data,  # Dữ liệu cuối cùng của bước
+                
+                # Thông tin phân công
+                'assign_user_id': step.assign_user_id.id if step.assign_user_id else None,
+                'assign_user_name': step.assign_user_id.name if step.assign_user_id else '',
+                'department_id': step.department_id.id if step.department_id else None,
+                'department_name': step.department_id.name if step.department_id else '',
+                
+                # Thông tin selection
+                'selection_id': step.selection_id.id if step.selection_id else None,
+                'selection_name': step.selection_id.name if step.selection_id else '',
+                
                 'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
                 'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
                 'history_ids': [{
@@ -1146,16 +1267,31 @@ class ServiceApiController(http.Controller):
                     'note': h.note,
                     'date': format_datetime_local(h.date),
                 } for h in step.history_ids],
-            } for step in req.step_ids],
+            } for step in sorted_steps],  # Dùng sorted_steps
+            
             'users': [{'id': u.id, 'name': u.name} for u in req.users],
             'role_ids': [{'id': r.id, 'name': r.name} for r in req.role_ids],
 
             'final_state': req.final_state,
             'final_data': req.final_data,
+            'final_star': req.final_star or 0,
             'approve_content': req.approve_content,
             'approve_date': format_datetime_local(req.approve_date),
-            'histories': sumhistories,
-            'is_new': req.is_new
+            'approve_user_id': req.approve_user_id.id if req.approve_user_id else None,
+            'approve_user_name': req.approve_user_id.name if req.approve_user_id else '',
+            
+            # Thông tin thống kê và trạng thái
+            'is_new': req.is_new,
+            'is_expired': req.is_expired if hasattr(req, 'is_expired') else False,
+            'send_expired_warning': req.send_expired_warning,
+            'expiry_warning_sent': req.expiry_warning_sent,
+            'extension_count': req.extension_count if hasattr(req, 'extension_count') else 0,
+            'total_extended_hours': req.total_extended_hours if hasattr(req, 'total_extended_hours') else 0,
+            
+            # Thông tin phản hồi
+            'acceptance': req.acceptance or '',
+            
+            'histories': sumhistories
         }
 
         return Response(
