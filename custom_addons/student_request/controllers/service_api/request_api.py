@@ -832,22 +832,58 @@ class ServiceApiController(http.Controller):
                 for step in req.step_ids:
                     steps.append({
                         'id': step.id,
-                        'name': step.base_step_id.name if step.base_step_id else '',
+                        'sequence': step.base_secquence or 0,  # Dùng base_secquence làm sequence chính
+                        'step_id': step.base_step_id.id if step.base_step_id else None,
+                        'step_name': step.display_step_name or '',
+                        'step_description': step.base_step_id.description if step.base_step_id else '',
+                        'name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
+                        
+                        # Thông tin từ ServiceStep (base_step_id)
+                        'base_step_name': step.base_step_id.name if step.base_step_id else '',
+                        'base_step_sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                        'base_step_nextstep': step.base_step_id.nextstep if step.base_step_id else 99,
+                        'base_step_state': step.base_step_id.state if step.base_step_id else 1,
+                        
+                        # Thông tin phân công từ ServiceStep
+                        'step_user_ids': [{'id': u.id, 'name': u.name} for u in step.base_step_id.user_ids] if step.base_step_id else [],
+                        'step_role_ids': [{'id': r.id, 'name': r.name} for r in step.base_step_id.role_ids] if step.base_step_id else [],
+                        'step_department_id': step.base_step_id.department_id.id if step.base_step_id and step.base_step_id.department_id else None,
+                        'step_department_name': step.base_step_id.department_id.name if step.base_step_id and step.base_step_id.department_id else '',
+                        
+                        # Trạng thái thực tế của request step
                         'state': step.state,
-                        'base_secquence': step.base_secquence,
-                        'approve_content': step.approve_content,
+                        'activated': not step.disabled,  # Ngược lại với disabled
+                        'disabled': step.disabled,
+                        'approve_content': step.approve_content or '',
                         'approve_date': step.approve_date and step.approve_date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                        'final_data': step.final_data or '',
+                        
+                        # Thông tin phân công thực tế
+                        'assign_user_id': step.assign_user_id.id if step.assign_user_id else None,
+                        'assign_user_name': step.assign_user_id.name if step.assign_user_id else '',
+                        'assigned_department_id': step.department_id.id if step.department_id else None,
+                        'assigned_department_name': step.department_id.name if step.department_id else '',
+                        
+                        # Thông tin selection
+                        'selection_id': step.selection_id.id if step.selection_id else None,
+                        'selection_name': step.selection_id.name if step.selection_id else '',
+                        
+                        # File và history
+                        'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
+                        'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
                         'history_ids': [
                             {
-                                'state': f.state,
-                                'note': f.note,
-                                'date': f.date and f.date.strftime('%Y-%m-%d %H:%M:%S') or '',
-                                'user_id': f.user_id.name if f.user_id.name else '[Admin]',
-                            } for f in step.history_ids
+                                'id': h.id,
+                                'state': h.state,
+                                'user_id': h.user_id.id if h.user_id else None,
+                                'user_name': h.user_id.name if h.user_id else '',
+                                'note': h.note,
+                                'date': h.date and h.date.strftime('%Y-%m-%d %H:%M:%S') or '',
+                            } for h in step.history_ids
                         ],
                     })
                 # Sắp xếp các bước theo sequence tăng dần
-                steps = sorted(steps, key=lambda x: x['base_secquence'])
+                steps = sorted(steps, key=lambda x: x['sequence'])
                 
                 # Debug log để kiểm tra giá trị student_phone
                 _logger.info(f"DEBUG RESPONSE: req.id={req.id}, student_phone='{student_phone}', request_user_name='{req.request_user_name}'")
@@ -1012,26 +1048,61 @@ class ServiceApiController(http.Controller):
                 _logger.info(f"Final phone result: '{student_phone}'")
                 _logger.info("=== END DEBUG PHONE ===")
                 
+                # Sắp xếp steps theo base_secquence trước khi xử lý
+                sorted_steps = req.step_ids.sorted('base_secquence')
+                
                 steps = []
-                for step in req.step_ids:
+                for step in sorted_steps:
                     steps.append({
                         'id': step.id,
-                        'name': step.base_step_id.name if step.base_step_id else '',
+                        'sequence': step.base_secquence or 0,  # Dùng base_secquence làm sequence chính
+                        'step_id': step.base_step_id.id if step.base_step_id else None,
+                        'step_name': step.display_step_name or '',
+                        'step_description': step.base_step_id.description if step.base_step_id else '',
+                        'name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
+                        
+                        # Thông tin từ ServiceStep (base_step_id)
+                        'base_step_name': step.base_step_id.name if step.base_step_id else '',
+                        'base_step_sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                        'base_step_nextstep': step.base_step_id.nextstep if step.base_step_id else 99,
+                        'base_step_state': step.base_step_id.state if step.base_step_id else 1,
+                        
+                        # Thông tin phân công từ ServiceStep
+                        'step_user_ids': [{'id': u.id, 'name': u.name} for u in step.base_step_id.user_ids] if step.base_step_id else [],
+                        'step_role_ids': [{'id': r.id, 'name': r.name} for r in step.base_step_id.role_ids] if step.base_step_id else [],
+                        'step_department_id': step.base_step_id.department_id.id if step.base_step_id and step.base_step_id.department_id else None,
+                        'step_department_name': step.base_step_id.department_id.name if step.base_step_id and step.base_step_id.department_id else '',
+                        
+                        # Trạng thái thực tế của request step
                         'state': step.state,
-                        'base_secquence': step.base_secquence,
-                        'approve_content': step.approve_content,
-                        'approve_date': step.approve_date and step.approve_date.strftime('%Y-%m-%d %H:%M:%S') or '',
-                        'history_ids': [
-                            {
-                                'state': f.state,
-                                'note': f.note,
-                                'date': f.date and f.date.strftime('%Y-%m-%d %H:%M:%S') or '',
-                                'user_id': f.user_id.name if f.user_id.name else '[Admin]',
-                            } for f in step.history_ids
-                        ],
+                        'activated': not step.disabled,  # Ngược lại với disabled
+                        'disabled': step.disabled,
+                        'approve_content': step.approve_content or '',
+                        'approve_date': format_datetime_local(step.approve_date, user_id) if step.approve_date else '',
+                        'final_data': step.final_data or '',
+                        
+                        # Thông tin phân công thực tế
+                        'assign_user_id': step.assign_user_id.id if step.assign_user_id else None,
+                        'assign_user_name': step.assign_user_id.name if step.assign_user_id else '',
+                        'assigned_department_id': step.department_id.id if step.department_id else None,
+                        'assigned_department_name': step.department_id.name if step.department_id else '',
+                        
+                        # Thông tin selection
+                        'selection_id': step.selection_id.id if step.selection_id else None,
+                        'selection_name': step.selection_id.name if step.selection_id else '',
+                        
+                        # File và history
+                        'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
+                        'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
+                        'history_ids': [{
+                            'id': h.id,
+                            'state': h.state,
+                            'user_id': h.user_id.id if h.user_id else None,
+                            'user_name': h.user_id.name if h.user_id else '',
+                            'note': h.note,
+                            'date': format_datetime_local(h.date, user_id),
+                        } for h in step.history_ids],
                     })
-                # Sắp xếp các bước theo sequence tăng dần
-                steps = sorted(steps, key=lambda x: x['base_secquence'])
                 # Lấy thông tin ký túc xá của sinh viên
                 dormitory_info = {
                     'dormitory_full_name': 'Không có thông tin',
@@ -1083,6 +1154,7 @@ class ServiceApiController(http.Controller):
                         'description': req.service_id.description,
                     } if req.service_id else {},
 
+                 
                     'steps': steps,
                     'is_new': req.is_new
                 })
@@ -1237,26 +1309,43 @@ class ServiceApiController(http.Controller):
             # Steps được sắp xếp theo base_secquence và bao gồm đầy đủ thông tin từ model
             'step_ids': [{
                 'id': step.id,
+                'sequence': step.base_secquence or 0,  # Dùng base_secquence làm sequence chính
+                'step_id': step.base_step_id.id if step.base_step_id else None,
+                'step_name': step.display_step_name or '',
+                'step_description': step.base_step_id.description if step.base_step_id else '',
                 'name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
-                'base_step_name': step.base_step_id.name if step.base_step_id else '',
-                'state': step.state,
-                'base_secquence': step.base_secquence or 0,  # Dùng base_secquence thay vì sequence
-                'sequence': step.base_step_id.sequence if step.base_step_id else 0,  # Giữ lại để tương thích
-                'disabled': step.disabled,  # Trạng thái khóa/mở
-                'approve_content': step.approve_content,
-                'approve_date': format_datetime_local(step.approve_date),
-                'final_data': step.final_data,  # Dữ liệu cuối cùng của bước
                 
-                # Thông tin phân công
+                # Thông tin từ ServiceStep (base_step_id)
+                'base_step_name': step.base_step_id.name if step.base_step_id else '',
+                'base_step_sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                'base_step_nextstep': step.base_step_id.nextstep if step.base_step_id else 99,
+                'base_step_state': step.base_step_id.state if step.base_step_id else 1,
+                
+                # Thông tin phân công từ ServiceStep
+                'step_user_ids': [{'id': u.id, 'name': u.name} for u in step.base_step_id.user_ids] if step.base_step_id else [],
+                'step_role_ids': [{'id': r.id, 'name': r.name} for r in step.base_step_id.role_ids] if step.base_step_id else [],
+                'step_department_id': step.base_step_id.department_id.id if step.base_step_id and step.base_step_id.department_id else None,
+                'step_department_name': step.base_step_id.department_id.name if step.base_step_id and step.base_step_id.department_id else '',
+                
+                # Trạng thái thực tế của request step
+                'state': step.state,
+                'activated': not step.disabled,  # Ngược lại với disabled
+                'disabled': step.disabled,
+                'approve_content': step.approve_content or '',
+                'approve_date': format_datetime_local(step.approve_date) if step.approve_date else '',
+                'final_data': step.final_data or '',
+                
+                # Thông tin phân công thực tế
                 'assign_user_id': step.assign_user_id.id if step.assign_user_id else None,
                 'assign_user_name': step.assign_user_id.name if step.assign_user_id else '',
-                'department_id': step.department_id.id if step.department_id else None,
-                'department_name': step.department_id.name if step.department_id else '',
+                'assigned_department_id': step.department_id.id if step.department_id else None,
+                'assigned_department_name': step.department_id.name if step.department_id else '',
                 
                 # Thông tin selection
                 'selection_id': step.selection_id.id if step.selection_id else None,
                 'selection_name': step.selection_id.name if step.selection_id else '',
                 
+                # File và history
                 'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
                 'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
                 'history_ids': [{
