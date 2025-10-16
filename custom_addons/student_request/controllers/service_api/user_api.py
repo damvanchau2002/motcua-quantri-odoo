@@ -131,4 +131,123 @@ class UserApiController(http.Controller):
                 ('Access-Control-Allow-Credentials', 'true'),
             ]
         )
+
+    # Lấy danh sách người phân công theo department_id
+    @http.route('/api/users/forassign/department/<int:department_id>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
+    def get_users_by_department(self, department_id):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                ]
+            )
+        
+        try:
+            # Kiểm tra department có tồn tại không
+            department = request.env['student.activity.department'].sudo().browse(department_id)
+            if not department.exists():
+                return Response(
+                    json.dumps({'success': False, 'message': f'Không tìm thấy phòng ban với ID {department_id}', 'data': []}),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                    ]
+                )
+            
+            # Lấy admin profiles thuộc department này và đã được kích hoạt
+            admin_profiles = request.env['student.admin.profile'].sudo().search([
+                ('department_id', '=', department_id),
+                ('activated', '=', True),
+                ('user_id', '!=', False)  # Đảm bảo có user_id
+            ])
+            
+            if not admin_profiles:
+                return Response(
+                    json.dumps({'success': True, 'message': f'Không có người phân công nào trong phòng ban "{department.name}"', 'data': []}),
+                    content_type='application/json',
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true'),
+                    ]
+                )
+            
+            # Lấy danh sách users từ admin profiles
+            admin_users = admin_profiles.mapped('user_id')
+            
+            # Loại bỏ student users (nếu có)
+            student_users = request.env['student.user.profile'].sudo().search([]).mapped('user_id')
+            final_users = admin_users - student_users
+            
+            # Lọc chỉ lấy users active
+            final_users = final_users.filtered(lambda u: u.active)
+            
+            # Tạo response data với thông tin chi tiết
+            data = []
+            for user in final_users:
+                admin_profile = admin_profiles.filtered(lambda p: p.user_id.id == user.id)[:1]
+                
+                # Kiểm tra quyền của user thông qua has_group
+                is_manager = user.has_group('student_request.group_student_request_manager')
+                is_user = user.has_group('student_request.group_student_request_user')
+                
+                user_data = {
+                    'id': user.id,
+                    'name': user.name,
+                    'login': user.login,
+                    'email': user.email,
+                    'is_manager': is_manager,
+                    'is_user': is_user,
+                    'department_id': department_id,
+                    'department_name': department.name,
+                    'role_names': ', '.join(admin_profile.role_ids.mapped('name')) if admin_profile and admin_profile.role_ids else '',
+                    'activated': admin_profile.activated if admin_profile else False,
+                    'title_name': admin_profile.title_name if admin_profile else ''
+                }
+                data.append(user_data)
+            
+            return Response(
+                json.dumps({
+                    'success': True, 
+                    'message': f'Danh sách {len(data)} người phân công trong phòng ban "{department.name}"', 
+                    'data': data,
+                    'department': {
+                        'id': department.id,
+                        'name': department.name,
+                        'description': department.description
+                    }
+                }),
+                content_type='application/json',
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                ]
+            )
+            
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': f'Lỗi khi lấy danh sách người phân công theo phòng ban: {str(e)}', 'data': []}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                ]
+            )
     

@@ -28,14 +28,69 @@ class StudentRequestBulkAssignWizard(models.TransientModel):
     assignable_user_ids = fields.Many2many('res.users', compute='_compute_assignable_user_ids', store=False)
 
     def _compute_assignable_user_ids(self):
-        final_users = self._get_assignable_users()
         for w in self:
+            final_users = w._get_assignable_users()
             w.assignable_user_ids = [(6, 0, final_users.ids)]
 
     def _get_assignable_users(self):
-        # Admin đã kích hoạt
+        # Nếu đã chọn phòng ban, chỉ lấy người trong phòng ban đó
+        if self.department_id:
+            # Lấy admin profiles thuộc department này và đã được kích hoạt
+            admin_profiles = self.env['student.admin.profile'].sudo().search([
+                ('department_id', '=', self.department_id.id),
+                ('activated', '=', True),
+                ('user_id', '!=', False)  # Đảm bảo có user_id
+            ])
+            
+            if not admin_profiles:
+                # Nếu không có ai trong phòng ban này, trả về empty recordset
+                return self.env['res.users']
+            
+            # Lấy danh sách users từ admin profiles
+            admin_users = admin_profiles.mapped('user_id')
+        else:
+            # Nếu chưa chọn phòng ban, lấy tất cả admin đã kích hoạt
+            admin_users = self.env['student.admin.profile'].sudo().search([
+                ('activated', '=', True),
+                ('user_id', '!=', False)
+            ]).mapped('user_id')
+
+        # Thu hẹp tiếp: chỉ những user thuộc nhóm quyền xử lý
+        group_user = self.env.ref('student_request.group_student_request_user', raise_if_not_found=False)
+        group_manager = self.env.ref('student_request.group_student_request_manager', raise_if_not_found=False)
+        group_ids = [g.id for g in (group_user, group_manager) if g]
+        if group_ids:
+            group_users = self.env['res.users'].sudo().search([('groups_id', 'in', group_ids)])
+            eligible_users = admin_users & group_users
+        else:
+            eligible_users = admin_users
+
+        # Loại toàn bộ sinh viên
+        student_users = self.env['student.user.profile'].sudo().search([]).mapped('user_id')
+        final_users = eligible_users - student_users
+        
+        # Lọc chỉ lấy users active
+        final_users = final_users.filtered(lambda u: u.active)
+        
+        return final_users
+
+    @api.model
+    def default_get(self, fields_list):
+        # Đảm bảo assignable_user_ids có giá trị ngay khi mở form
+        res = super().default_get(fields_list)
+        
+        # Gọi trực tiếp logic lấy users mà không tạo record mới để tránh recursion
+        if 'assignable_user_ids' in fields_list:
+            users = self._get_default_assignable_users()
+            res['assignable_user_ids'] = [(6, 0, users.ids)]
+        return res
+    
+    def _get_default_assignable_users(self):
+        """Lấy danh sách users có thể phân công mặc định (không phụ thuộc vào department_id)"""
+        # Lấy tất cả admin đã kích hoạt
         admin_users = self.env['student.admin.profile'].sudo().search([
-            ('activated', '=', True)
+            ('activated', '=', True),
+            ('user_id', '!=', False)
         ]).mapped('user_id')
 
         # Thu hẹp tiếp: chỉ những user thuộc nhóm quyền xử lý
@@ -51,15 +106,29 @@ class StudentRequestBulkAssignWizard(models.TransientModel):
         # Loại toàn bộ sinh viên
         student_users = self.env['student.user.profile'].sudo().search([]).mapped('user_id')
         final_users = eligible_users - student_users
+        
+        # Lọc chỉ lấy users active
+        final_users = final_users.filtered(lambda u: u.active)
+        
         return final_users
 
-    @api.model
-    def default_get(self, fields_list):
-        # Đảm bảo assignable_user_ids có giá trị ngay khi mở form
-        res = super().default_get(fields_list)
+    @api.onchange('department_id')
+    def _onchange_department_id(self):
+        """Khi chọn phòng ban, cập nhật lại danh sách người phân công và xóa người đã chọn nếu không thuộc phòng ban"""
+        # Cập nhật lại danh sách người có thể phân công
         users = self._get_assignable_users()
-        res['assignable_user_ids'] = [(6, 0, users.ids)]
-        return res
+        self.assignable_user_ids = [(6, 0, users.ids)]
+        
+        # Nếu người đã chọn không thuộc phòng ban mới, xóa lựa chọn
+        if self.assign_user_id and self.assign_user_id not in users:
+            self.assign_user_id = False
+            
+        # Trả về domain để giới hạn lựa chọn trong dropdown
+        return {
+            'domain': {
+                'assign_user_id': [('id', 'in', users.ids)]
+            }
+        }
 
     @api.depends('line_ids', 'line_ids.selected')
     def _compute_request_count(self):
