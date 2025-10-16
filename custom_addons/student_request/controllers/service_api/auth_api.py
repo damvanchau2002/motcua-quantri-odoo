@@ -9,7 +9,9 @@ import base64
 import os
 import jwt
 from datetime import datetime, timedelta
+import urllib3
 from .utils import *
+
 
 
 class AuthApiController(http.Controller):
@@ -166,21 +168,46 @@ class AuthApiController(http.Controller):
             )
 
         external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/Login"
+        
+        # Thử các định dạng username khác nhau
+        username_variants = [username]
+        if username.startswith('P'):
+            username_variants.append(username[1:])  # Bỏ prefix P
+        elif not username.startswith('P'):
+            username_variants.append(f'P{username}')  # Thêm prefix P
+        
+        external_resp = None
+        last_error = None
+        
         try:
-            external_resp = py_requests.post(
-                external_api_url,
-                json={"username": username, "password": password},
-                timeout=10,
-                verify=False,
-                headers={"x-api-key": "motcua_ktx_maia_apikey"}
-            )
-
-            if external_resp.status_code != 200:
+            for variant in username_variants:
+                print(f"DEBUG - Trying username variant: '{variant}'")
+                external_resp = py_requests.post(
+                    external_api_url,
+                    json={"username": variant, "password": password},
+                    timeout=10,
+                    verify=False,
+                    headers={"x-api-key": "motcua_ktx_maia_apikey"}
+                )
+                
+                if external_resp.status_code == 200:
+                    content_type = external_resp.headers.get('Content-Type', '')
+                    if 'application/json' in content_type:
+                        external_data = external_resp.json()
+                        success = external_data.get('Success', False)
+                        if success:
+                            print(f"DEBUG - Success with username variant: '{variant}'")
+                            break
+                        else:
+                            last_error = external_data.get('Message', 'Unknown error')
+                            print(f"DEBUG - Failed with variant '{variant}': {last_error}")
+                
+            if not external_resp or external_resp.status_code != 200:
                 return Response(
                     json.dumps({
                         'success': False,
-                        'message': 'Không thể kết nối tới hệ thống KTX.',
-                        'detail': external_resp.text
+                        'message': f'Không thể kết nối tới hệ thống KTX. {last_error}',
+                        'detail': last_error
                     }),
                     content_type='application/json',
                     status=502,
@@ -192,24 +219,14 @@ class AuthApiController(http.Controller):
                     ]
                 )
 
-            content_type = external_resp.headers.get('Content-Type', '')
-            if 'application/json' not in content_type:
-                return Response(
-                    json.dumps({'success': False, 'message': 'Phản hồi từ hệ thống KTX không đúng định dạng JSON.'}),
-                    content_type='application/json',
-                    status=502,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
-                )
-
-            external_data = external_resp.json()
+            # external_data đã được lấy trong vòng lặp trên
             success = external_data.get('Success', False)
             data = external_data.get('Data')
             message = external_data.get('Message') or 'Lỗi không xác định từ hệ thống KTX.'
+
+            # Debug logging
+            print(f"DEBUG - External API Response: {external_data}")
+            print(f"DEBUG - Success: {success}, Data: {data}, Message: {message}")
 
             # Thất bại logic: Success = false hoặc Data = null
             if not success or data is None:
@@ -232,6 +249,35 @@ class AuthApiController(http.Controller):
             data = external_data.get('Data', {})
 
             student_code = data.get('StudentCode')
+            id_card_number = data.get('IdCardNumber')
+            
+            # Debug logging cho student_code
+            print(f"DEBUG - StudentCode from API: '{student_code}' (type: {type(student_code)})")
+            print(f"DEBUG - IdCardNumber from API: '{id_card_number}' (type: {type(id_card_number)})")
+            
+            # Sử dụng IdCardNumber làm fallback nếu StudentCode là null
+            if not student_code and id_card_number:
+                student_code = id_card_number
+                print(f"DEBUG - Using IdCardNumber as StudentCode: '{student_code}'")
+            
+            # Kiểm tra student_code không được null hoặc rỗng
+            if not student_code:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Mã sinh viên không hợp lệ từ hệ thống KTX.',
+                        'data': ''
+                    }),
+                    content_type='application/json',
+                    status=200,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
+                    ]
+                )
+            
             full_name = data.get('FullName')
             email = data.get('Email')
             phone = data.get('Phone')
@@ -291,8 +337,13 @@ class AuthApiController(http.Controller):
 
             user = request.env['res.users'].sudo().search([('login', '=', student_code)], limit=1)
             if not user:
+                # Đảm bảo có tên hợp lệ cho user
+                user_name = full_name or student_code
+                if not user_name:
+                    user_name = f"User_{student_code}"
+                
                 vals = {
-                    'name': full_name or student_code,
+                    'name': user_name,
                     'login': student_code,
                     'active': True,
                     'groups_id': [(6, 0, [request.env.ref('base.group_public').id])],
@@ -542,9 +593,14 @@ class AuthApiController(http.Controller):
             user = request.env['res.users'].sudo().browse(user_id) if user_id else request.env['res.users'].sudo().search([('login', '=', email)], limit=1)
             if not user.exists():
                 # Nếu không có user_id, tạo mới user
+                # Đảm bảo login không null
+                login_value = email or f'{provider or "oauth"}_user'
+                if not login_value:
+                    login_value = f'oauth_user_{int(datetime.now().timestamp())}'
+                
                 vals = {
                     'name': fullname or 'Oauth User',
-                    'login': email or f'{provider}_user',
+                    'login': login_value,
                     'active': True,
                     'email': email,
                     'groups_id': [(6, 0, [request.env.ref('base.group_system').id])],

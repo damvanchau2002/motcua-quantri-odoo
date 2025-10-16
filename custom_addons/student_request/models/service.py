@@ -1235,10 +1235,19 @@ class StudentUserProfile(models.Model):
         # ================================================================
         # Xử lý user và profile
         # ================================================================
+        # Kiểm tra id_card_number không được null hoặc rỗng
+        if not id_card_number:
+            raise ValidationError("Số CMND/CCCD không được để trống.")
+        
         user = self.env["res.users"].sudo().search([("login", "=", id_card_number)], limit=1)
         if not user:
+            # Đảm bảo có tên hợp lệ cho user
+            user_name = full_name or id_card_number
+            if not user_name:
+                user_name = f"User_{id_card_number}"
+                
             vals = {
-                "name": full_name or id_card_number,
+                "name": user_name,
                 "login": id_card_number,
                 "active": True,
                 "groups_id": [(6, 0, [self.env.ref("base.group_public").id])],

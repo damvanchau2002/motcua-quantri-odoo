@@ -148,17 +148,33 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
 
     # Tìm user quản lý sinh viên (level=1) trong cụm KTX
     user_processing_id = 0
+    print(f"=== DEBUG USER_PROCESSING_ID ===")
+    print(f"Service role_ids: {service.role_ids.ids}")
+    print(f"Cluster_id: {cluster_id}")
+    
     qlsv_profiles = env['student.admin.profile'].sudo().search([
         ('role_ids', 'in', service.role_ids.ids),
         ('dormitory_clusters.qlsv_cluster_id', '=', cluster_id)
     ])
+    print(f"Found qlsv_profiles: {len(qlsv_profiles)} profiles")
+    for profile in qlsv_profiles:
+        print(f"Profile: user_id={profile.user_id.id}, name={profile.user_id.name}, roles={profile.role_ids.mapped('name')}")
+    
     if qlsv_profiles:
         user_processing_id = qlsv_profiles[0].user_id.id
         received_users += qlsv_profiles.mapped('user_id.id')
+        print(f"Selected user_processing_id: {user_processing_id}")
+    else:
+        print("No qlsv_profiles found - user_processing_id will be 0")
 
     if user_processing_id > 0:
         vals['user_processing_id'] = user_processing_id
         received_users.append(user_processing_id)
+        print(f"Set user_processing_id in vals: {user_processing_id}")
+    else:
+        print("user_processing_id is 0 - not setting in vals")
+    print(f"=== END DEBUG USER_PROCESSING_ID ===")
+    print(f"Final received_users: {received_users}")
 
     if len(received_users) > 0:
         vals['users'] = [(6, 0, received_users)]
