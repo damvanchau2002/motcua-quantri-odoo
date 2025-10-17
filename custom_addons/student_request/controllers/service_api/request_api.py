@@ -1564,14 +1564,28 @@ class ServiceApiController(http.Controller):
             overdue_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(overdue_domain)
             overdue_requests = request.env['student.service.request'].sudo().with_user(system_user).search(overdue_domain)
 
-            # 4. Thống kê yêu cầu sắp đến hạn
-            warning_domain = base_domain + [
+            # 4. Thống kê yêu cầu sắp đến hạn (còn lại <= 10% tổng thời gian từ lúc tạo đến hạn)
+            warnings_base_domain = base_domain + [
                 ('expired_date', '>=', now),
-                ('expired_date', '<=', warning_date),
                 ('final_state', 'in', ['pending', 'assigned'])
             ]
-            warning_count = request.env['student.service.request'].sudo().with_user(system_user).search_count(warning_domain)
-            warning_requests = request.env['student.service.request'].sudo().with_user(system_user).search(warning_domain)
+            candidate_requests = request.env['student.service.request'].sudo().with_user(system_user).search(warnings_base_domain)
+
+            def is_warning(req):
+                try:
+                    if not req.expired_date:
+                        return False
+                    start_dt = req.create_date or now
+                    total_seconds = (req.expired_date - start_dt).total_seconds()
+                    if total_seconds <= 0:
+                        return False
+                    remaining_seconds = (req.expired_date - now).total_seconds()
+                    return 0 < remaining_seconds <= total_seconds * 0.1
+                except Exception:
+                    return False
+
+            warning_requests = candidate_requests.filtered(is_warning)
+            warning_count = len(warning_requests)
 
             # Format dữ liệu chi tiết cho từng yêu cầu
             def format_request_data(reqs):

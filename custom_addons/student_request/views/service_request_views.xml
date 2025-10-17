@@ -69,7 +69,7 @@
                                 </form>
                             </field>
                             <field name="note"/>
-                            <field name="request_user_id" domain="[('groups_id.name', '=', 'Public')]"/>
+                            <field name="request_user_id"/>
                         </group>
                         <group string="Thông tin yêu cầu">
                             <field name="name" readonly="1"/>
@@ -299,7 +299,7 @@
                 <field name="request_user_id"/>
 
                 <filter string="Đã duyệt" name="approved" domain="[('final_state','=','approved')]"/>
-                <filter string="Chưa duyệt" name="pending" domain="[('final_state','!=','approved')]"/>
+                <filter string="Chưa duyệt" name="  " domain="[('final_state','!=','approved')]"/>
                 <!-- Thêm các filter khác nếu cần -->
             </search>
         </field>

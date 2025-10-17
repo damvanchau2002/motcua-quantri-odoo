@@ -491,12 +491,9 @@ class ServiceRequest(models.Model):
             return str(dt)
     
     def check_access_rule(self, operation):
-        """Cho phép nhóm Quản trị hệ thống và Quản lý ERP bỏ qua record rules.
+        """Cho phép tất cả users truy cập service requests.
         Tránh lỗi 'Access Denied by record rules' khi xem yêu cầu."""
-        user = self.env.user
-        if user.has_group('base.group_system') or user.has_group('base.group_erp_manager'):
-            return None
-        return super(ServiceRequest, self).check_access_rule(operation)
+        return None
 
     # NỘI DUNG YÊU CẦU
     # Đầu vào của yêu cầu dịch vụ:

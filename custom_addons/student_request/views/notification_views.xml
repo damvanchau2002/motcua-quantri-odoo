@@ -33,7 +33,7 @@
                         <field name="data"/>
                         <field name="image"/>
                         <hr/>
-                        <field name="user_id" domain="[('groups_id.name', '=', 'Settings')]" />
+                        <field name="user_id" />
                     </group>
                     <group string="Thông tin người nhận">
                         <field name="user_ids" />
