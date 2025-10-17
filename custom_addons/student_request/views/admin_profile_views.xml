@@ -16,6 +16,8 @@
                 <field name="department_id" />
                 <field name="role_ids" widget="many2many_tags" />
                 <field name="oauth_ids" widget="many2many_tags" options="{'field_string': 'provider'}"/>
+                <!-- Hiển thị chuyên môn trong danh sách -->
+                <field name="specialization"/>
             </list>
         </field>
     </record>
