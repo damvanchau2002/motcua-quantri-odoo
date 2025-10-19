@@ -78,11 +78,8 @@ class NotificationApiController(http.Controller):
             # 1. Thông báo gửi trực tiếp cho user
             base_domain = [('user_ids', 'in', [user_id_int])]
             
-            # 2. Thông báo gửi cho khu KTX của user
-            if student_profile and student_profile.dormitory_cluster_id:
-                base_domain = expression.OR([base_domain, [('cluster_ids', 'in', [student_profile.dormitory_cluster_id])]])
-            elif admin_profile and admin_profile.dormitory_clusters:
-                base_domain = expression.OR([base_domain, [('cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]])
+            # 2. Bỏ lọc theo cụm KTX: chỉ hiển thị thông báo gửi trực tiếp cho user
+            # Yêu cầu: không hiển thị thông báo phát cho khu/cụm hoặc nhiều người
 
             # Domain cho thông báo chưa đọc
             unread_domain = expression.AND([base_domain, [('read_user_ids', 'not in', [user_id_int])]])
@@ -335,9 +332,9 @@ class NotificationApiController(http.Controller):
                         ('Access-Control-Allow-Credentials', 'true')
                     ]
                 )
-            profile = request.env['student.user.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
-            domain = ['|', ('user_ids', 'in', [user.id]), ('cluster_ids', 'in', [profile.dormitory_cluster_id])] if profile and profile.dormitory_cluster_id else [('user_ids', 'in', [user.id])]
-            notifications = request.env['student.notify'].sudo().search(domain)
+            # Chỉ đánh dấu đọc các thông báo gửi trực tiếp cho user, không theo cụm KTX
+            base_domain = [('user_ids', 'in', [user.id])]
+            notifications = request.env['student.notify'].sudo().search(base_domain)
             for notify in notifications:
                 notify.sudo().write({'read_user_ids': [(4, user.id)]})
             return Response(
@@ -419,11 +416,7 @@ class NotificationApiController(http.Controller):
             # 1. Thông báo gửi trực tiếp cho user
             domain = [('user_ids', 'in', [user_id_int])]
             
-            # 2. Thông báo gửi cho khu KTX của user
-            if student_profile and student_profile.dormitory_cluster_id:
-                domain = ['|'] + domain + [('cluster_ids', 'in', [student_profile.dormitory_cluster_id])]
-            elif admin_profile and admin_profile.dormitory_clusters:
-                domain = ['|'] + domain + [('cluster_ids', 'in', admin_profile.dormitory_clusters.ids)]
+            # 2. Bỏ lọc theo cụm KTX: chỉ tính thông báo gửi trực tiếp cho user
 
             # Đếm tổng số thông báo theo domain
             total_count = request.env['student.notify'].sudo().search_count(domain)

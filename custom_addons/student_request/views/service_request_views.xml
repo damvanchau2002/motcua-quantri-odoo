@@ -206,6 +206,20 @@
                                         <div class="text-muted small">
                                             <i class="fa fa-hashtag"></i>
                                             Mã yêu cầu: <field name="id"/>
+                                            <field name="has_unresolved_complaint" invisible="1"/>
+                                            <field name="has_complaint" invisible="1"/>
+                                            <t t-if="record.has_unresolved_complaint.raw_value">
+                                                <span class="badge bg-danger ms-2" title="Có khiếu nại chưa giải quyết">
+                                                    <i class="fa fa-flag"></i>
+                                                    KN: <field name="unresolved_complaint_count"/>
+                                                </span>
+                                            </t>
+                                            <t t-elif="record.has_complaint.raw_value">
+                                                <span class="badge bg-warning text-dark ms-2" title="Có khiếu nại">
+                                                    <i class="fa fa-flag"></i>
+                                                    KN: <field name="complaint_count"/>
+                                                </span>
+                                            </t>
                                         </div>
                                     </div>
                                     <span class="badge ms-2" t-att-class="record.final_state.raw_value == 'closed' ? 'bg-secondary' : (record.final_state.raw_value == 'approved' ? 'bg-success' : (record.final_state.raw_value == 'rejected' ? 'bg-danger' : 'bg-warning'))">
@@ -276,13 +290,15 @@
         <field name="name">student.service.request.list</field>
         <field name="model">student.service.request</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-danger="has_unresolved_complaint" decoration-warning="has_complaint">
                <field name="id"/>
                <field name="service_id"/>
                <field name="request_user_id"/>
                <field name="final_state"/>
                <field name="request_date"/>
                <field name="note"/>
+               <field name="complaint_count" string="KN"/>
+               <field name="unresolved_complaint_count" string="KN chưa giải quyết"/>
                <field name="users" />
                <field name="role_ids"/>
                <field name="approve_user_id"/>
@@ -299,8 +315,9 @@
                 <field name="request_user_id"/>
 
                 <filter string="Đã duyệt" name="approved" domain="[('final_state','=','approved')]"/>
-                <filter string="Chưa duyệt" name="  " domain="[('final_state','!=','approved')]"/>
-                <!-- Thêm các filter khác nếu cần -->
+                <filter string="Chưa duyệt" name="not_approved" domain="[('final_state','!=','approved')]"/>
+                <filter string="Có khiếu nại" name="has_complaint" domain="[('has_complaint','=',True)]"/>
+                <filter string="KN chưa giải quyết" name="has_unresolved_complaint" domain="[('has_unresolved_complaint','=',True)]"/>
             </search>
         </field>
     </record>
