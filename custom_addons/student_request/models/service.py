@@ -597,6 +597,21 @@ class ServiceRequest(models.Model):
     acceptance = fields.Text('Phản hồi chấp nhận', help='Phản hồi của người yêu cầu về việc xử lý')
     complaint_ids = fields.One2many('student.service.request.complaint', 'request_id', string='Các khiếu nại', help='Các khiếu nại liên quan đến yêu cầu dịch vụ này', ondelete='cascade')
     review_ids = fields.One2many('student.service.request.review', 'request_id', string='Các đánh giá', help='Các đánh giá liên quan đến yêu cầu dịch vụ này', ondelete='cascade')
+    # Các cờ/ký hiệu để theo dõi khiếu nại
+    complaint_count = fields.Integer('Số khiếu nại', compute='_compute_complaint_stats', store=True)
+    unresolved_complaint_count = fields.Integer('Số KN chưa giải quyết', compute='_compute_complaint_stats', store=True)
+    has_complaint = fields.Boolean('Có khiếu nại', compute='_compute_complaint_stats', store=True)
+    has_unresolved_complaint = fields.Boolean('Có KN chưa giải quyết', compute='_compute_complaint_stats', store=True)
+
+    @api.depends('complaint_ids', 'complaint_ids.reply')
+    def _compute_complaint_stats(self):
+        for rec in self:
+            count = len(rec.complaint_ids)
+            unresolved = len(rec.complaint_ids.filtered(lambda c: not c.reply or not c.reply.strip()))
+            rec.complaint_count = count
+            rec.unresolved_complaint_count = unresolved
+            rec.has_complaint = count > 0
+            rec.has_unresolved_complaint = unresolved > 0
 
     # GHI NHẬN KẾT QUẢ
     result_ids = fields.One2many('student.service.request.result', 'request_id', string='Kết quả', help='Các kết quả liên quan đến yêu cầu dịch vụ này')
