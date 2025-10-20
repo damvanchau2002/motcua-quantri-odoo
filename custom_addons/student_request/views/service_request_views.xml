@@ -403,6 +403,38 @@
         <field name="view_mode">list,form</field>
     </record>
 
+    <!-- NEW: Completely new student request form (no inheritance) -->
+    <record id="view_student_service_request_form_new" model="ir.ui.view">
+        <field name="name">student.service.request.form.new</field>
+        <field name="model">student.service.request</field>
+        <field name="arch" type="xml">
+            <form string="Tạo yêu cầu dịch vụ (Mới)" create="true" delete="false" edit="true">
+                <sheet>
+                    <group string="Thông tin yêu cầu">
+                        <field name="service_id" required="1" options="{'no_create': True, 'no_create_edit': True}"/>
+                        <field name="note" placeholder="Mô tả thêm về yêu cầu của bạn"/>
+                        <field name="image_attachment_ids" widget="many2many_binary" string="Ảnh đính kèm"/>
+                        <!-- Hidden helper field so the domain can read computed values -->
+                        <field name="student_user_ids" invisible="1"/>
+                        <!-- Allow all users to select a student sender. Domain restricts to computed student_user_ids -->
+                        <field name="request_user_id" string="Sinh viên gửi" domain="['|', ('id','in', student_user_ids), ('groups_id','in', [context.get('student_req_group_id')])]" options="{'no_create': True, 'no_create_edit': True}"/>
+                    </group>
+                    <group invisible="id != 0">
+                        <button name="action_create_new" string="Gửi yêu cầu" type="object" class="btn-primary"/>
+                        <button name="action_back" string="Quay lại" type="object" class="btn-secondary"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
 
+    <record id="action_student_service_request_create_new" model="ir.actions.act_window">
+        <field name="name">Tạo yêu cầu (Mới)</field>
+        <field name="res_model">student.service.request</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_student_service_request_form_new"/>
+        <!-- Mở form với trường 'Sinh viên gửi' để trống, admin sẽ chọn sinh viên cần gửi hộ -->
+        <field name="context" eval="{'default_request_user_id': False, 'student_req_group_id': ref('student_request.group_student_request_user') }"/>
+    </record>
 
 </odoo>

@@ -525,6 +525,31 @@ class ServiceRequest(models.Model):
 
     # SINH VIÊN GỬI YÊU CẦU
     request_user_id = fields.Many2one('res.users', string='Người gửi yêu cầu', required=True, default=lambda self: self.env.user, help='Sinh viên người gửi yêu cầu dịch vụ', ondelete='cascade')
+    # Danh sách người dùng thuộc nhóm Sinh viên để dùng domain chọn người gửi
+    student_user_ids = fields.Many2many('res.users', compute='_compute_student_user_ids', string='Sinh viên hệ thống', store=False)
+
+    def _compute_student_user_ids(self):
+        Profiles = self.env['student.user.profile'].sudo()
+        Users = self.env['res.users'].sudo()
+        profiles = Profiles.search([])
+        # Tự động liên kết res.users cho các hồ sơ chưa có user_id nếu có CCCD/Email/SĐT
+        for p in profiles.filtered(lambda p: not p.user_id and (p.id_card_number or p.email or p.phone)):
+            login = p.id_card_number or p.email or p.phone
+            user = Users.search([('login', '=', login)], limit=1) if login else Users.browse()
+            if not user:
+                display_name = login or f"Sinh viên #{p.id}"
+                user = Users.create({'name': display_name, 'login': login or f'student_profile_{p.id}', 'active': True})
+            p.write({'user_id': user.id})
+        # Lấy user thuộc nhóm quyền Sinh viên
+        group = self.env.ref('student_request.group_student_request_user', raise_if_not_found=False)
+        group_users = group.users.sudo() if group else Users.browse()
+        # Hợp nhất và chỉ lấy user đang active (bao gồm user từ hồ sơ)
+        profiles_users = profiles.mapped('user_id')
+        users = (profiles_users | group_users).filtered(lambda u: u.active)
+        for rec in self:
+            # Gán recordset trực tiếp để đảm bảo domain xử lý đúng
+            rec.student_user_ids = users
+
     dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này', )
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')

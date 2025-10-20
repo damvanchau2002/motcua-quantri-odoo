@@ -1,38 +1,139 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <menuitem id="student_request_root" name="Một cửa KTX"/>
+    <!-- Root menu -->
+    <record id="student_request_root" model="ir.ui.menu">
+        <field name="name">Một cửa KTX</field>
+    </record>
+ <!-- NEW: Student create request (new page, no inheritance) -->
+    <record id="menu_student_request_create_new" model="ir.ui.menu">
+        <field name="name">Tạo yêu cầu (Mới)</field>
+        <field name="parent_id" ref="student_request_root"/>
+        <field name="action" ref="action_student_service_request_create_new"/>
+        <field name="sequence">20</field>
+    </record>
+    <!-- Main actions under root -->
+    <record id="menu_service_request" model="ir.ui.menu">
+        <field name="name">Yêu cầu</field>
+        <field name="parent_id" ref="student_request_root"/>
+        <field name="action" ref="action_service_request"/>
+    </record>
+    <record id="menu_service_notify" model="ir.ui.menu">
+        <field name="name">Gửi thông báo</field>
+        <field name="parent_id" ref="student_request_root"/>
+        <field name="action" ref="action_student_notify"/>
+    </record>
+    <record id="student_request_config" model="ir.ui.menu">
+        <field name="name">Cấu hình</field>
+        <field name="parent_id" ref="student_request_root"/>
+    </record>
+    <record id="student_service_report" model="ir.ui.menu">
+        <field name="name">Báo cáo</field>
+        <field name="parent_id" ref="student_request_root"/>
+        <field name="action" ref="action_student_service_report_wizard"/>
+    </record>
+    <record id="menu_student_request_dashboard_wizard" model="ir.ui.menu">
+        <field name="name">Bảng thống kê</field>
+        <field name="parent_id" ref="student_request_root"/>
+        <field name="action" ref="action_student_request_stats_wizard"/>
+        <field name="sequence">90</field>
+    </record>
 
-    <menuitem id="menu_service_request" name="Yêu cầu" parent="student_request_root" action="action_service_request"/>
-    <menuitem id="menu_service_notify" name="Gửi thông báo" parent="student_request_root" action="action_student_notify"/>
-    <menuitem id="student_request_config" name="Cấu hình" parent="student_request_root"/>
-    <menuitem id="student_service_report" name="Báo cáo" parent="student_request_root" action="action_student_service_report_wizard"/>
-    <menuitem id="menu_student_request_dashboard_wizard" name="Bảng thống kê" parent="student_request_root" action="action_student_request_stats_wizard" sequence="90"/>
+    <!-- Config subtree -->
+    <record id="menu_service_group_root" model="ir.ui.menu">
+        <field name="name">Nhóm dịch vụ</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_service_group"/>
+    </record>
+    <record id="student_service_menu" model="ir.ui.menu">
+        <field name="name">Cài dịch vụ</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_student_service"/>
+    </record>
+    <record id="student_step_menu" model="ir.ui.menu">
+        <field name="name">Cài bước duyệt</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_student_service_step"/>
+    </record>
+    <record id="student_file_menu" model="ir.ui.menu">
+        <field name="name">Giấy tờ nộp kèm</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_student_service_file"/>
+    </record>
+    <record id="student_dormitory_area" model="ir.ui.menu">
+        <field name="name">Khu ký túc xá</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_student_dormitory_area"/>
+    </record>
+    <record id="student_dormitory_cluster" model="ir.ui.menu">
+        <field name="name">Cụm ký túc xá</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_student_dormitory_cluster"/>
+    </record>
 
-    
-    <menuitem id="menu_service_group_root" name="Nhóm dịch vụ" parent="student_request_config" action="action_service_group"/>
-    <menuitem id="student_service_menu" name="Cài dịch vụ" parent="student_request_config" action="action_student_service"/>
-    <menuitem id="student_step_menu" name="Cài bước duyệt" parent="student_request_config" action="action_student_service_step"/>
-    <menuitem id="student_file_menu" name="Giấy tờ nộp kèm" parent="student_request_config" action="action_student_service_file"/>
-    <menuitem id="student_dormitory_area" name="Khu ký túc xá" parent="student_request_config" action="action_student_dormitory_area"/>
-    <menuitem id="student_dormitory_cluster" name="Cụm ký túc xá" parent="student_request_config" action="action_student_dormitory_cluster"/>
-    
-    <menuitem id="menu_service_user_config" name="Tài khoản quản lý" parent="student_request_config" />
-    <menuitem id="menu_student_activity_user" name="Tài khoản" parent="menu_service_user_config" action="action_admin_manager_user"/>
-    <menuitem id="menu_student_activity_role" name="Chức danh" parent="menu_service_user_config" action="action_student_activity_role"/>
-    <menuitem id="menu_student_activity_department" name="Phòng ban" parent="menu_service_user_config" action="action_student_activity_department" />
-    <menuitem id="student_manage_admin_menu" name="Quản lý sinh viên" parent="menu_service_user_config" action="action_student_manage_admin_menu"/>
+    <!-- User management under config -->
+    <record id="menu_service_user_config" model="ir.ui.menu">
+        <field name="name">Tài khoản quản lý</field>
+        <field name="parent_id" ref="student_request_config"/>
+    </record>
+    <record id="menu_student_activity_user" model="ir.ui.menu">
+        <field name="name">Tài khoản</field>
+        <field name="parent_id" ref="menu_service_user_config"/>
+        <field name="action" ref="action_admin_manager_user"/>
+    </record>
+    <record id="menu_student_activity_role" model="ir.ui.menu">
+        <field name="name">Chức danh</field>
+        <field name="parent_id" ref="menu_service_user_config"/>
+        <field name="action" ref="action_student_activity_role"/>
+    </record>
+    <record id="menu_student_activity_department" model="ir.ui.menu">
+        <field name="name">Phòng ban</field>
+        <field name="parent_id" ref="menu_service_user_config"/>
+        <field name="action" ref="action_student_activity_department"/>
+    </record>
+    <record id="student_manage_admin_menu" model="ir.ui.menu">
+        <field name="name">Quản lý sinh viên</field>
+        <field name="parent_id" ref="menu_service_user_config"/>
+        <field name="action" ref="action_student_manage_admin_menu"/>
+    </record>
 
-    <menuitem id="menu_student_email_template" name="Mẫu gửi Email" parent="student_request_config" action="action_student_email_template"/>
-    <menuitem id="menu_maintenance_system" name="Bảo trì hệ thống" parent="student_request_config" action="action_open_maintenance_dashboard"/>
+    <record id="menu_student_email_template" model="ir.ui.menu">
+        <field name="name">Mẫu gửi Email</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_student_email_template"/>
+    </record>
+    <record id="menu_maintenance_system" model="ir.ui.menu">
+        <field name="name">Bảo trì hệ thống</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_open_maintenance_dashboard"/>
+    </record>
 
-    <!-- Phân công hàng loạt yêu cầu dịch vụ -->
-    <menuitem id="menu_student_request_bulk_assign" name="Phân công hàng loạt" parent="student_request_root" action="action_student_request_bulk_assign_page"/>
+    <!-- Bulk assignment under root -->
+    <record id="menu_student_request_bulk_assign" model="ir.ui.menu">
+        <field name="name">Phân công hàng loạt</field>
+        <field name="parent_id" ref="student_request_root"/>
+        <field name="action" ref="action_student_request_bulk_assign_page"/>
+    </record>
 
-    <!-- Extension Management -->
-    <menuitem id="menu_extension_management" name="Quản lý gia hạn" parent="student_request_root"/>
-    <menuitem id="menu_extension_requests" name="Yêu cầu gia hạn" parent="menu_extension_management" action="action_request_extension"/>
-    <menuitem id="menu_extension_pending" name="Chờ duyệt gia hạn" parent="menu_extension_management" action="action_request_extension_pending"/>
-    <menuitem id="menu_extension_approved" name="Đã duyệt gia hạn" parent="menu_extension_management" action="action_request_extension_approved"/>
+    <!-- Extension Management subtree -->
+    <record id="menu_extension_management" model="ir.ui.menu">
+        <field name="name">Quản lý gia hạn</field>
+        <field name="parent_id" ref="student_request_root"/>
+    </record>
+    <record id="menu_extension_requests" model="ir.ui.menu">
+        <field name="name">Yêu cầu gia hạn</field>
+        <field name="parent_id" ref="menu_extension_management"/>
+        <field name="action" ref="action_request_extension"/>
+    </record>
+    <record id="menu_extension_pending" model="ir.ui.menu">
+        <field name="name">Chờ duyệt gia hạn</field>
+        <field name="parent_id" ref="menu_extension_management"/>
+        <field name="action" ref="action_request_extension_pending"/>
+    </record>
+    <record id="menu_extension_approved" model="ir.ui.menu">
+        <field name="name">Đã duyệt gia hạn</field>
+        <field name="parent_id" ref="menu_extension_management"/>
+        <field name="action" ref="action_request_extension_approved"/>
+    </record>
 
-    
+   
 </odoo>
