@@ -58,7 +58,9 @@ python odoo-bin -c odoo.cfg -i base
 
 1. Vào **Settings → OAuth Authentication → OAuth Providers → New**
 2. Thêm mới provider cho **Microsoft**
+2. Icon class: `fa fa-fw fa-windows`
 3. **Scope**: `openid email profile`
+4. **Authorization URL**: `https://login.microsoftonline.com/713fb3bf-e05a-4533-9ed4-4f88791ce09c/oauth2/v2.0/authorize`
 4. **UserInfo URL**: `https://graph.microsoft.com/oidc/userinfo`
 5. Tham khảo video hướng dẫn: [YouTube](https://www.youtube.com/watch?v=16lkfIpl6MM)
 
