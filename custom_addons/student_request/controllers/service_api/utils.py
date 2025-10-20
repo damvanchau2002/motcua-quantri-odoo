@@ -470,27 +470,18 @@ def send_fcm_request(env, request_obj, send_type=0):
 
         elif send_type == 13: # Gửi thông báo yêu cầu sắp hết hạn
             action = 'Thông báo yêu cầu sắp hết hạn'
-            # Ưu tiên gửi cho người đang xử lý, nếu không có thì gửi cho danh sách người duyệt dịch vụ
-            recipients = []
-            try:
-                if getattr(request_obj, 'user_processing_id', False) and request_obj.user_processing_id:
-                    recipients = [request_obj.user_processing_id.id] if request_obj.user_processing_id.id else []
-                else:
-                    recipients = [u.id for u in (request_obj.users or []) if u and u.id]
-            except Exception:
-                recipients = []
+            # Gửi cho người tạo yêu cầu
+            send_fcm_users(env, [request_obj.request_user_id.id], f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn sắp hết hạn', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} sắp hết hạn, vui lòng kiểm tra và gia hạn nếu cần', data)
+            # Đồng thời gửi cho đúng người đang xử lý yêu cầu này (nếu có)
+            if getattr(request_obj, 'user_processing_id', False) and request_obj.user_processing_id:
+                send_fcm_users(env, [request_obj.user_processing_id.id], f'Yêu cầu {request_obj.name} bạn đang xử lý sắp hết hạn', f'Yêu cầu {request_obj.service_id.name}. {request_obj.note} sắp hết hạn, vui lòng kiểm tra và xử lý', data)
 
-            if recipients:
-                send_fcm_users(env, recipients, f'Yêu cầu dịch vụ {request_obj.service_id.name} của bạn sắp hết hạn', f'Yêu cầu dịch vụ {request_obj.service_id.name}. {request_obj.note} sắp hết hạn, cần bạn xử lý gấp hoặc gia hạn yêu cầu này', data)
-            title = f"{action}: {request_obj.service_id.name} từ {request_obj.request_user_id.name}"
-            body = f"Yêu cầu {request_obj.name} sắp hết hạn xử lý: " + (request_obj.note + "Hay kiểm tra chi tiết trong ứng dụng.")
-
-        # Gửi tới các user được gán xử lý yêu cầu này
-        other_user_ids = [u.id for u in request_obj.users if u.id != request_obj.user_processing_id.id] if request_obj.users else []
-        if request_obj.user_processing_id and send_type != 13:
+        # Theo yêu cầu nghiệp vụ:
+        # - Luôn gửi cho người tạo yêu cầu (request_user_id)
+        # - Đồng thời gửi cho đúng người đang xử lý (nếu có), ngoại trừ trường hợp send_type = 13 đã xử lý riêng ở trên
+        # Gửi thông báo cho đúng người đang xử lý (không gửi cho các user khác), trừ trường hợp send_type = 13 đã xử lý riêng
+        if getattr(request_obj, 'user_processing_id', False) and request_obj.user_processing_id and send_type != 13:
             send_fcm_users(env, [request_obj.user_processing_id.id], f'Có cập nhật yêu cầu bạn được giao: {action} - {request_obj.name}', f'Yêu cầu {request_obj.name} được {action} nội dung: {request_obj.note}, cần bạn xử lý tiếp yêu cầu này', data)
-        if other_user_ids:
-            send_fcm_users(env, other_user_ids, title, body, data)
     except Exception as e:
         pass
     return None
