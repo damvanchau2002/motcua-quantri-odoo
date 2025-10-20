@@ -35,7 +35,7 @@ def get_user_received_requests(env, cluster_id, service, step):
     #    received_users += step.base_step_id.user_ids.ids
 
     # Lấy các user trong cụm KTX
-    if cluster_id and cluster_id.id:
+    if cluster_id and cluster_id.exists():
         domain = [('dormitory_clusters', 'in', [cluster_id.id]), ('role_ids', 'in', service.role_ids.ids)]
         dormitory_admins = env['student.admin.profile'].sudo().search(domain)
 
@@ -1138,7 +1138,7 @@ class ServiceApiController(http.Controller):
                     # Lấy thông tin khu và cụm KTX
                     if student_profile.dormitory_cluster_id:
                         cluster = request.env['student.dormitory.cluster'].sudo().browse(student_profile.dormitory_cluster_id)
-                        if cluster:
+                        if cluster.exists():
                             dormitory_info['dormitory_cluster'] = cluster.name or 'Không có thông tin'
                             if cluster.area_id:
                                 dormitory_info['dormitory_area'] = cluster.area_id.name or 'Không có thông tin'
