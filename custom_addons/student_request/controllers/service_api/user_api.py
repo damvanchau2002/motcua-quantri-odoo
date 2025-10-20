@@ -8,6 +8,7 @@ import json
 import base64
 import os
 import jwt
+from datetime import datetime
 from datetime import datetime, timedelta
 
 class UserApiController(http.Controller):
@@ -132,6 +133,91 @@ class UserApiController(http.Controller):
             ]
         )
 
+    def _get_active_step_info(self, request_id):
+        """Lấy thông tin bước xử lý hiện tại của request"""
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        try:
+            if not request_id:
+                return {
+                    'request_id': None,
+                    'error': 'no_request_id',
+                    'message': 'Không có request_id được cung cấp'
+                }
+            
+            # Tìm service request
+            service_request = request.env['student.service.request'].with_user(1).sudo().search([
+                ('id', '=', request_id)
+            ], limit=1)
+            
+            if not service_request:
+                return {
+                    'request_id': request_id,
+                    'error': 'request_not_found',
+                    'message': f'Không tìm thấy request với ID {request_id}'
+                }
+            
+            # Lấy tất cả steps của request
+            all_steps = service_request.step_ids.with_user(1).sudo()
+            
+            # Tìm active steps (pending hoặc assigned)
+            active_steps = all_steps.filtered(lambda s: s.state in ['pending', 'assigned'])
+            
+            _logger.info(f"Request {request_id} có {len(all_steps)} steps tổng cộng")
+            for step in all_steps:
+                _logger.info(f"  Step {step.id}: {step.display_step_name}, state: {step.state}, sequence: {step.base_secquence}")
+            
+            _logger.info(f"Tìm thấy {len(active_steps)} active steps (pending/assigned)")
+            
+            # Lấy step hiện tại (step đầu tiên theo sequence)
+            current_step = active_steps.sorted(lambda s: s.base_secquence)[0] if active_steps else None
+            
+            if current_step:
+                _logger.info(f"Active step: {current_step.display_step_name} (ID: {current_step.id})")
+                return {
+                    'request_id': service_request.id,
+                    'request_code': service_request.name,
+                    'request_state': service_request.final_state,
+                    'current_step_id': current_step.id,
+                    'current_step_name': current_step.display_step_name,
+                    'current_step_state': current_step.state,
+                    'current_step_sequence': current_step.base_secquence,
+                    'current_department_id': current_step.department_id.id if current_step.department_id else None,
+                    'current_department_name': current_step.department_id.name if current_step.department_id else '',
+                    'step_department_id': current_step.base_step_id.department_id.id if current_step.base_step_id and current_step.base_step_id.department_id else None,
+                    'step_department_name': current_step.base_step_id.department_id.name if current_step.base_step_id and current_step.base_step_id.department_id else '',
+                    'assign_user_id': current_step.assign_user_id.id if current_step.assign_user_id else None,
+                    'assign_user_name': current_step.assign_user_id.name if current_step.assign_user_id else '',
+                    'is_active_step': True
+                }
+            else:
+                _logger.info(f"Không tìm thấy active step cho request {request_id}")
+                return {
+                    'request_id': service_request.id,
+                    'request_code': service_request.name,
+                    'request_state': service_request.final_state,
+                    'current_step_id': None,
+                    'current_step_name': '',
+                    'current_step_state': '',
+                    'current_step_sequence': 0,
+                    'current_department_id': None,
+                    'current_department_name': '',
+                    'step_department_id': None,
+                    'step_department_name': '',
+                    'assign_user_id': None,
+                    'assign_user_name': '',
+                    'is_active_step': False
+                }
+                
+        except Exception as e:
+            _logger.error(f"Lỗi khi lấy active step info cho request {request_id}: {str(e)}")
+            return {
+                'request_id': request_id,
+                'error': 'exception',
+                'message': f'Lỗi khi xử lý request: {str(e)}'
+            }
+
     # Lấy danh sách người phân công theo department_id
     @http.route('/api/users/forassign/department/<int:department_id>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_users_by_department(self, department_id):
@@ -207,15 +293,29 @@ class UserApiController(http.Controller):
                     'name': user.name,
                     'login': user.login,
                     'email': user.email,
+                    'phone': user.phone if hasattr(user, 'phone') else '',
                     'is_manager': is_manager,
                     'is_user': is_user,
                     'department_id': department_id,
                     'department_name': department.name,
                     'role_names': ', '.join(admin_profile.role_ids.mapped('name')) if admin_profile and admin_profile.role_ids else '',
                     'activated': admin_profile.activated if admin_profile else False,
-                    'title_name': admin_profile.title_name if admin_profile else ''
+                    'title_name': admin_profile.title_name if admin_profile else '',
+                    'profile_id': admin_profile.id if admin_profile else None,
+                    'last_login': user.login_date.strftime('%Y-%m-%d %H:%M:%S') if user.login_date else ''
                 }
                 data.append(user_data)
+            
+            # Lấy request_id từ query parameters
+            request_id = request.httprequest.args.get('request_id')
+            if request_id:
+                try:
+                    request_id = int(request_id)
+                except ValueError:
+                    request_id = None
+            
+            # Lấy thông tin active step
+            active_step_info = self._get_active_step_info(request_id)
             
             return Response(
                 json.dumps({
@@ -225,8 +325,12 @@ class UserApiController(http.Controller):
                     'department': {
                         'id': department.id,
                         'name': department.name,
-                        'description': department.description
-                    }
+                        'description': department.description,
+                        'active': department.active if hasattr(department, 'active') else True
+                    },
+                    'active_step_info': active_step_info,
+                    'total_users': len(data),
+                    'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }),
                 content_type='application/json',
                 status=200,
