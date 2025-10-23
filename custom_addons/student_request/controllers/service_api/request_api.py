@@ -259,14 +259,14 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     system_user = env['res.users'].sudo().browse(1)
     
     request = env['student.service.request'].sudo().with_user(system_user).browse(requestid)
-    step = request.step_ids.browse(stepid)
+    step = request.step_ids.sudo().browse(stepid)
     # Lấy bước theo thứ tự sequence, lấy bước đầu tiên chưa ignored, approved hoặc rejected
     # step = service.step_ids.filtered(lambda s: s.state not in ('ignored', 'approved', 'rejected')).sorted('sequence')
     # step = step[0] if step else service.step_ids.browse(stepid)
     if not step.exists():
         return False
 
-    if step.base_secquence == 99:
+    if step.sudo().base_secquence == 99:
         if act == 'closed':
             # Kiểm tra lại đã có đánh giá nghiệm thu từ SV và người nghiệm thu, chưa có thì báo lỗi
             acceptance_result = env['student.service.request.result'].sudo().with_user(system_user).search([
@@ -288,11 +288,11 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
     # nếu act khác pending thì tìm các bước trước đó còn pending cập nhật nó thanh ignored
     if act != 'pending':
-        prev_steps = request.step_ids.filtered(lambda s: s.base_secquence < step.base_secquence and (s.state == 'pending' or s.state == 'assigned' or s.state == 'rejected'))
+        prev_steps = request.step_ids.sudo().filtered(lambda s: s.base_secquence < step.sudo().base_secquence and (s.state == 'pending' or s.state == 'assigned' or s.state == 'rejected'))
         for s in prev_steps:
-            s.state = 'ignored'
+            s.sudo().state = 'ignored'
             # Tạo bản ghi history cho các bước đã ignored
-            h = env['student.service.request.step.history'].create({
+            h = env['student.service.request.step.history'].sudo().create({
                 'request_id': requestid,
                 'step_id': s.id,
                 'state': 'ignored',
@@ -309,9 +309,9 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 'history_ids': [(4, h.id)],
             })
         # Mở lại các bước tiếp theo nếu sửa lại duyệt    
-        next_steps = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence and (s.state != 'pending'))
+        next_steps = request.step_ids.sudo().filtered(lambda s: s.base_secquence > step.sudo().base_secquence and (s.state != 'pending'))
         for s in next_steps:
-            s.state = 'pending'
+            s.sudo().state = 'pending'
             s.sudo().write({
                 'state': 'pending',
                 'approve_content': 'Chuyển lại trạng thái chờ duyệt do thay đổi trạng thái bước trước',
@@ -332,7 +332,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
     vals = {
         'request_id': requestid,
-        'base_step_id': step.base_step_id.id if step.base_step_id else False,
+        'base_step_id': step.sudo().base_step_id.id if step.sudo().base_step_id else False,
         'approve_content': note,
         'state': act,
         'approve_date': Datetime.now(),
@@ -350,14 +350,14 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
     if nextuserid and nextuserid > 0:
         next_step_users.append(nextuserid)
     if department_id and department_id > 0:
-        department_users = env['student.admin.profile'].search([('department_id', '=', department_id), ('role_ids.level', 'in', [9])])
+        department_users = env['student.admin.profile'].sudo().search([('department_id', '=', department_id), ('role_ids.level', 'in', [9])])
         department_user_id = department_users and department_users[0].id or 0
         next_step_users.extend(department_users.ids)
 
     #Nếu chưa phải bước cuối cùng và duyệt đã hoàn thành
     if step.base_secquence != 99 and act == 'approved':
         #Tìm bước tiếp theo trong request.step_ids theo sequence
-        next_step = request.step_ids.filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
+        next_step = request.step_ids.sudo().filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
         if next_step:
             next_step = next_step[0]
             next_step.sudo().with_user(system_user).write({
@@ -580,6 +580,9 @@ class ServiceApiController(http.Controller):
             # Gộp với ảnh mới
             all_attachment_ids = current_attachments.ids + attachment_ids
 
+            # Kiểm tra xem có bước nào đang ở trạng thái 'adjust_profile' không
+            current_step = service_request.step_ids.sudo().filtered(lambda s: s.state == 'adjust_profile')
+            
             # Cập nhật request với tất cả ảnh
             request_rec = update_request(
                 env=request.env,
@@ -588,6 +591,49 @@ class ServiceApiController(http.Controller):
                 note=note,
                 attachments=all_attachment_ids
             )
+
+            # Nếu có bước đang ở trạng thái 'adjust_profile', chuyển về 'pending' và gửi thông báo
+            if current_step:
+                current_step = current_step[0]  # Lấy bước đầu tiên
+                
+                # Sử dụng hàm update_request_step để chuyển trạng thái
+                step_vals = update_request_step(
+                    request.env, 
+                    service_request.id, 
+                    current_step.id, 
+                    int(request_user_id), 
+                    f"Sinh viên đã hoàn thành điều chỉnh hồ sơ: {note}", 
+                    'pending',  # Chuyển về trạng thái chờ duyệt
+                    None,  # Không gán user cụ thể
+                    [], 
+                    False,  # Chưa hoàn thành
+                    0
+                )
+
+                # Áp dụng các giá trị trả về để cập nhật step hiện tại
+                if step_vals:
+                    current_step.sudo().write(step_vals)
+
+                # Cập nhật trạng thái tổng thể của yêu cầu về 'pending'
+                service_request.sudo().write({
+                    'final_state': 'pending'
+                })
+
+                # Gửi thông báo đến hành chính về việc sinh viên đã hoàn thành điều chỉnh
+                admin_profiles = request.env['student.admin.profile'].sudo().search([
+                    ('activated', '=', True),
+                    ('department_id', '=', current_step.department_id.id if current_step.department_id else False)
+                ])
+                
+                if admin_profiles:
+                    admin_user_ids = admin_profiles.mapped('user_id').ids
+                    request.env['student.notify'].sudo().create({
+                        'title': 'Sinh viên đã hoàn thành điều chỉnh hồ sơ',
+                        'body': f'Sinh viên đã hoàn thành điều chỉnh hồ sơ cho yêu cầu "{service_request.name}". Yêu cầu đã trở lại trạng thái chờ duyệt.',
+                        'notify_type': 'users',
+                        'user_ids': [(6, 0, admin_user_ids)],
+                        'data': f'{{"request_id": {service_request.id}, "step_id": {current_step.id}}}'
+                    })
 
             return Response(
                 json.dumps({
@@ -600,7 +646,9 @@ class ServiceApiController(http.Controller):
                         'id': att.id,
                         'name': att.name,
                         'url': f'/api/download/image/{att.id}'
-                    } for att in request_rec.image_attachment_ids]
+                    } for att in request_rec.image_attachment_ids],
+                    'adjustment_completed': bool(current_step),  # Thông báo có hoàn thành điều chỉnh không
+                    'final_state': service_request.final_state
                 }),
                 content_type='application/json',
                 headers=[
@@ -2561,4 +2609,154 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                     ('Access-Control-Allow-Credentials', 'true'),
                 ]
+            )
+
+    # API: Xử lý khi sinh viên hoàn thành điều chỉnh hồ sơ
+    @http.route('/api/service/request/profile_adjustment_complete', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def complete_profile_adjustment(self, **post):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
+                ]
+            )
+
+        try:
+            params = request.httprequest.get_json(force=True, silent=True) or {}
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            note = params.get('note', 'Sinh viên đã hoàn thành điều chỉnh hồ sơ')
+
+            if not request_id:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Thiếu request_id'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=self._get_cors_headers()
+                )
+
+            if not user_id:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Thiếu user_id'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=self._get_cors_headers()
+                )
+
+            # Tìm yêu cầu dịch vụ với sudo() để tránh lỗi quyền
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            if not service_request.exists():
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Yêu cầu không tồn tại'
+                    }),
+                    content_type='application/json',
+                    status=404,
+                    headers=self._get_cors_headers()
+                )
+
+            # Kiểm tra quyền: chỉ sinh viên tạo yêu cầu mới được thực hiện
+            # Sử dụng sudo() để truy cập request_user_id
+            if service_request.sudo().request_user_id.id != int(user_id):
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Không có quyền thực hiện thao tác này'
+                    }),
+                    content_type='application/json',
+                    status=403,
+                    headers=self._get_cors_headers()
+                )
+
+            # Tìm step hiện tại đang ở trạng thái 'adjust_profile' với sudo()
+            current_step = service_request.step_ids.sudo().filtered(lambda s: s.state == 'adjust_profile')
+            if not current_step:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': 'Không tìm thấy bước điều chỉnh hồ sơ'
+                    }),
+                    content_type='application/json',
+                    status=400,
+                    headers=self._get_cors_headers()
+                )
+
+            current_step = current_step[0]  # Lấy bước hiện tại
+
+            # Sử dụng hàm update_request_step để chuyển bước hiện tại từ 'adjust_profile' sang 'pending'
+            step_vals = update_request_step(
+                request.env, 
+                service_request.id, 
+                current_step.id, 
+                int(user_id), 
+                note, 
+                'pending',  # Chuyển về trạng thái chờ duyệt
+                None,  # Không gán user cụ thể
+                [], 
+                False,  # Chưa hoàn thành
+                0
+            )
+
+            # Áp dụng các giá trị trả về để cập nhật step hiện tại
+            if step_vals:
+                current_step.sudo().write(step_vals)
+
+            # Cập nhật trạng thái tổng thể của yêu cầu về 'pending'
+            service_request.sudo().write({
+                'final_state': 'pending'
+            })
+
+            # Gửi thông báo đến hành chính về việc sinh viên đã hoàn thành điều chỉnh
+            # Tìm các admin có quyền duyệt yêu cầu này
+            admin_profiles = request.env['student.admin.profile'].sudo().search([
+                ('activated', '=', True),
+                ('department_id', '=', current_step.department_id.id if current_step.department_id else False)
+            ])
+            
+            if admin_profiles:
+                admin_user_ids = admin_profiles.mapped('user_id').ids
+                request.env['student.notify'].sudo().create({
+                    'title': 'Sinh viên đã hoàn thành điều chỉnh hồ sơ',
+                    'body': f'Sinh viên đã hoàn thành điều chỉnh hồ sơ cho yêu cầu "{service_request.name}". Yêu cầu đã trở lại trạng thái chờ duyệt.',
+                    'notify_type': 'users',
+                    'user_ids': [(6, 0, admin_user_ids)],
+                    'data': f'{{"request_id": {service_request.id}, "step_id": {current_step.id}}}'
+                })
+
+            return Response(
+                json.dumps({
+                    'success': True,
+                    'message': 'Đã hoàn thành điều chỉnh hồ sơ. Yêu cầu đã trở lại trạng thái chờ duyệt.',
+                    'data': {
+                        'request_id': service_request.id,
+                        'final_state': 'pending'
+                    }
+                }),
+                content_type='application/json',
+                status=200,
+                headers=self._get_cors_headers()
+            )
+
+        except Exception as e:
+            _logger.error(f"Error completing profile adjustment: {str(e)}")
+            return Response(
+                json.dumps({
+                    'success': False,
+                    'message': f'Lỗi hệ thống: {str(e)}'
+                }),
+                content_type='application/json',
+                status=500,
+                headers=self._get_cors_headers()
             )
