@@ -1890,6 +1890,29 @@ class ServiceApiController(http.Controller):
                 'rating': rating,
                 'comments': comments,
             })
+            
+            # Sau khi đánh giá thành công, tìm step hiện tại đang ở trạng thái 'assigned' và chuyển sang 'approved'
+            service_request = review.request_id
+            current_step = service_request.step_ids.filtered(lambda s: s.state == 'assigned')
+            if current_step:
+                current_step = current_step[0]  # Lấy bước hiện tại đang assigned
+                # Sử dụng hàm update_request_step để chuyển bước hiện tại từ 'assigned' sang 'approved'
+                step_vals = update_request_step(
+                    request.env, 
+                    service_request.id, 
+                    current_step.id, 
+                    int(user_id), 
+                    f'Đánh giá đã hoàn thành - {comments}', 
+                    'approved', 
+                    0,  # nextuserid - sẽ được xác định tự động
+                    [],  # docs
+                    '',  # final_data
+                    0   # department_id
+                )
+                # Cập nhật step hiện tại với kết quả từ update_request_step
+                if step_vals:
+                    current_step.sudo().write(step_vals)
+            
             try:
                 send_fcm_request(
                     request.env,
