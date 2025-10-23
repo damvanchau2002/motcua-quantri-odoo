@@ -2147,16 +2147,38 @@ class ServiceApiController(http.Controller):
 
             # Cập nhật trạng thái cuối cho yêu cầu dịch vụ
             if action == 'accept':
-                service_request.sudo().with_user(system_user).write({'final_state': 'closed', 'final_star': stars })
+                service_request.sudo().with_user(system_user).write({'final_state': 'approved', 'final_star': stars })
                 send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
-                # Kiểm tra đã có nghiệm thu accept của Admin thì đóng yêu cầu
+                
+                # Tìm bước hiện tại đang ở trạng thái 'assigned' để chuyển thành 'approved'
+                current_step = service_request.step_ids.filtered(lambda s: s.state == 'assigned').sorted('base_secquence', reverse=True)
+                if current_step:
+                    current_step = current_step[0]  # Lấy bước hiện tại đang assigned
+                    # Sử dụng hàm update_request_step để chuyển bước hiện tại từ 'assigned' sang 'approved'
+                    step_vals = update_request_step(
+                        request.env, 
+                        service_request.id, 
+                        current_step.id, 
+                        int(accept_user_id), 
+                        f'Nghiệm thu đã được chấp nhận - {content}', 
+                        'approved', 
+                        0,  # nextuserid - sẽ được xác định tự động
+                        [],  # docs
+                        '',  # final_data
+                        0   # department_id
+                    )
+                    # Cập nhật step hiện tại với kết quả từ update_request_step
+                    if step_vals:
+                        current_step.sudo().write(step_vals)
+                
+                # Kiểm tra đã có nghiệm thu accept của Admin thì duyệt yêu cầu
                 # Lấy nghiệm thu của User khác
                 other_acceptance = request.env['student.service.request.result'].sudo().with_user(system_user).search([
                     ('request_id', '=', service_request.id),
                     ('user_id', '!=', service_request.request_user_id.id)
                 ], order='timestamp desc', limit=1)
                 if other_acceptance and other_acceptance.action == 'accept':
-                    service_request.sudo().with_user(system_user).write({'final_state': 'closed', 'final_star': stars})
+                    service_request.sudo().with_user(system_user).write({'final_state': 'approved', 'final_star': stars})
                     send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ Admin
 
             elif action == 'reject' or action == 'issue':

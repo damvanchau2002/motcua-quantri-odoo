@@ -317,6 +317,15 @@ class UserApiController(http.Controller):
             # Lấy thông tin active step
             active_step_info = self._get_active_step_info(request_id)
             
+            # Danh sách trạng thái có thể chọn
+            status_options = [
+                {'value': 'assigned', 'label': 'Đã phân công'},
+                {'value': 'approved', 'label': 'Đã duyệt'},
+                {'value': 'repairing', 'label': 'Chờ sửa chữa'},
+                {'value': 'rejected', 'label': 'Từ chối'},
+              
+            ]
+            
             return Response(
                 json.dumps({
                     'success': True, 
@@ -329,6 +338,7 @@ class UserApiController(http.Controller):
                         'active': department.active if hasattr(department, 'active') else True
                     },
                     'active_step_info': active_step_info,
+                    'status_options': status_options,
                     'total_users': len(data),
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }),
