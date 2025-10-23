@@ -218,7 +218,7 @@ class UserApiController(http.Controller):
                 'message': f'Lỗi khi xử lý request: {str(e)}'
             }
 
-    # Lấy danh sách người phân công theo department_id
+   # Lấy danh sách người phân công theo department_id
     @http.route('/api/users/forassign/department/<int:department_id>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_users_by_department(self, department_id):
         if request.httprequest.method == 'OPTIONS':
@@ -317,14 +317,172 @@ class UserApiController(http.Controller):
             # Lấy thông tin active step
             active_step_info = self._get_active_step_info(request_id)
             
-            # Danh sách trạng thái có thể chọn
+            # Danh sách trạng thái có thể chọn với thông tin phòng ban và người xử lý
             status_options = [
-                {'value': 'assigned', 'label': 'Đã phân công'},
-                {'value': 'approved', 'label': 'Đã duyệt'},
-                {'value': 'repairing', 'label': 'Chờ sửa chữa'},
-                {'value': 'rejected', 'label': 'Từ chối'},
-              
+                {
+                    'value': 'pending', 
+                    'label': 'Chờ duyệt',
+                    'description': 'Yêu cầu đang chờ được duyệt',
+                    'color': '#ffa500',
+                    'icon': 'clock'
+                },
+                {
+                    'value': 'assigned', 
+                    'label': 'Đã phân công',
+                    'description': 'Yêu cầu đã được phân công cho người xử lý',
+                    'color': '#2196f3',
+                    'icon': 'user-check'
+                },
+                {
+                    'value': 'approved', 
+                    'label': 'Đã duyệt',
+                    'description': 'Yêu cầu đã được duyệt và hoàn thành',
+                    'color': '#4caf50',
+                    'icon': 'check-circle'
+                },
+                {
+                    'value': 'rejected', 
+                    'label': 'Từ chối',
+                    'description': 'Yêu cầu đã bị từ chối',
+                    'color': '#f44336',
+                    'icon': 'x-circle'
+                },
+                {
+                    'value': 'repairing', 
+                    'label': 'Chờ sửa chữa',
+                    'description': 'Yêu cầu cần được sửa chữa hoặc bổ sung thông tin',
+                    'color': '#ff9800',
+                    'icon': 'tool'
+                },
+                {
+                    'value': 'adjust_profile', 
+                    'label': 'Điều chỉnh hồ sơ',
+                    'description': 'Yêu cầu sinh viên điều chỉnh hồ sơ',
+                    'color': '#9c27b0',
+                    'icon': 'edit'
+                },
+                {
+                    'value': 'extended', 
+                    'label': 'Đã gia hạn',
+                    'description': 'Yêu cầu đã được gia hạn thời gian xử lý',
+                    'color': '#607d8b',
+                    'icon': 'calendar-plus'
+                },
+                {
+                    'value': 'cancelled', 
+                    'label': 'Đã hủy',
+                    'description': 'Yêu cầu đã bị hủy bỏ',
+                    'color': '#795548',
+                    'icon': 'ban'
+                },
+                {
+                    'value': 'ignored', 
+                    'label': 'Đã bỏ qua',
+                    'description': 'Bước này đã được bỏ qua',
+                    'color': '#9e9e9e',
+                    'icon': 'eye-slash'
+                },
+                {
+                    'value': 'closed', 
+                    'label': 'Đã đóng',
+                    'description': 'Yêu cầu đã được đóng và hoàn tất',
+                    'color': '#3f51b5',
+                    'icon': 'lock'
+                }
             ]
+            
+            # Lấy thông tin chi tiết về trạng thái và phòng ban xử lý từ request
+            status_department_mapping = {}
+            if request_id:
+                try:
+                    service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+                    if service_request.exists():
+                        # Lấy tất cả các bước của request
+                        for step in service_request.step_ids.sudo():
+                            status_key = step.state
+                            if status_key not in status_department_mapping:
+                                status_department_mapping[status_key] = {
+                                    'departments': [],
+                                    'handlers': [],
+                                    'current_step': None
+                                }
+                            
+                            # Thông tin phòng ban
+                            if step.department_id:
+                                dept_info = {
+                                    'id': step.department_id.id,
+                                    'name': step.department_id.name,
+                                    'description': step.department_id.description or ''
+                                }
+                                if dept_info not in status_department_mapping[status_key]['departments']:
+                                    status_department_mapping[status_key]['departments'].append(dept_info)
+                            
+                            # Thông tin người xử lý
+                            if step.assign_user_id:
+                                handler_info = {
+                                    'id': step.assign_user_id.id,
+                                    'name': step.assign_user_id.name,
+                                    'login': step.assign_user_id.login,
+                                    'email': step.assign_user_id.email or ''
+                                }
+                                if handler_info not in status_department_mapping[status_key]['handlers']:
+                                    status_department_mapping[status_key]['handlers'].append(handler_info)
+                            
+                            # Đánh dấu bước hiện tại
+                            if step.state in ['pending', 'assigned']:
+                                status_department_mapping[status_key]['current_step'] = {
+                                    'id': step.id,
+                                    'name': step.base_step_id.name if step.base_step_id else f'Bước {step.base_secquence}',
+                                    'sequence': step.base_secquence,
+                                    'approve_content': step.approve_content or '',
+                                    'approve_date': step.approve_date.strftime('%Y-%m-%d %H:%M:%S') if step.approve_date else ''
+                                }
+                
+                except Exception as e:
+                    # Nếu có lỗi, vẫn trả về status_options cơ bản
+                    pass
+            
+            # Cập nhật status_options với thông tin mapping chi tiết
+            for status in status_options:
+                status_value = status['value']
+                if status_value in status_department_mapping:
+                    mapping_info = status_department_mapping[status_value]
+                    status.update({
+                        'departments': mapping_info['departments'],
+                        'handlers': mapping_info['handlers'],
+                        'current_step': mapping_info['current_step'],
+                        # Thêm thông tin để UI có thể tự động chọn
+                        'suggested_department_id': mapping_info['departments'][0]['id'] if mapping_info['departments'] else None,
+                        'suggested_handler_id': mapping_info['handlers'][0]['id'] if mapping_info['handlers'] else None,
+                        'has_mapping': True
+                    })
+                else:
+                    # Đối với status không có mapping, cung cấp thông tin mặc định
+                    default_department = None
+                    default_handler = None
+                    
+                    # Logic để xác định department/handler mặc định dựa trên status
+                    if status_value in ['assigned', 'approved']:
+                        # Lấy thông tin từ active_step_info nếu có
+                        if active_step_info:
+                            default_department = {
+                                'id': active_step_info.get('current_department_id'),
+                                'name': active_step_info.get('current_department_name', 'Phòng ban hiện tại')
+                            }
+                            if active_step_info.get('assign_user_id'):
+                                default_handler = {
+                                    'id': active_step_info.get('assign_user_id'),
+                                    'name': active_step_info.get('assign_user_name', 'Người xử lý hiện tại')
+                                }
+                    
+                    status.update({
+                        'departments': [default_department] if default_department else [],
+                        'handlers': [default_handler] if default_handler else [],
+                        'current_step': None,
+                        'suggested_department_id': default_department['id'] if default_department else None,
+                        'suggested_handler_id': default_handler['id'] if default_handler else None,
+                        'has_mapping': False
+                    })
             
             return Response(
                 json.dumps({
