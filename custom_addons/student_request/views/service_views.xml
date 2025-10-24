@@ -40,6 +40,7 @@
                                 <list editable="bottom" default_order="sequence">
                                     <field name="sequence" widget="handle"/>
                                     <field name="step_id" required="1" options="{'no_create': true, 'no_create_edit': true}" string="Bước duyệt"/>
+                                    <field name="name" string="Tên bước theo thứ tự" readonly="1"/>
                                     <field name="step_description" readonly="1"/>
                                 </list>
                             </field>

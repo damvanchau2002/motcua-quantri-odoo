@@ -1870,7 +1870,7 @@ class ServiceStepSelection(models.Model):
     step_description = fields.Text('Mô tả bước', related='step_id.description', readonly=True, store=True)
 
     # Tên hiển thị rõ ràng cho tag: "Bước <sequence>: <step_name>"
-    name = fields.Char(string='Tên hiển thị', compute='_compute_name', store=False)
+    name = fields.Char(string='Tên hiển thị', compute='_compute_name', store=True)
 
     @api.depends('sequence', 'step_name')
     def _compute_name(self):
@@ -1883,14 +1883,10 @@ class ServiceStepSelection(models.Model):
     def name_get(self):
         """Override name_get to display both sequence and step name"""
         result = []
-        stt = 1
         for record in self:
-            display = record.name or (record.step_id.name if record.step_id else False)
-            if display:
-                result.append((record.id, display))
-            else:
-                result.append((record.id, f"Bước {record.sequence}"))
-            stt += 1
+            # Sử dụng field name đã được compute
+            display = record.name or f"Bước {record.sequence}"
+            result.append((record.id, display))
         return result
 
     @api.model
