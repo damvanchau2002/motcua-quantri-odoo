@@ -1944,6 +1944,8 @@ class ServiceApiController(http.Controller):
             current_step = service_request.step_ids.filtered(lambda s: s.state == 'assigned')
             if current_step:
                 current_step = current_step[0]  # Lấy bước hiện tại đang assigned
+                # Giữ nguyên người xử lý hiện tại để không mất yêu cầu xử lý
+                current_assign_user_id = current_step.assign_user_id.id if current_step.assign_user_id else 0
                 # Sử dụng hàm update_request_step để chuyển bước hiện tại từ 'assigned' sang 'approved'
                 step_vals = update_request_step(
                     request.env, 
@@ -1952,7 +1954,7 @@ class ServiceApiController(http.Controller):
                     int(user_id), 
                     f'Đánh giá đã hoàn thành - {comments}', 
                     'approved', 
-                    0,  # nextuserid - sẽ được xác định tự động
+                    current_assign_user_id,  # nextuserid - giữ nguyên người xử lý hiện tại
                     [],  # docs
                     '',  # final_data
                     0   # department_id
@@ -2093,6 +2095,33 @@ class ServiceApiController(http.Controller):
                 'description': content,
             })
             
+            # Lấy service request để xử lý trạng thái
+            service_request = request.env['student.service.request'].sudo().browse(int(request_id))
+            
+            # Tìm bước hiện tại đang ở trạng thái 'assigned' để xử lý khiếu nại
+            current_step = service_request.step_ids.filtered(lambda s: s.state == 'assigned').sorted('base_secquence', reverse=True)
+            if current_step:
+                current_step = current_step[0]  # Lấy bước hiện tại đang assigned
+                # Giữ nguyên người xử lý hiện tại để không mất yêu cầu xử lý
+                current_assign_user_id = current_step.assign_user_id.id if current_step.assign_user_id else 0
+                # Sử dụng hàm update_request_step để chuyển bước hiện tại từ 'assigned' sang 'approved'
+                step_vals = update_request_step(
+                    request.env, 
+                    service_request.id, 
+                    current_step.id, 
+                    int(user_id), 
+                    f'Khiếu nại đã được gửi - {content}', 
+                    'approved', 
+                    current_assign_user_id,  # nextuserid - giữ nguyên người xử lý hiện tại
+                    [],  # docs
+                    '',  # final_data
+                    0   # department_id
+                )
+                # Cập nhật step hiện tại với kết quả từ update_request_step
+                if step_vals:
+                    current_step.sudo().write(step_vals)
+                # Cập nhật trạng thái yêu cầu thành 'repairing' khi có khiếu nại
+                service_request.sudo().write({'final_state': 'approved'})
           
             files = httprequest.files.getlist('attachment')
             attachment_ids = []
@@ -2225,6 +2254,8 @@ class ServiceApiController(http.Controller):
                 current_step = service_request.step_ids.filtered(lambda s: s.state == 'assigned').sorted('base_secquence', reverse=True)
                 if current_step:
                     current_step = current_step[0]  # Lấy bước hiện tại đang assigned
+                    # Giữ nguyên người xử lý hiện tại để không mất yêu cầu xử lý
+                    current_assign_user_id = current_step.assign_user_id.id if current_step.assign_user_id else 0
                     # Sử dụng hàm update_request_step để chuyển bước hiện tại từ 'assigned' sang 'approved'
                     step_vals = update_request_step(
                         request.env, 
@@ -2233,7 +2264,7 @@ class ServiceApiController(http.Controller):
                         int(accept_user_id), 
                         f'Nghiệm thu đã được chấp nhận - {content}', 
                         'approved', 
-                        0,  # nextuserid - sẽ được xác định tự động
+                        current_assign_user_id,  # nextuserid - giữ nguyên người xử lý hiện tại
                         [],  # docs
                         '',  # final_data
                         0   # department_id
