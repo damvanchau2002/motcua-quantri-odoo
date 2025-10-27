@@ -278,13 +278,13 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
                 #return False
 
             # Lấy nghiệm thu của Admin cho yêu cầu này
-            admin_acceptance = env['student.service.request.result'].sudo().with_user(system_user).search([
-                ('request_id', '=', requestid),
-                ('action_user_id', '!=', userid)
-            ], limit=1)
-            if not admin_acceptance:
-                raise ValueError("Chưa có đánh giá nghiệm thu từ Admin.")
-                return False
+            # admin_acceptance = env['student.service.request.result'].sudo().with_user(system_user).search([
+            #     ('request_id', '=', requestid),
+            #     ('action_user_id', '!=', userid)
+            # ], limit=1)
+            # if not admin_acceptance:
+            #     raise ValueError("Chưa có đánh giá nghiệm thu từ Admin.")
+            #     return False
 
     # nếu act khác pending thì tìm các bước trước đó còn pending cập nhật nó thanh ignored
     if act != 'pending':
