@@ -268,17 +268,24 @@
                                         <field name="final_state" class="ms-2 bold"/>
                                     </small>
                                 </div>
-                                <div class="oe_kanban_images">
-                                    <b><i> Quyền duyệt: </i><br /></b>
-                                    <field name="users" />
-                                    <field name="role_ids"/>
+                                  <div class="oe_kanban_images">
+                                    <small>
+                                        <div class="mt-1">
+                                            <div class="mb-1">
+                                                <strong>Người duyệt:</strong> <field name="users" widget="many2many_tags" options="{'no_create': true, 'no_open': true}"/>
+                                            </div>
+                                            <div>
+                                                <strong>Vai trò:</strong> <field name="role_ids" widget="many2many_tags" options="{'no_create': true, 'no_open': true}"/>
+                                            </div>
+                                        </div>
+                                    </small>
                                 </div>
                                 <div class="oe_kanban_images">
                                     <b><i> Người xử lý: </i></b>
                                     <field class="badge bg-secondary" name="user_processing_id"/>
                                 </div>
                             </div>
-                            <t t-if="record.final_state.raw_value == 'approved'">
+                            <!-- <t t-if="record.final_state.raw_value == 'approved'">
                                 <div class="card-footer">
                                     <button name="%(action_open_temporary_wizard)d" string="Nghiệm thu" type="action" t-att-context="{'default_request_id': record.id.raw_value}" class="btn-primary"/>
                                     <div class="badge">
@@ -287,7 +294,7 @@
                                         </t>
                                     </div>
                                 </div>
-                            </t>
+                            </t> -->
                         </div>
                     </t>
                 </templates>
