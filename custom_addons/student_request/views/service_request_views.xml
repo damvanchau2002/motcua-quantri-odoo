@@ -248,6 +248,14 @@
                                         <field name="expired_date" class="ms-2 text-warning"/>
                                     </small>
                                 </div>
+                                <div class="oe_kanban_date">
+                                    <small>
+                                        <i class="fa fa-tasks"></i>
+                                        <strong class="ms-2 text-primary">
+                                            <field name="current_step_name"/>
+                                        </strong>
+                                    </small>
+                                </div>
                                 <div class="oe_kanban_note">
                                     <small>
                                         <i class="fa fa-sticky-note"></i>
