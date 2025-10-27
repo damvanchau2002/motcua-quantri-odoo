@@ -431,8 +431,8 @@
                         <field name="image_attachment_ids" widget="many2many_binary" string="Ảnh đính kèm"/>
                         <!-- Hidden helper field so the domain can read computed values -->
                         <field name="student_user_ids" invisible="1"/>
-                        <!-- Allow all users to select a student sender. Domain restricts to computed student_user_ids -->
-                        <field name="request_user_id" string="Sinh viên gửi" domain="[('groups_id.name','!=','Settings')]" options="{'no_create': True, 'no_create_edit': True}"/>
+                        <!-- Allow all users to select a student sender. Use context variable for group reference -->
+                        <field name="request_user_id" string="Sinh viên gửi" domain="[('groups_id', 'in', [context.get('student_req_group_id')])]" options="{'no_create': True, 'no_create_edit': True}"/>
                     </group>
                     <group invisible="id != 0">
                         <button name="action_create_new" string="Gửi yêu cầu" type="object" class="btn-primary"/>
