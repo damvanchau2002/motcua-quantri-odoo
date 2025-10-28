@@ -650,7 +650,42 @@ class ServiceRequest(models.Model):
     # Theo dõi số lần nhắc quá hạn trong ngày
     expiry_reminder_count = fields.Integer('Số lần nhắc quá hạn trong ngày', default=0)
     expiry_reminder_date = fields.Date('Ngày ghi nhận số lần nhắc', default=fields.Date.today)
+        # Trường hiển thị bước hiện tại
+    current_step_name = fields.Char(
+        string='Bước hiện tại',
+        compute='_compute_current_step_name',
+        store=False,
+        readonly=True,
+        help='Tên bước đang được xử lý hiện tại'
+    )
 
+    @api.depends('step_ids', 'step_ids.state', 'step_ids.base_secquence', 'final_state')
+    def _compute_current_step_name(self):
+        """Tính toán tên bước hiện tại đang được xử lý"""
+        for record in self:
+            current_step_name = ''
+
+            if record.final_state in ['closed', 'cancelled', 'approved']:
+                current_step_name = 'Hoàn thành'
+            elif record.final_state == 'rejected':
+                current_step_name = 'Từ chối'
+            else:
+                # Tìm bước đang pending đầu tiên theo thứ tự
+                pending_steps = record.step_ids.filtered(
+                    lambda s: s.state in ['pending', 'assigned', 'repairing']
+                ).sorted(lambda s: s.base_secquence or 0)
+
+                if pending_steps:
+                    current_step = pending_steps[0]
+                    current_step_name = current_step.display_step_name or current_step.base_step_id.name or 'Bước không xác định'
+                else:
+                    # Nếu không có bước pending, kiểm tra có bước nào chưa
+                    if record.step_ids:
+                        current_step_name = 'Đang xử lý'
+                    else:
+                        current_step_name = 'Chưa có bước duyệt'
+
+            record.current_step_name = current_step_name
 
     step_ids_active = fields.One2many(
         "student.service.request.step",
