@@ -43,7 +43,6 @@
         'views/maintenance_simple_views.xml',
         'views/student_manage_views.xml',
         'views/user_permission_views.xml',
-        'views/permission_manager_views.xml',
         'views/ir_attachment_views.xml',
         
         # Menu (phải để cuối)

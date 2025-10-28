@@ -20,6 +20,8 @@
         </record>
 
         <!-- Enhanced User Form View with Permission Management -->
+        <!-- TEMPORARILY COMMENTED OUT TO DEBUG LEVEL FIELD ERROR -->
+        <!--
         <record id="view_users_permission_form" model="ir.ui.view">
             <field name="name">res.users.permission.form</field>
             <field name="model">res.users</field>
@@ -45,6 +47,7 @@
                 </xpath>
             </field>
         </record>
+        -->
 
         <!-- Permission Management Dashboard -->
         <record id="view_permission_dashboard" model="ir.ui.view">
@@ -98,11 +101,10 @@
         <record id="action_user_permission_management" model="ir.actions.act_window">
             <field name="name">Quản lý quyền User</field>
             <field name="res_model">res.users</field>
-            <field name="view_mode">kanban,list,form</field>
+            <field name="view_mode">kanban,list</field>
             <field name="view_ids" eval="[(5, 0, 0),
                 (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_permission_dashboard')}),
-                (0, 0, {'view_mode': 'list', 'view_id': ref('view_users_permission_tree')}),
-                (0, 0, {'view_mode': 'form', 'view_id': ref('view_users_permission_form')})]"/>
+                (0, 0, {'view_mode': 'list', 'view_id': ref('view_users_permission_tree')})]"/>
             <field name="domain">[('active', 'in', [True, False])]</field>
             <field name="context">{}</field>
             <field name="help" type="html">

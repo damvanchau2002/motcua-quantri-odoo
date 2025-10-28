@@ -122,13 +122,13 @@ class Service(models.Model):
     ], string='Hoạt động', default='enabled', help='Trạng thái hoạt động của dịch vụ: Đang hoạt động hay Tạm ngừng gửi yêu cầu')
     group_id = fields.Many2one('student.service.group', string='Nhóm dịch vụ', ondelete='cascade')
 
-    files = fields.Many2many('student.service.file', string='Files cần gửi kèm', ondelete='cascade')
+    files = fields.Many2many('student.service.file', string='Files cần gửi kèm')
 
-    step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt', ondelete='cascade')
+    step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
     step_selection_ids = fields.One2many('student.service.step.selection', 'service_id', string='Thông tin duyệt dịch vụ', help='Các bước duyệt với thứ tự tùy chỉnh')
 
-    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này', ondelete='cascade')
-    role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này', ondelete='cascade')
+    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
+    role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
 
     @api.model
     def get_group_system_id(self):
@@ -188,8 +188,8 @@ class ServiceStep(models.Model):
     state = fields.Integer('Trạng thái', default=1)  # Trạng thái bước, mặc định là 1 (có thể chỉnh sửa)
 
     # tạm thời chưa dùng:
-    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định được phân công thực hiện duyệt bước này', ondelete='cascade')
-    role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này', ondelete='cascade')
+    user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định được phân công thực hiện duyệt bước này')
+    role_ids = fields.Many2many('student.activity.role', string='Phòng ban', help='Các phòng ban, chức danh, vai trò nhận được phân công để thực hiện duyệt bước này')
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này', ondelete='cascade')
     # / tạm thời chưa dùng
 
@@ -352,7 +352,7 @@ class ServiceRequestStep(models.Model):
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     approve_content = fields.Text('Nội dung duyệt', help='Nội dung duyệt cho bước này')
     approve_date = fields.Datetime('Ngày duyệt', default=fields.Datetime.now)
-    upload_files = fields.Many2many('ir.attachment', string='Tài liệu đính kèm', help='Các tài liệu đính kèm cho bước này', ondelete='cascade')
+    upload_files = fields.Many2many('ir.attachment', string='Tài liệu đính kèm', help='Các tài liệu đính kèm cho bước này')
     final_data = fields.Text('Kết luận cuối cùng', help='Dữ liệu duyệt cuối sẽ hiển thị lên App')
 
     # Phân công
@@ -373,7 +373,7 @@ class ServiceRequestStep(models.Model):
         'student_service_step_file_rel',  # bảng quan hệ riêng cho file_ids
         'step_id', 'file_id',
         string='Giấy tờ cần nộp',
-        help='Các giấy tờ cần nộp trong bước này', ondelete='cascade'
+        help='Các giấy tờ cần nộp trong bước này'
     )
     # Đánh dấu các giấy tờ đã nộp  (chỉ bước 1 mới có)
     file_checkbox_ids = fields.Many2many(
@@ -381,8 +381,7 @@ class ServiceRequestStep(models.Model):
         'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
         'step_id', 'file_id',
         string='Hồ sơ đã nộp',
-        help='Các giấy tờ đã nộp trong bước này',
-        ondelete='cascade'
+        help='Các giấy tờ đã nộp trong bước này'
     )
 
     disabled = fields.Boolean(
@@ -1533,7 +1532,7 @@ class ActivityDepartment(models.Model):
     name = fields.Char('Tên phòng ban', required=True)
     description = fields.Text('Mô tả phòng ban')
     admin_profiles = fields.One2many('student.admin.profile', 'department_id', string='Thành viên của Phòng ban', ondelete='cascade')
-    cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm KTX', help='Các cụm KTX thuộc phòng ban này', ondelete='cascade')
+    cluster_ids = fields.Many2many('student.dormitory.cluster', string='Cụm KTX', help='Các cụm KTX thuộc phòng ban này')
 
     def action_back(self):
         return {

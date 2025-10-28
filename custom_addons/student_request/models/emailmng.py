@@ -21,7 +21,6 @@ class StudentEmailmngTemplate(models.Model):
     mailto = fields.Many2many(
         'res.users',
         string='Gửi tới',
-        ondelete='cascade',
         domain="[('active', '=', True)]"
     )
 
