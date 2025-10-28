@@ -254,16 +254,31 @@
                                         <field name="approve_content" class="ms-2"/>
                                     </small>
                                 </div>
+                                                                <div class="oe_kanban_date">
+                                    <small>
+                                        <i class="fa fa-tasks"></i>
+                                        <strong class="ms-2 text-primary">
+                                            <field name="current_step_name"/>
+                                        </strong>
+                                    </small>
+                                </div>
                                 <div class="oe_kanban_note">
                                     <small>
                                         <i class="fa fa-archive"></i>
                                         <field name="final_state" class="ms-2 bold"/>
                                     </small>
                                 </div>
-                                <div class="oe_kanban_images">
-                                    <b><i> Quyền duyệt: </i><br /></b>
-                                    <field name="users" />
-                                    <field name="role_ids"/>
+                                    <div class="oe_kanban_images">
+                                    <small>
+                                        <div class="mt-1">
+                                            <div class="mb-1">
+                                                <strong>Người duyệt:</strong> <field name="users" widget="many2many_tags" options="{'no_create': true, 'no_open': true}"/>
+                                            </div>
+                                            <div>
+                                                <strong>Vai trò:</strong> <field name="role_ids" widget="many2many_tags" options="{'no_create': true, 'no_open': true}"/>
+                                            </div>
+                                        </div>
+                                    </small>
                                 </div>
                                 <div class="oe_kanban_images">
                                     <b><i> Người xử lý: </i></b>
@@ -416,8 +431,8 @@
                         <field name="image_attachment_ids" widget="many2many_binary" string="Ảnh đính kèm"/>
                         <!-- Hidden helper field so the domain can read computed values -->
                         <field name="student_user_ids" invisible="1"/>
-                        <!-- Allow all users to select a student sender. Domain restricts to computed student_user_ids -->
-                        <field name="request_user_id" string="Sinh viên gửi" domain="[('groups_id.name','!=','Settings')]" options="{'no_create': True, 'no_create_edit': True}"/>
+                                             <!-- Allow all users to select a student sender. Use context variable for group reference -->
+                        <field name="request_user_id" string="Sinh viên gửi" domain="[('groups_id', 'in', [context.get('student_req_group_id')])]" options="{'no_create': True, 'no_create_edit': True}"/>
                     </group>
                     <group invisible="id != 0">
                         <button name="action_create_new" string="Gửi yêu cầu" type="object" class="btn-primary"/>
