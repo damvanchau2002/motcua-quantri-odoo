@@ -15,6 +15,86 @@
             <field name="comment">Users can create and view their own extension requests</field>
         </record>
 
+        <!-- Menu Access Groups -->
+        <record id="group_menu_create_request" model="res.groups">
+            <field name="name">Tạo yêu cầu - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to create new requests menu</field>
+        </record>
+
+        <record id="group_menu_view_requests" model="res.groups">
+            <field name="name">Xem yêu cầu - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to view requests menu</field>
+        </record>
+
+        <record id="group_menu_notifications" model="res.groups">
+            <field name="name">Gửi thông báo - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to send notifications menu</field>
+        </record>
+
+        <record id="group_menu_configuration" model="res.groups">
+            <field name="name">Cấu hình - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to configuration menu</field>
+        </record>
+
+        <record id="group_menu_reports" model="res.groups">
+            <field name="name">Báo cáo - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to reports menu</field>
+        </record>
+
+        <record id="group_menu_statistics" model="res.groups">
+            <field name="name">Bảng thống kê - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to statistics dashboard menu</field>
+        </record>
+
+        <record id="group_menu_bulk_assign" model="res.groups">
+            <field name="name">Phân công hàng loạt - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to bulk assignment menu</field>
+        </record>
+
+        <record id="group_menu_extension_management" model="res.groups">
+            <field name="name">Quản lý gia hạn - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to extension management menu</field>
+        </record>
+
+        <!-- Configuration Sub-menu Groups -->
+        <record id="group_menu_service_groups" model="res.groups">
+            <field name="name">Nhóm dịch vụ - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to service groups configuration</field>
+        </record>
+
+        <record id="group_menu_services" model="res.groups">
+            <field name="name">Cài dịch vụ - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to services configuration</field>
+        </record>
+
+        <record id="group_menu_service_steps" model="res.groups">
+            <field name="name">Cài bước duyệt - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to service steps configuration</field>
+        </record>
+
+        <record id="group_menu_user_management" model="res.groups">
+            <field name="name">Tài khoản quản lý - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to user management configuration</field>
+        </record>
+
+        <record id="group_menu_maintenance" model="res.groups">
+            <field name="name">Bảo trì hệ thống - Menu Access</field>
+            <field name="category_id" ref="base.module_category_services"/>
+            <field name="comment">Access to system maintenance</field>
+        </record>
+
         <!-- Removed global allow-all rule; access now governed by ACLs and model override -->
 
     </data>

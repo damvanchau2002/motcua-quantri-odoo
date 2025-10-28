@@ -42,3 +42,6 @@ access_maintenance_dashboard,maintenance.dashboard,model_maintenance_dashboard,b
 access_student_request_stats_all,student.request.stats all,model_student_request_stats,,1,0,0,0
 access_student_request_stats_admin,student.request.stats admin,model_student_request_stats,base.group_system,1,1,1,1
 access_student_request_stats_wizard,student.request.stats.wizard,model_student_request_stats_wizard,,1,1,1,1
+access_menu_permission_manager_admin,menu.permission.manager.admin,model_menu_permission_manager,base.group_system,1,1,1,1
+access_menu_permission_line_admin,menu.permission.line.admin,model_menu_permission_line,base.group_system,1,1,1,1
+access_menu_permission_wizard_admin,menu.permission.wizard.admin,model_menu_permission_wizard,base.group_system,1,1,1,1

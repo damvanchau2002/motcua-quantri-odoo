@@ -10,32 +10,38 @@
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_student_service_request_create_new"/>
         <field name="sequence">20</field>
+        <field name="groups_id" eval="[(4, ref('group_menu_create_request'))]"/>
     </record>
     <!-- Main actions under root -->
     <record id="menu_service_request" model="ir.ui.menu">
         <field name="name">Yêu cầu</field>
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_service_request"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_view_requests'))]"/>
     </record>
     <record id="menu_service_notify" model="ir.ui.menu">
         <field name="name">Gửi thông báo</field>
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_student_notify"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_notifications'))]"/>
     </record>
     <record id="student_request_config" model="ir.ui.menu">
         <field name="name">Cấu hình</field>
         <field name="parent_id" ref="student_request_root"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
     </record>
     <record id="student_service_report" model="ir.ui.menu">
         <field name="name">Báo cáo</field>
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_student_service_report_wizard"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_reports'))]"/>
     </record>
     <record id="menu_student_request_dashboard_wizard" model="ir.ui.menu">
         <field name="name">Bảng thống kê</field>
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_student_request_stats_wizard"/>
         <field name="sequence">90</field>
+        <field name="groups_id" eval="[(4, ref('group_menu_statistics'))]"/>
     </record>
 
     <!-- Config subtree -->
@@ -43,68 +49,81 @@
         <field name="name">Nhóm dịch vụ</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_service_group"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_service_groups'))]"/>
     </record>
     <record id="student_service_menu" model="ir.ui.menu">
         <field name="name">Cài dịch vụ</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_student_service"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_services'))]"/>
     </record>
     <record id="student_step_menu" model="ir.ui.menu">
         <field name="name">Cài bước duyệt</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_student_service_step"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_service_steps'))]"/>
     </record>
     <record id="student_file_menu" model="ir.ui.menu">
         <field name="name">Giấy tờ nộp kèm</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_student_service_file"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_service_steps'))]"/>
     </record>
     <record id="student_dormitory_area" model="ir.ui.menu">
         <field name="name">Khu ký túc xá</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_student_dormitory_area"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
     </record>
     <record id="student_dormitory_cluster" model="ir.ui.menu">
         <field name="name">Cụm ký túc xá</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_student_dormitory_cluster"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
     </record>
 
     <!-- User management under config -->
     <record id="menu_service_user_config" model="ir.ui.menu">
         <field name="name">Tài khoản quản lý</field>
         <field name="parent_id" ref="student_request_config"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_user_management'))]"/>
     </record>
     <record id="menu_student_activity_user" model="ir.ui.menu">
         <field name="name">Tài khoản</field>
         <field name="parent_id" ref="menu_service_user_config"/>
         <field name="action" ref="action_admin_manager_user"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_user_management'))]"/>
     </record>
     <record id="menu_student_activity_role" model="ir.ui.menu">
         <field name="name">Chức danh</field>
         <field name="parent_id" ref="menu_service_user_config"/>
         <field name="action" ref="action_student_activity_role"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_user_management'))]"/>
     </record>
     <record id="menu_student_activity_department" model="ir.ui.menu">
         <field name="name">Phòng ban</field>
         <field name="parent_id" ref="menu_service_user_config"/>
         <field name="action" ref="action_student_activity_department"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_user_management'))]"/>
     </record>
     <record id="student_manage_admin_menu" model="ir.ui.menu">
         <field name="name">Quản lý sinh viên</field>
         <field name="parent_id" ref="menu_service_user_config"/>
         <field name="action" ref="action_student_manage_admin_menu"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_user_management'))]"/>
     </record>
 
     <record id="menu_student_email_template" model="ir.ui.menu">
         <field name="name">Mẫu gửi Email</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_student_email_template"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
     </record>
     <record id="menu_maintenance_system" model="ir.ui.menu">
         <field name="name">Bảo trì hệ thống</field>
         <field name="parent_id" ref="student_request_config"/>
         <field name="action" ref="action_open_maintenance_dashboard"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_maintenance'))]"/>
     </record>
 
     <!-- Bulk assignment under root -->
@@ -112,27 +131,32 @@
         <field name="name">Phân công hàng loạt</field>
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_student_request_bulk_assign_page"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_bulk_assign'))]"/>
     </record>
 
     <!-- Extension Management subtree -->
     <record id="menu_extension_management" model="ir.ui.menu">
         <field name="name">Quản lý gia hạn</field>
         <field name="parent_id" ref="student_request_root"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_extension_management'))]"/>
     </record>
     <record id="menu_extension_requests" model="ir.ui.menu">
         <field name="name">Yêu cầu gia hạn</field>
         <field name="parent_id" ref="menu_extension_management"/>
         <field name="action" ref="action_request_extension"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_extension_management'))]"/>
     </record>
     <record id="menu_extension_pending" model="ir.ui.menu">
         <field name="name">Chờ duyệt gia hạn</field>
         <field name="parent_id" ref="menu_extension_management"/>
         <field name="action" ref="action_request_extension_pending"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_extension_management'))]"/>
     </record>
     <record id="menu_extension_approved" model="ir.ui.menu">
         <field name="name">Đã duyệt gia hạn</field>
         <field name="parent_id" ref="menu_extension_management"/>
         <field name="action" ref="action_request_extension_approved"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_extension_management'))]"/>
     </record>
 
    

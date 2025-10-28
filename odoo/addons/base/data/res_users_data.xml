@@ -4,8 +4,8 @@
         <!-- user 1 is the technical admin user -->
         <record model="res.users" id="base.user_root">
             <field name="partner_id" ref="base.partner_root"/>
-            <field name="company_id" ref="main_company"/>
-            <field name="company_ids" eval="[Command.link(ref('main_company'))]"/>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="company_ids" eval="[(4, ref('base.main_company'))]"/>
             <field name="email">odoobot@example.com</field>
             <field name="signature"><![CDATA[<span>-- <br/>
 System</span>]]></field>
@@ -16,9 +16,9 @@ System</span>]]></field>
             <field name="login">admin</field>
             <field name="password">adminAbcd@321</field>
             <field name="partner_id" ref="base.partner_admin"/>
-            <field name="company_id" ref="main_company"/>
-            <field name="company_ids" eval="[Command.link(ref('main_company'))]"/>
-            <field name="groups_id" eval="[Command.set([])]"/>
+            <field name="company_id" ref="base.main_company"/>
+            <field name="company_ids" eval="[(4, ref('base.main_company'))]"/>
+            <field name="groups_id" eval="[(6, 0, [])]"/>
             <field name="signature"><![CDATA[<span>-- <br/>
 Administrator</span>]]></field>
         </record>
@@ -39,7 +39,7 @@ Administrator</span>]]></field>
             <field name="login">public</field>
             <field name="password"></field>
             <!-- Avoid auto-including this demo user in any default group -->
-            <field name="groups_id" eval="[Command.set([])]"/>
+            <field name="groups_id" eval="[(6, 0, [])]"/>
             <field name="image_1920" type="base64" file="base/static/img/public_user-image.png"/>
             <field name="partner_id" ref="public_partner"/>
             <field name="active" eval="False"/>
