@@ -2284,7 +2284,56 @@ class ServiceApiController(http.Controller):
                     send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ Admin
 
             elif action == 'reject' or action == 'issue':
-                service_request.sudo().with_user(system_user).write({'final_state': 'repairing', 'final_star': stars})
+                # Tìm bước trước đó để quay lại
+                current_step = service_request.step_ids.filtered(lambda s: s.state == 'assigned').sorted('base_secquence', reverse=True)
+                if current_step:
+                    current_step = current_step[0]  # Lấy bước hiện tại đang assigned
+                    
+                    # Tìm bước trước đó
+                    previous_step = service_request.step_ids.filtered(
+                        lambda s: s.base_secquence < current_step.base_secquence and s.state in ['approved', 'ignored']
+                    ).sorted('base_secquence', reverse=True)
+                    
+                    if previous_step:
+                        previous_step = previous_step[0]  # Lấy bước trước đó gần nhất
+                        
+                        # Đặt lại bước trước đó thành trạng thái assigned để xử lý lại
+                        previous_step.sudo().with_user(system_user).write({
+                            'state': 'assigned',
+                            'approve_content': f'Quay lại xử lý do nghiệm thu từ chối - {content}',
+                            'approve_date': Datetime.now(),
+                        })
+                        
+                        # Đặt bước hiện tại thành rejected
+                        current_step.sudo().with_user(system_user).write({
+                            'state': 'rejected',
+                            'approve_content': f'Nghiệm thu từ chối - {content}',
+                            'approve_date': Datetime.now(),
+                        })
+                        
+                        # Cập nhật trạng thái tổng thể
+                        service_request.sudo().with_user(system_user).write({
+                            'final_state': 'assigned',  # Quay lại trạng thái đang xử lý
+                            'final_star': stars
+                        })
+                    else:
+                        # Nếu không có bước trước đó, đặt bước đầu tiên thành pending
+                        first_step = service_request.step_ids.filtered(lambda s: s.base_secquence == 1)
+                        if first_step:
+                            first_step.sudo().with_user(system_user).write({
+                                'state': 'pending',
+                                'approve_content': f'Quay lại bước đầu do nghiệm thu từ chối - {content}',
+                                'approve_date': Datetime.now(),
+                            })
+                        
+                        service_request.sudo().with_user(system_user).write({
+                            'final_state': 'pending',
+                            'final_star': stars
+                        })
+                else:
+                    # Fallback: nếu không tìm thấy bước hiện tại, giữ nguyên logic cũ
+                    service_request.sudo().with_user(system_user).write({'final_state': 'repairing', 'final_star': stars})
+                
                 send_fcm_request(
                     request.env,
                     service_request,
