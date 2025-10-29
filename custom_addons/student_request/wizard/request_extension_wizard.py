@@ -104,14 +104,15 @@ class RequestExtensionWizard(models.TransientModel):
         # Gửi yêu cầu
         extension.action_submit()
         
-        # Thông báo thành công
+        # Hiển thị thông báo thành công và tự động đóng popup
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
                 'title': 'Thành công',
-                'message': f'Yêu cầu gia hạn {self.hours} giờ đã được gửi!',
+                'message': f'Yêu cầu gia hạn {self.hours} giờ đã được gửi thành công!',
                 'type': 'success',
                 'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'}
             }
         }
