@@ -161,14 +161,14 @@ class UserApiController(http.Controller):
             # Lấy tất cả steps của request
             all_steps = service_request.step_ids.with_user(1).sudo()
             
-            # Tìm active steps (pending hoặc assigned)
-            active_steps = all_steps.filtered(lambda s: s.state in ['pending', 'assigned'])
+            # Tìm active steps (pending, assigned hoặc repairing)
+            active_steps = all_steps.filtered(lambda s: s.state in ['pending', 'assigned', 'repairing'])
             
             _logger.info(f"Request {request_id} có {len(all_steps)} steps tổng cộng")
             for step in all_steps:
                 _logger.info(f"  Step {step.id}: {step.display_step_name}, state: {step.state}, sequence: {step.base_secquence}")
             
-            _logger.info(f"Tìm thấy {len(active_steps)} active steps (pending/assigned)")
+            _logger.info(f"Tìm thấy {len(active_steps)} active steps (pending/assigned/repairing)")
             
             # Lấy step hiện tại (step đầu tiên theo sequence)
             current_step = active_steps.sorted(lambda s: s.base_secquence)[0] if active_steps else None
@@ -429,7 +429,7 @@ class UserApiController(http.Controller):
                                     status_department_mapping[status_key]['handlers'].append(handler_info)
                             
                             # Đánh dấu bước hiện tại
-                            if step.state in ['pending', 'assigned']:
+                            if step.state in ['pending', 'assigned', 'repairing']:
                                 status_department_mapping[status_key]['current_step'] = {
                                     'id': step.id,
                                     'name': step.base_step_id.name if step.base_step_id else f'Bước {step.base_secquence}',

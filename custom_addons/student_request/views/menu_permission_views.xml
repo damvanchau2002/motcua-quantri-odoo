@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Menu Permission Manager Form View -->
+        <record id="view_menu_permission_manager_form" model="ir.ui.view">
+            <field name="name">menu.permission.manager.form</field>
+            <field name="model">menu.permission.manager</field>
+            <field name="arch" type="xml">
+                <form string="Quản lý phân quyền menu">
+                    <header>
+                        <button name="assign_menu_permissions" string="Áp dụng phân quyền" type="object" class="btn-primary"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <field name="user_id" options="{'no_create': True}"/>
+                        </group>
+                        <notebook>
+                            <page string="Quyền truy cập menu">
+                                <field name="menu_permissions">
+                                    <list editable="bottom">
+                                        <field name="menu_group"/>
+                                        <field name="menu_name"/>
+                                        <field name="can_access"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Menu Permission Manager Tree View -->
+        <record id="view_menu_permission_manager_tree" model="ir.ui.view">
+            <field name="name">menu.permission.manager.list</field>
+            <field name="model">menu.permission.manager</field>
+            <field name="arch" type="xml">
+                <list string="Quản lý phân quyền menu">
+                    <field name="user_id"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Menu Permission Manager Action -->
+        <record id="action_menu_permission_manager" model="ir.actions.act_window">
+            <field name="name">Quản lý phân quyền menu</field>
+            <field name="res_model">menu.permission.manager</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Tạo phân quyền menu mới
+                </p>
+                <p>
+                    Quản lý quyền truy cập menu cho từng người dùng.
+                </p>
+            </field>
+        </record>
+
+        <!-- Menu Item -->
+        <record id="menu_permission_manager" model="ir.ui.menu">
+            <field name="name">Phân quyền menu</field>
+            <field name="parent_id" ref="menu_service_user_config"/>
+            <field name="action" ref="action_menu_permission_manager"/>
+            <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+            <field name="sequence">100</field>
+        </record>
+
+        <!-- Wizard for Quick Permission Assignment -->
+        <record id="view_menu_permission_wizard_form" model="ir.ui.view">
+            <field name="name">menu.permission.wizard.form</field>
+            <field name="model">menu.permission.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Phân quyền nhanh">
+                    <sheet>
+                        <group>
+                            <field name="user_ids" widget="many2many_tags"/>
+                            <field name="menu_group"/>
+                            <field name="grant_access"/>
+                        </group>
+                    </sheet>
+                    <footer>
+                        <button name="apply_permissions" string="Áp dụng" type="object" class="btn-primary"/>
+                        <button string="Hủy" class="btn-secondary" special="cancel"/>
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_menu_permission_wizard" model="ir.actions.act_window">
+            <field name="name">Phân quyền nhanh</field>
+            <field name="res_model">menu.permission.wizard</field>
+            <field name="view_mode">form</field>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Menu for Quick Permission -->
+        <record id="menu_quick_permission" model="ir.ui.menu">
+            <field name="name">Phân quyền nhanh</field>
+            <field name="parent_id" ref="menu_service_user_config"/>
+            <field name="action" ref="action_menu_permission_wizard"/>
+            <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+            <field name="sequence">101</field>
+        </record>
+
+    </data>
+</odoo>

@@ -45,6 +45,7 @@
         'views/user_permission_views.xml',
         'views/permission_manager_views.xml',
         'views/ir_attachment_views.xml',
+        'views/menu_permission_views.xml',
         
         # Menu (phải để cuối)
         'views/menus.xml',
