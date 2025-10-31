@@ -2840,3 +2840,238 @@ class ServiceApiController(http.Controller):
                 status=500,
                 headers=self._get_cors_headers()
             )
+        
+    @http.route('/api/service/request/extension/create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def create_request_extension(self, **post):
+        """API gửi yêu cầu gia hạn"""
+        if request.httprequest.method == 'OPTIONS':
+            return self._handle_options_request()
+
+        try:
+            # Lấy dữ liệu
+            data = json.loads(request.httprequest.data.decode('utf-8'))
+            request_id = data.get('request_id')
+            hours = data.get('hours', 0)
+            reason = data.get('reason', '').strip()
+            user_id = data.get('user_id')  # Thêm user_id từ request body
+
+            # Validate dữ liệu cơ bản
+            if not request_id or hours <= 0 or hours > 720 or not reason:
+                return Response(json.dumps({'success': False, 'message': 'Dữ liệu không hợp lệ'}),
+                              content_type='application/json', status=400, headers=self._get_cors_headers())
+
+            # Xác định user_id để sử dụng
+            if user_id:
+                # Kiểm tra user_id có tồn tại không
+                user = request.env['res.users'].sudo().browse(user_id)
+                if not user.exists():
+                    return Response(json.dumps({'success': False, 'message': f'Không tìm thấy user với ID: {user_id}'}),
+                                  content_type='application/json', status=404, headers=self._get_cors_headers())
+                requested_by_id = user_id
+            else:
+                # Sử dụng user hiện tại nếu không có user_id trong request
+                requested_by_id = request.env.user.id
+
+            # Kiểm tra yêu cầu tồn tại (sử dụng sudo để bypass record rules)
+            # service_request = request.env['student.service.request'].sudo().browse(request_id)
+            # if not service_request.sudo().exists():
+            #     return Response(json.dumps({'success': False, 'message': 'Yêu cầu không tồn tại'}),
+            #                   content_type='application/json', status=404, headers=self._get_cors_headers())
+
+            # Tạo gia hạn với trạng thái 'submitted' ngay từ đầu để tránh lỗi quyền truy cập
+            extension = request.env['request.extension'].sudo().with_context(
+                mail_create_nolog=True,
+                mail_create_nosubscribe=True,
+                tracking_disable=True
+            ).create({
+                'request_id': request_id,
+                'hours': hours,
+                'reason': reason,
+                'requested_by': requested_by_id,
+                'state': 'submitted',  # Tạo trực tiếp với trạng thái submitted
+            })
+
+            # Lấy thông tin người gửi yêu cầu
+            requester_info = {
+                'id': extension.requested_by.id,
+                'name': extension.requested_by.name,
+                'email': extension.requested_by.email or '',
+                'phone': extension.requested_by.phone or '',
+                'login': extension.requested_by.login or ''
+            }
+
+            return Response(json.dumps({
+                'success': True,
+                'message': f'Đã gửi yêu cầu gia hạn {hours} giờ',
+                'data': {
+                    'extension_id': extension.id, 
+                    'hours': hours,
+                    'user_id': extension.requested_by.id,  # Thêm user_id riêng biệt
+                    'requester': requester_info,
+                    'request_date': extension.request_date.strftime('%Y-%m-%d %H:%M:%S') if extension.request_date else None
+                }
+            }), content_type='application/json', status=201, headers=self._get_cors_headers())
+
+        except Exception as e:
+            return Response(json.dumps({'success': False, 'message': f'Lỗi: {str(e)}'}),
+                          content_type='application/json', status=500, headers=self._get_cors_headers())
+
+    @http.route('/api/service/request/extension/<int:extension_id>', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def get_request_extension(self, extension_id, **kwargs):
+        """API lấy thông tin chi tiết yêu cầu gia hạn theo ID"""
+        if request.httprequest.method == 'OPTIONS':
+            return self._handle_options_request()
+
+        try:
+            # Tìm yêu cầu gia hạn
+            extension = request.env['request.extension'].sudo().browse(extension_id)
+            if not extension.exists():
+                return Response(json.dumps({'success': False, 'message': 'Không tìm thấy yêu cầu gia hạn'}),
+                              content_type='application/json', status=404, headers=self._get_cors_headers())
+
+            # Thông tin người gửi yêu cầu
+            requester_info = {
+                'id': extension.requested_by.id,
+                'name': extension.requested_by.name,
+                'email': extension.requested_by.email or '',
+                'phone': extension.requested_by.phone or '',
+                'login': extension.requested_by.login or ''
+            }
+
+            # Thông tin người duyệt (nếu có)
+            approver_info = None
+            if extension.approved_by:
+                approver_info = {
+                    'id': extension.approved_by.id,
+                    'name': extension.approved_by.name,
+                    'email': extension.approved_by.email or '',
+                    'login': extension.approved_by.login or ''
+                }
+
+            # Thông tin yêu cầu dịch vụ
+            service_request_info = {
+                'id': extension.request_id.id,
+                'name': extension.request_id.name,
+                'service_name': extension.request_id.service_id.name if extension.request_id.service_id else '',
+                'current_deadline': extension.request_id.expired_date.strftime('%Y-%m-%d %H:%M:%S') if extension.request_id.expired_date else None,
+                'state': extension.request_id.state
+            }
+
+            extension_data = {
+                'id': extension.id,
+                'name': extension.name,
+                'hours': extension.hours,
+                'reason': extension.reason,
+                'state': extension.state,
+                'user_id': extension.requested_by.id,  # Thêm user_id riêng biệt
+                'request_date': extension.request_date.strftime('%Y-%m-%d %H:%M:%S') if extension.request_date else None,
+                'approval_date': extension.approval_date.strftime('%Y-%m-%d %H:%M:%S') if extension.approval_date else None,
+                'rejection_date': extension.rejection_date.strftime('%Y-%m-%d %H:%M:%S') if extension.rejection_date else None,
+                'rejection_reason': extension.rejection_reason or '',
+                'original_deadline': extension.original_deadline.strftime('%Y-%m-%d %H:%M:%S') if extension.original_deadline else None,
+                'new_deadline': extension.new_deadline.strftime('%Y-%m-%d %H:%M:%S') if extension.new_deadline else None,
+                'requester': requester_info,
+                'approver': approver_info,
+                'service_request': service_request_info
+            }
+
+            return Response(json.dumps({
+                'success': True,
+                'data': extension_data
+            }), content_type='application/json', headers=self._get_cors_headers())
+
+        except Exception as e:
+            return Response(json.dumps({'success': False, 'message': f'Lỗi: {str(e)}'}),
+                          content_type='application/json', status=500, headers=self._get_cors_headers())
+
+    @http.route('/api/service/request/extension/list', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def list_request_extensions(self, **kwargs):
+        """API lấy danh sách yêu cầu gia hạn với thông tin người gửi"""
+        if request.httprequest.method == 'OPTIONS':
+            return self._handle_options_request()
+
+        try:
+            # Lấy parameters
+            request_id = kwargs.get('request_id')
+            state = kwargs.get('state')  # draft, submitted, approved, rejected
+            limit = int(kwargs.get('limit', 50))
+            offset = int(kwargs.get('offset', 0))
+
+            # Tạo domain filter
+            domain = []
+            if request_id:
+                domain.append(('request_id', '=', int(request_id)))
+            if state:
+                domain.append(('state', '=', state))
+
+            # Lấy danh sách yêu cầu gia hạn
+            extensions = request.env['request.extension'].sudo().search(
+                domain, 
+                limit=limit, 
+                offset=offset, 
+                order='create_date desc'
+            )
+
+            # Chuẩn bị dữ liệu response
+            extension_list = []
+            for ext in extensions:
+                # Thông tin người gửi yêu cầu
+                requester_info = {
+                    'id': ext.requested_by.id,
+                    'name': ext.requested_by.name,
+                    'email': ext.requested_by.email or '',
+                    'phone': ext.requested_by.phone or '',
+                    'login': ext.requested_by.login or ''
+                }
+
+                # Thông tin người duyệt (nếu có)
+                approver_info = None
+                if ext.approved_by:
+                    approver_info = {
+                        'id': ext.approved_by.id,
+                        'name': ext.approved_by.name,
+                        'email': ext.approved_by.email or '',
+                        'login': ext.approved_by.login or ''
+                    }
+
+                # Thông tin yêu cầu dịch vụ
+                service_request_info = {
+                    'id': ext.request_id.id,
+                    'name': ext.request_id.name,
+                    'service_name': ext.request_id.service_id.name if ext.request_id.service_id else '',
+                    'current_deadline': ext.request_id.expired_date.strftime('%Y-%m-%d %H:%M:%S') if ext.request_id.expired_date else None
+                }
+
+                extension_data = {
+                    'id': ext.id,
+                    'name': ext.name,
+                    'hours': ext.hours,
+                    'reason': ext.reason,
+                    'state': ext.state,
+                    'user_id': ext.requested_by.id,  # Thêm user_id riêng biệt
+                    'request_date': ext.request_date.strftime('%Y-%m-%d %H:%M:%S') if ext.request_date else None,
+                    'approval_date': ext.approval_date.strftime('%Y-%m-%d %H:%M:%S') if ext.approval_date else None,
+                    'rejection_date': ext.rejection_date.strftime('%Y-%m-%d %H:%M:%S') if ext.rejection_date else None,
+                    'rejection_reason': ext.rejection_reason or '',
+                    'original_deadline': ext.original_deadline.strftime('%Y-%m-%d %H:%M:%S') if ext.original_deadline else None,
+                    'new_deadline': ext.new_deadline.strftime('%Y-%m-%d %H:%M:%S') if ext.new_deadline else None,
+                    'requester': requester_info,
+                    'approver': approver_info,
+                    'service_request': service_request_info
+                }
+                extension_list.append(extension_data)
+
+            # Đếm tổng số records
+            total_count = request.env['request.extension'].sudo().search_count(domain)
+
+            return Response(json.dumps({
+                'success': True,
+                'data': extension_list,
+                'total': total_count,
+                'limit': limit,
+                'offset': offset
+            }), content_type='application/json', headers=self._get_cors_headers())
+
+        except Exception as e:
+            return Response(json.dumps({'success': False, 'message': f'Lỗi: {str(e)}'}),
+                          content_type='application/json', status=500, headers=self._get_cors_headers())

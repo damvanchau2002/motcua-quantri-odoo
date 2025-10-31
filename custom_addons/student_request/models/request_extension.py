@@ -14,7 +14,7 @@ class RequestExtension(models.Model):
     _order = 'create_date desc'
 
     # Thông tin cơ bản
-    name = fields.Char('Tên yêu cầu gia hạn', compute='_compute_name', store=True)
+    name = fields.Char('Tên yêu cầu gia hạn', compute='_compute_name')
     request_id = fields.Many2one(
         'student.service.request', 
         string='Yêu cầu dịch vụ', 
@@ -79,14 +79,11 @@ class RequestExtension(models.Model):
     # Thông tin deadline
     original_deadline = fields.Datetime(
         'Deadline gốc',
-        related='request_id.expired_date',
-        store=True,
         help='Thời hạn gốc của yêu cầu'
     )
     new_deadline = fields.Datetime(
         'Deadline mới',
         compute='_compute_new_deadline',
-        store=True,
         help='Thời hạn mới sau khi gia hạn'
     )
     
@@ -140,25 +137,25 @@ class RequestExtension(models.Model):
             if record.hours > 720:  # 30 ngày = 720 giờ
                 raise ValidationError("Mỗi lần gia hạn tối đa 720 giờ (30 ngày)!")
 
-    @api.constrains('request_id', 'hours')
-    def _check_total_extension_limit(self):
-        for record in self:
-            if record.request_id:
-                # Tính tổng số giờ đã gia hạn (bao gồm cả yêu cầu hiện tại)
-                approved_extensions = self.search([
-                    ('request_id', '=', record.request_id.id),
-                    ('state', '=', 'approved'),
-                    ('id', '!=', record.id)  # Loại trừ bản ghi hiện tại
-                ])
-                total_hours = sum(approved_extensions.mapped('hours')) + record.hours
-                max_hours = 2160  # 90 ngày = 2160 giờ
+    # @api.constrains('request_id', 'hours')
+    # def _check_total_extension_limit(self):
+    #     for record in self:
+    #         if record.request_id:
+    #             # Tính tổng số giờ đã gia hạn (bao gồm cả yêu cầu hiện tại)
+    #             approved_extensions = self.search([
+    #                 ('request_id', '=', record.request_id.id),
+    #                 ('state', '=', 'approved'),
+    #                 ('id', '!=', record.id)  # Loại trừ bản ghi hiện tại
+    #             ])
+    #             total_hours = sum(approved_extensions.mapped('hours')) + record.hours
+    #             max_hours = 2160  # 90 ngày = 2160 giờ
                 
-                if total_hours > max_hours:
-                    raise ValidationError(
-                        f"Tổng số giờ gia hạn không được vượt quá {max_hours} giờ (90 ngày)! "
-                        f"Hiện tại đã gia hạn {total_hours - record.hours} giờ, "
-                        f"chỉ có thể gia hạn thêm tối đa {max_hours - (total_hours - record.hours)} giờ."
-                    )
+    #             if total_hours > max_hours:
+    #                 raise ValidationError(
+    #                     f"Tổng số giờ gia hạn không được vượt quá {max_hours} giờ (90 ngày)! "
+    #                     f"Hiện tại đã gia hạn {total_hours - record.hours} giờ, "
+    #                     f"chỉ có thể gia hạn thêm tối đa {max_hours - (total_hours - record.hours)} giờ."
+    #                 )
 
     def _format_dt_for_user(self, dt, user_id=None, fmt='%d/%m/%Y %H:%M'):
         """Trả về chuỗi thời gian theo múi giờ người dùng.

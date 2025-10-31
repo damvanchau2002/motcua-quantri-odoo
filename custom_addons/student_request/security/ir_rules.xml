@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        
+        <!-- Record Rules for student.service.request -->
+        <record id="student_service_request_public_rule" model="ir.rule">
+            <field name="name">Public Access to Student Service Request</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_public'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Record Rule for Extension Management Group -->
+        <record id="student_service_request_extension_group_rule" model="ir.rule">
+            <field name="name">Extension Management Access to Student Service Request</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_menu_extension_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Record Rule for System Users -->
+        <record id="student_service_request_system_rule" model="ir.rule">
+            <field name="name">System Access to Student Service Request</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Record Rule for Regular Users -->
+        <record id="student_service_request_user_rule" model="ir.rule">
+            <field name="name">User Access to Student Service Request</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Record Rules for student.service.request.extension -->
+        <record id="student_service_request_extension_public_rule" model="ir.rule">
+            <field name="name">Public Access to Student Service Request Extension</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_public'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Record Rule for Extension Management Group -->
+        <record id="student_service_request_extension_extension_group_rule" model="ir.rule">
+            <field name="name">Extension Management Access to Request Extension</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_menu_extension_management'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Record Rule for System Users -->
+        <record id="student_service_request_extension_system_rule" model="ir.rule">
+            <field name="name">System Access to Request Extension</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Record Rule for Regular Users -->
+        <record id="student_service_request_extension_user_rule" model="ir.rule">
+            <field name="name">User Access to Request Extension</field>
+            <field name="model_id" ref="model_request_extension"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

@@ -10,14 +10,16 @@
         # Security files (groups must be loaded before access rules)
         'security/extension_security.xml',
         'security/ir.model.access.csv',
+        'security/ir_rules.xml',
         
         # Data files (nên load trước views)
-        # 'data/model_data.xml',  # Temporarily commented out
+        'data/model_data.xml',  # Uncommented to load model definitions
         'data/service_step_data.xml',
         'data/cron_data.xml',
         'data/stats_cron.xml',
         'data/email_templates.xml',
         'data/automated_actions.xml',  # Fixed XML validation error
+        'data/user_group_assignments.xml',  # User group assignments
         # 'data/permission_rules_data.xml',  # Commented out to remove permission restrictions
         
         # View files

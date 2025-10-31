@@ -9,8 +9,7 @@ access_student_service_group_public,student.service.group,model_student_service_
 access_student_service_request_user,student.service.request user,model_student_service_request,base.group_user,1,1,1,1
 access_student_service_request_admin,student.service.request admin,model_student_service_request,base.group_system,1,1,1,1
 access_student_service_request_erp_manager,student.service.request erp manager,model_student_service_request,base.group_erp_manager,1,1,1,1
-access_student_service_request_public_read,student.service.request public read,model_student_service_request,base.group_public,1,0,0,0
-access_student_service_request_all_read,student.service.request all read,model_student_service_request,,1,0,0,0
+access_student_service_request_public_read,student.service.request public read,model_student_service_request,base.group_public,1,1,1,1
 access_student_service_request_step_user,student.service.request.step,model_student_service_request_step,,1,1,0,0
 access_student_service_file_checkbox,student.service.file.checkbox,model_student_service_file_checkbox,,1,1,1,1
 access_student_user_profile,access.student.user.profile,model_student_user_profile,,1,1,1,1
@@ -32,6 +31,7 @@ access_temporary_wizard,access.temporary.wizard,model_temporary_wizard,,1,1,1,1
 access_student_service_report_manager,student.service.report.manager,model_student_service_report,base.group_system,1,1,1,1
 access_student_service_report_wizard,student.service.report.wizard,model_student_service_report_wizard,base.group_system,1,1,1,1
 access_request_extension_user,request.extension.user,model_request_extension,,1,1,1,0
+access_request_extension_public,request.extension.public,model_request_extension,base.group_public,1,1,1,0
 access_request_extension_manager,request.extension.manager,model_request_extension,base.group_system,1,1,1,1
 access_request_extension_wizard_user,request.extension.wizard.user,model_request_extension_wizard,,1,1,1,1
 access_request_extension_reject_wizard_manager,request.extension.reject.wizard.manager,model_request_extension_reject_wizard,base.group_system,1,1,1,1

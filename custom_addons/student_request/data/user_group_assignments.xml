@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Assign Mitchell Admin (id=2) to extension management group -->
+        <record id="student_request.group_menu_extension_management" model="res.groups">
+            <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+        </record>
+        
+        <!-- Also assign to system group for full access -->
+        <record id="base.group_system" model="res.groups">
+            <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+        </record>
+    </data>
+</odoo>
