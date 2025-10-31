@@ -1328,6 +1328,22 @@ class StudentUserProfile(models.Model):
             user = self.env["res.users"].sudo().create(vals)
 
             if user:
+                # Gán quyền "Services / Student Request User" cho user mới
+                try:
+                    student_request_group = self.env.ref('student_request.group_student_request_user')
+                    if student_request_group:
+                        user.sudo().write({'groups_id': [(4, student_request_group.id)]})
+                except Exception as e:
+                    _logger = self.env["ir.logging"]
+                    _logger.create({
+                        "name": "KTX API Permission",
+                        "type": "server",
+                        "dbname": self._cr.dbname,
+                        "level": "WARNING",
+                        "message": f"Không thể gán quyền student_request_user cho user {user.login}: {e}",
+                        "path": "student.user.profile",
+                        "func": "action_fetch_and_create_profile",
+                    })
                 # Tạo student.user.profile mới
                 self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].create(
                     {
