@@ -2900,6 +2900,68 @@ class ServiceApiController(http.Controller):
                 'login': extension.requested_by.login or ''
             }
 
+            # Gửi FCM notification
+            try:
+                # Lấy thông tin yêu cầu gốc để gửi thông báo
+                service_request = request.env['student.service.request'].sudo().browse(request_id)
+                
+                if service_request.exists():
+                    # Data cho FCM notification
+                    fcm_data = {
+                        'type': 'extension',
+                        'extension_id': str(extension.id),
+                        'request_id': str(request_id),
+                        'hours': str(hours)
+                    }
+                    
+                    # 1. Gửi thông báo cho người gửi yêu cầu gia hạn (xác nhận đã gửi)
+                    send_fcm_users(
+                        request.env,
+                        [extension.requested_by.id],
+                        f'Đã gửi yêu cầu gia hạn {hours} giờ',
+                        f'Yêu cầu gia hạn {hours} giờ cho dịch vụ "{service_request.service_id.name}" đã được gửi thành công. Lý do: {reason}',
+                        fcm_data
+                    )
+                    
+                    # 2. Gửi thông báo cho người tạo yêu cầu gốc (nếu khác người gửi gia hạn)
+                    if service_request.request_user_id.id != extension.requested_by.id:
+                        send_fcm_users(
+                            request.env,
+                            [service_request.request_user_id.id],
+                            f'Có yêu cầu gia hạn {hours} giờ',
+                            f'Yêu cầu dịch vụ "{service_request.service_id.name}" của bạn có yêu cầu gia hạn {hours} giờ. Lý do: {reason}',
+                            fcm_data
+                        )
+                    
+                    # 3. Gửi thông báo cho các admin/người được giao xử lý yêu cầu
+                    # Lấy danh sách user được giao xử lý từ service và các bước
+                    admin_user_ids = []
+                    
+                    # Từ service configuration
+                    if service_request.service_id and service_request.service_id.users:
+                        admin_user_ids.extend(service_request.service_id.users.ids)
+                    
+                    # Từ các bước đang xử lý
+                    current_steps = service_request.step_ids.filtered(lambda s: s.state in ['pending', 'processing'])
+                    for step in current_steps:
+                        if step.assign_user_id:
+                            admin_user_ids.append(step.assign_user_id.id)
+                    
+                    # Loại bỏ trùng lặp và gửi thông báo
+                    admin_user_ids = list(set(admin_user_ids))
+                    if admin_user_ids:
+                        send_fcm_users(
+                            request.env,
+                            admin_user_ids,
+                            f'Yêu cầu gia hạn dịch vụ {service_request.service_id.name}',
+                            f'Có yêu cầu gia hạn {hours} giờ từ {extension.requested_by.name} cho dịch vụ "{service_request.service_id.name}". Lý do: {reason}',
+                            fcm_data
+                        )
+                        
+            except Exception as fcm_error:
+                # Log lỗi FCM nhưng không làm fail API
+                _logger.warning(f'Lỗi gửi FCM notification cho extension {extension.id}: {str(fcm_error)}')
+
             return Response(json.dumps({
                 'success': True,
                 'message': f'Đã gửi yêu cầu gia hạn {hours} giờ',
