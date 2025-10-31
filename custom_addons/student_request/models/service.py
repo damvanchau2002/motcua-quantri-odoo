@@ -364,6 +364,26 @@ class ServiceRequestStep(models.Model):
             record.allowed_user_ids = [(6, 0, users.ids)]
 
     department_id = fields.Many2one('student.activity.department', string='Phòng ban được phân công', help='Phòng ban có quyền phân công bước này')
+    
+    @api.onchange('assign_user_id')
+    def _onchange_assign_user_id(self):
+        """Tự động chọn phòng ban khi chọn người được phân công"""
+        if self.assign_user_id:
+            # Tìm admin profile của user được chọn
+            admin_profile = self.env['student.admin.profile'].sudo().search([
+                ('user_id', '=', self.assign_user_id.id),
+                ('activated', '=', True)
+            ], limit=1)
+            
+            if admin_profile and admin_profile.department_id:
+                self.department_id = admin_profile.department_id
+            else:
+                # Nếu không tìm thấy phòng ban, xóa department_id
+                self.department_id = False
+        else:
+            # Nếu không chọn user, xóa department_id
+            self.department_id = False
+    
     # Lịch sử xử lý yêu cầu
     history_ids = fields.One2many('student.service.request.step.history', 'step_id', string='Lịch sử xử lý yêu cầu', help='Lịch sử xử lý, phân công cho người xử lý hoặc thao tác xử lý')
 
