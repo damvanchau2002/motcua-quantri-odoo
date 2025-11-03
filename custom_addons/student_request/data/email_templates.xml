@@ -89,9 +89,9 @@
                             <li><strong>ID yêu cầu:</strong> <t t-out="object.id or 'N/A'"/></li>
                             <li><strong>Loại yêu cầu:</strong> <t t-out="object.service_id.name or 'N/A'"/></li>
                             <li><strong>Sinh viên:</strong> <t t-out="object.request_user_id.name or 'N/A'"/></li>
-                            <li><strong>Ngày tạo:</strong> <t t-out="ctx.get('request_date_text') or format_datetime(object.request_date) or 'N/A'"/></li>
-                            <li><strong>Hạn xử lý:</strong> <t t-out="ctx.get('expired_date_text') or format_datetime(object.expired_date) or 'N/A'"/></li>
-                            <li><strong>Trạng thái:</strong> <t t-out="object.final_state or 'N/A'"/></li>
+                            <li><strong>Ngày tạo:</strong> <t t-out="object._format_dt_for_user(object.request_date, ctx.get('user_id')) or format_datetime(object.request_date) or 'N/A'"/></li>
+                            <li><strong>Hạn xử lý:</strong> <t t-out="object._format_dt_for_user(object.expired_date, ctx.get('user_id')) or format_datetime(object.expired_date) or 'N/A'"/></li>
+                            <li><strong>Trạng thái:</strong> <t t-out="object.current_step_name or 'N/A'"/></li>
                         </ul>
                     </div>
                     <p><strong>Vui lòng xử lý yêu cầu này ngay lập tức để tránh ảnh hưởng đến sinh viên.</strong></p>
