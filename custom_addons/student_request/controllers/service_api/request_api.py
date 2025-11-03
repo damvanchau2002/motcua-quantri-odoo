@@ -360,9 +360,26 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         next_step = request.step_ids.sudo().filtered(lambda s: s.base_secquence > step.base_secquence).sorted('base_secquence')
         if next_step:
             next_step = next_step[0]
+            # Xác định phòng ban sẽ tự động điền cho bước kế tiếp
+            prefill_dep_id = False
+            try:
+                # Ưu tiên lấy phòng ban đã phân công ở bước hiện tại
+                if step.department_id:
+                    prefill_dep_id = step.department_id.id
+                # Nếu bước hiện tại chưa có phòng ban nhưng đã có người được phân công cho bước kế tiếp
+                elif nextuserid:
+                    admin_profile = env['student.admin.profile'].sudo().search([
+                        ('user_id', '=', nextuserid),
+                        ('activated', '=', True)
+                    ], limit=1)
+                    if admin_profile and admin_profile.department_id:
+                        prefill_dep_id = admin_profile.department_id.id
+            except Exception:
+                prefill_dep_id = False
             next_step.sudo().with_user(system_user).write({
                 'state': 'assigned',
                 'assign_user_id': nextuserid if nextuserid else 0,
+                'department_id': prefill_dep_id or False,
                 'approve_date': Datetime.now(),
                 'approve_content': f'Đang chờ duyệt bước {next_step.base_step_id.name}',
             })
