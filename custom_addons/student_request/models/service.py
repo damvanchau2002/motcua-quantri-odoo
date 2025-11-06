@@ -1083,6 +1083,34 @@ class ServiceRequest(models.Model):
                         'expiry_reminder_date': fields.Date.today(),
                     })
                     return mail_id
+                else:
+                    # Fallback: tự tạo mail.mail khi send_mail trả về False
+                    try:
+                        # Render nội dung từ template
+                        generated = template.sudo().with_context(**ctx_vals).generate_email(request.id)
+                        subject = generated.get('subject') or f"CẢNH BÁO: Yêu cầu {request.name} đã quá hạn"
+                        body = generated.get('body') or ''
+
+                        mail_vals = {
+                            'subject': subject,
+                            'body_html': body,
+                            'email_to': recipient_email,
+                            'email_from': _get_default_sender(),
+                            'auto_delete': True,
+                        }
+                        mail = self.env['mail.mail'].sudo().create(mail_vals)
+                        if mail:
+                            mail.send()
+                            request.sudo().write({
+                                'expiry_warning_sent': True,
+                                'expiry_reminder_count': (request.expiry_reminder_count or 0) + 1,
+                                'expiry_reminder_date': fields.Date.today(),
+                            })
+                            return mail.id
+                        else:
+                            print(f"Fallback mail creation failed for request {request.id}")
+                    except Exception as e:
+                        print(f"Fallback send error for request {request.id}: {str(e)}")
                 return False
 
         except Exception as e:
