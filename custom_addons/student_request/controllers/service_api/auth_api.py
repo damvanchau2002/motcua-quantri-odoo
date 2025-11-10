@@ -137,6 +137,11 @@ class AuthApiController(http.Controller):
     # Đăng nhập public user 
     @http.route('/api/public_user/login', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def public_user_login(self):
+        # Suppress insecure request warnings when verify=False is used
+        try:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        except Exception:
+            pass
         if request.httprequest.method == 'OPTIONS':
                         return Response(
                             status=200,
@@ -158,7 +163,19 @@ class AuthApiController(http.Controller):
             return Response(
                 json.dumps({'success': False, 'message': 'Thiếu tên đăng nhập.'}),
                 content_type='application/json',
-                status=200,
+                status=400,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
+            )
+        if not password:
+            return Response(
+                json.dumps({'success': False, 'message': 'Thiếu mật khẩu.'}),
+                content_type='application/json',
+                status=400,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
@@ -177,6 +194,7 @@ class AuthApiController(http.Controller):
             username_variants.append(f'P{username}')  # Thêm prefix P
         
         external_resp = None
+        external_data = None
         last_error = None
         
         try:
@@ -201,6 +219,8 @@ class AuthApiController(http.Controller):
                         else:
                             last_error = external_data.get('Message', 'Unknown error')
                             print(f"DEBUG - Failed with variant '{variant}': {last_error}")
+                    else:
+                        last_error = f"Unexpected content-type: {content_type}"
                 
             if not external_resp or external_resp.status_code != 200:
                 return Response(
@@ -219,7 +239,24 @@ class AuthApiController(http.Controller):
                     ]
                 )
 
-            # external_data đã được lấy trong vòng lặp trên
+            # external_data đã được lấy trong vòng lặp trên (nếu có)
+            if not external_data:
+                return Response(
+                    json.dumps({
+                        'success': False,
+                        'message': last_error or 'Không nhận được dữ liệu JSON hợp lệ từ hệ thống KTX.',
+                        'data': None
+                    }),
+                    content_type='application/json',
+                    status=502,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
+                    ]
+                )
+
             success = external_data.get('Success', False)
             data = external_data.get('Data')
             message = external_data.get('Message') or 'Lỗi không xác định từ hệ thống KTX.'
@@ -234,10 +271,10 @@ class AuthApiController(http.Controller):
                     json.dumps({
                         'success': False,
                         'message': message,
-                        'data': ''
+                        'data': None
                     }),
                     content_type='application/json',
-                    status=200,  # Trả về 200 để client vẫn xử lý được logic
+                    status=401,  # Sai thông tin đăng nhập hoặc không tìm thấy sinh viên
                     headers=[
                         ('Access-Control-Allow-Origin', '*'),
                         ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
