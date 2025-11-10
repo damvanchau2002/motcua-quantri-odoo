@@ -2267,18 +2267,26 @@ class ServiceApiController(http.Controller):
                 service_request.sudo().with_user(system_user).write({'final_state': 'approved', 'final_star': stars })
                 send_fcm_request(request.env, service_request, 10)  # Gửi thông báo nghiệm thu từ SV 
                 
-                # Tìm bước hiện tại đang ở trạng thái 'assigned' để chuyển thành 'approved'
-                current_step = service_request.step_ids.filtered(lambda s: s.state == 'assigned').sorted('base_secquence', reverse=True)
-                if current_step:
-                    current_step = current_step[0]  # Lấy bước hiện tại đang assigned
+                # Ưu tiên phê duyệt lại bước bị từ chối gần nhất, nếu có; nếu không sẽ phê duyệt bước đang assigned
+                rejected_steps = service_request.step_ids.filtered(lambda s: s.state == 'rejected').sorted('base_secquence', reverse=True)
+                assigned_steps = service_request.step_ids.filtered(lambda s: s.state == 'assigned').sorted('base_secquence', reverse=True)
+                target_step = False
+                if rejected_steps:
+                    target_step = rejected_steps[0]
+                elif assigned_steps:
+                    target_step = assigned_steps[0]
+                
+                if target_step:
                     # Giữ nguyên người xử lý hiện tại để không mất yêu cầu xử lý
-                    current_assign_user_id = current_step.assign_user_id.id if current_step.assign_user_id else 0
-                    # Sử dụng hàm update_request_step để chuyển bước hiện tại từ 'assigned' sang 'approved'
+                    current_assign_user_id = target_step.assign_user_id.id if target_step.assign_user_id else 0
+                    # Nếu thiếu accept_user_id thì dùng system_user để bảo đảm có người duyệt
+                    _accept_uid = int(accept_user_id) if accept_user_id else int(system_user.id)
+                    # Sử dụng hàm update_request_step để chuyển bước mục tiêu sang 'approved'
                     step_vals = update_request_step(
                         request.env, 
                         service_request.id, 
-                        current_step.id, 
-                        int(accept_user_id), 
+                        target_step.id, 
+                        _accept_uid, 
                         f'Nghiệm thu đã được chấp nhận - {content}', 
                         'approved', 
                         current_assign_user_id,  # nextuserid - giữ nguyên người xử lý hiện tại
@@ -2286,15 +2294,15 @@ class ServiceApiController(http.Controller):
                         '',  # final_data
                         0   # department_id
                     )
-                    # Cập nhật step hiện tại với kết quả từ update_request_step
+                    # Cập nhật step mục tiêu với kết quả từ update_request_step
                     if step_vals:
-                        current_step.sudo().write(step_vals)
+                        target_step.sudo().write(step_vals)
                 
                 # Kiểm tra đã có nghiệm thu accept của Admin thì duyệt yêu cầu
                 # Lấy nghiệm thu của User khác
                 other_acceptance = request.env['student.service.request.result'].sudo().with_user(system_user).search([
                     ('request_id', '=', service_request.id),
-                    ('user_id', '!=', service_request.request_user_id.id)
+                    ('action_user', '!=', service_request.request_user_id.id)
                 ], order='timestamp desc', limit=1)
                 if other_acceptance and other_acceptance.action == 'accept':
                     service_request.sudo().with_user(system_user).write({'final_state': 'approved', 'final_star': stars})
