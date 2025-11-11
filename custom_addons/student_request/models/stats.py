@@ -2,27 +2,6 @@ from odoo import models, fields, api
 from datetime import timedelta
 
 
-class StudentSystemVisit(models.Model):
-    _name = 'student.system.visit'
-    _description = 'Lượt truy cập hệ thống theo ngày'
-
-    visit_date = fields.Date(string='Ngày truy cập', required=True, index=True)
-    user_id = fields.Many2one('res.users', string='Người dùng', required=True, index=True)
-
-    _sql_constraints = [
-        ('unique_daily_visit', 'unique(visit_date, user_id)', 'Mỗi người dùng chỉ được ghi nhận một lượt truy cập mỗi ngày.'),
-    ]
-
-    @api.model
-    def log_today_visit(self, user_id=None):
-        uid = user_id or self.env.user.id
-        today = fields.Date.context_today(self)
-        existing = self.search([('visit_date', '=', today), ('user_id', '=', uid)], limit=1)
-        if not existing:
-            self.sudo().create({'visit_date': today, 'user_id': uid})
-        return True
-
-
 class StudentRequestStats(models.Model):
     _name = 'student.request.stats'
     _description = 'Thống kê yêu cầu theo ngày'
@@ -36,7 +15,7 @@ class StudentRequestStats(models.Model):
     processing_requests = fields.Integer(string='Đang xử lý', default=0)
     overdue_requests = fields.Integer(string='Quá hạn', default=0)
     near_overdue_requests = fields.Integer(string='Gần quá hạn', default=0)
-    visits = fields.Integer(string='Lượt truy cập', default=0)
+    # Trường lượt truy cập đã được loại bỏ
 
     _sql_constraints = [
         ('unique_stat_date', 'unique(stat_date)', 'Đã có thống kê cho ngày này.'),
@@ -85,11 +64,6 @@ class StudentRequestStats(models.Model):
             ('final_state', 'in', ['pending', 'assigned']),
         ])
 
-        # Lượt truy cập theo ngày (mỗi user tối đa 1 lần/ngày)
-        visit_count = self.env['student.system.visit'].search_count([
-            ('visit_date', '=', day),
-        ])
-
         vals = {
             'stat_date': day,
             'new_requests': new_count,
@@ -97,7 +71,6 @@ class StudentRequestStats(models.Model):
             'processing_requests': processing_count,
             'overdue_requests': overdue_count,
             'near_overdue_requests': near_overdue_count,
-            'visits': visit_count,
         }
 
         rec = self.search([('stat_date', '=', day)], limit=1)

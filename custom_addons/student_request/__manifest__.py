@@ -5,7 +5,7 @@
     'author': 'Your Name',
     'category': 'Student',
     'license': 'LGPL-3',
-    'depends': ['base', 'mail'],
+    'depends': ['base', 'mail', 'board', 'web'],
     'data': [
         # Security files (groups must be loaded before access rules)
         'security/extension_security.xml',
@@ -13,7 +13,7 @@
         'security/ir_rules.xml',
         
         # Data files (nên load trước views)
-        'data/model_data.xml',  # Uncommented to load model definitions
+        # 'data/model_data.xml',  # Removed: ir.model entries cause ParseError and are unnecessary
         'data/service_step_data.xml',
         'data/cron_data.xml',
         'data/stats_cron.xml',
@@ -39,6 +39,7 @@
         'views/department_views.xml',
         'views/service_report_views.xml',
         'views/request_stats_wizard_views.xml',
+        'views/request_stats_board_views.xml',
         'views/email_template.xml',
         # Đảm bảo các server actions được định nghĩa trước khi view đơn giản tham chiếu
         'views/maintenance_user_friendly_views.xml',

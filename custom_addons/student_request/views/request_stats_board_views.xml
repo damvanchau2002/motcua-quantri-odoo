@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Board view composing two graphs -->
+    <record id="view_student_request_stats_board" model="ir.ui.view">
+        <field name="name">student.request.stats.board</field>
+        <field name="model">board.board</field>
+        <field name="arch" type="xml">
+            <form string="Bảng thống kê">
+                <board style="1">
+                    <column>
+                        <action name="%(student_request.action_student_request_stats_graph)d" string="Trạng thái yêu cầu" view_mode="graph"/>
+                    </column>
+                
+                </board>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open the board dashboard -->
+    <record id="action_student_request_stats_board" model="ir.actions.act_window">
+        <field name="name">Bảng thống kê</field>
+        <field name="res_model">board.board</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_student_request_stats_board"/>
+        <field name="target">current</field>
+        <field name="context">{'disable_toolbar': True}</field>
+    </record>
+</odoo>

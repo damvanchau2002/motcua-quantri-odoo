@@ -9,3 +9,4 @@ from . import request_review
 from . import service
 from . import stats
 from . import menu_permission_manager
+from . import board_override

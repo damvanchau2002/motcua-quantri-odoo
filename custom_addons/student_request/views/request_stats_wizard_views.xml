@@ -6,10 +6,7 @@
         <field name="model">student.request.stats.wizard</field>
         <field name="arch" type="xml">
             <form string="Bảng thống kê yêu cầu">
-                <header>
-                    <button name="action_open_status_graph" type="object" string="Xem biểu đồ trạng thái" class="btn-primary"/>
-                    <button name="action_open_visits_graph" type="object" string="Xem biểu đồ truy cập" class="btn-secondary"/>
-                </header>
+                <header/>
                 <sheet>
                     <group string="Bộ lọc">
                         <field name="period"/>
@@ -26,7 +23,6 @@
                             <field name="near_overdue_requests" readonly="1"/>
                         </group>
                         <group>
-                            <field name="avg_daily_users" readonly="1"/>
                             <field name="avg_requests_per_day" readonly="1"/>
                         </group>
                     </group>

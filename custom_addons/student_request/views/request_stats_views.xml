@@ -12,7 +12,6 @@
                 <field name="overdue_requests" type="measure"/>
                 <field name="near_overdue_requests" type="measure"/>
                 <field name="created_requests" type="measure"/>
-                <field name="visits" type="measure"/>
             </graph>
         </field>
     </record>
@@ -36,5 +35,7 @@
         <field name="search_view_id" ref="view_student_request_stats_search"/>
         <field name="context">{"graph_measure": "new_requests"}</field>
     </record>
+
+    
 
 </odoo>

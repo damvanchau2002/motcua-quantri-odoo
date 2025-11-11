@@ -3,6 +3,8 @@
     <!-- Root menu -->
     <record id="student_request_root" model="ir.ui.menu">
         <field name="name">Một cửa KTX</field>
+        <!-- Mặc định mở trang Bảng thống kê (Board) khi nhấp vào menu gốc -->
+        <field name="action" ref="action_student_request_stats_board"/>
     </record>
  <!-- NEW: Student create request (new page, no inheritance) -->
     <record id="menu_student_request_create_new" model="ir.ui.menu">
@@ -39,7 +41,7 @@
     <record id="menu_student_request_dashboard_wizard" model="ir.ui.menu">
         <field name="name">Bảng thống kê</field>
         <field name="parent_id" ref="student_request_root"/>
-        <field name="action" ref="action_student_request_stats_wizard"/>
+        <field name="action" ref="action_student_request_stats_board"/>
         <field name="sequence">90</field>
         <field name="groups_id" eval="[(4, ref('group_menu_statistics'))]"/>
     </record>

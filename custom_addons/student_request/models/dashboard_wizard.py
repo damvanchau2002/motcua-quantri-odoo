@@ -20,8 +20,15 @@ class StudentRequestStatsWizard(models.TransientModel):
     processing_requests = fields.Integer(string='Đang xử lý', compute='_compute_summary', store=False)
     overdue_requests = fields.Integer(string='Quá hạn', compute='_compute_summary', store=False)
     near_overdue_requests = fields.Integer(string='Gần quá hạn', compute='_compute_summary', store=False)
-    avg_daily_users = fields.Float(string='Người dùng trung bình/ngày', compute='_compute_summary', store=False)
     avg_requests_per_day = fields.Float(string='Trung bình yêu cầu/ngày', compute='_compute_summary', store=False)
+
+    # Danh sách bản ghi thống kê theo khoảng ngày để hiển thị biểu đồ inline
+    stat_ids = fields.Many2many(
+        'student.request.stats',
+        string='Bản ghi thống kê',
+        compute='_compute_stat_ids',
+        store=False,
+    )
 
     @api.onchange('period')
     def _onchange_period(self):
@@ -52,7 +59,6 @@ class StudentRequestStatsWizard(models.TransientModel):
                 w.processing_requests = 0
                 w.overdue_requests = 0
                 w.near_overdue_requests = 0
-                w.avg_daily_users = 0.0
                 w.avg_requests_per_day = 0.0
                 continue
 
@@ -64,7 +70,6 @@ class StudentRequestStatsWizard(models.TransientModel):
             ])
             days = len(stats)
             total_req = sum(s.created_requests for s in stats)
-            total_visits = sum(s.visits for s in stats)
 
             Request = self.env['student.service.request'].sudo()
             now = fields.Datetime.now()
@@ -85,8 +90,21 @@ class StudentRequestStatsWizard(models.TransientModel):
             w.processing_requests = processing_count
             w.overdue_requests = overdue_count
             w.near_overdue_requests = near_overdue_count
-            w.avg_daily_users = round(total_visits / max(days, 1), 2)
             w.avg_requests_per_day = round(total_req / max(days, 1), 2)
+
+    @api.depends('date_from', 'date_to')
+    def _compute_stat_ids(self):
+        for w in self:
+            if not w.date_from or not w.date_to:
+                w.stat_ids = self.env['student.request.stats']
+                continue
+            # Đảm bảo có dữ liệu thống kê cho khoảng thời gian
+            w._ensure_stats_range(w.date_from, w.date_to)
+            Stats = self.env['student.request.stats'].sudo()
+            w.stat_ids = Stats.search([
+                ('stat_date', '>=', w.date_from),
+                ('stat_date', '<=', w.date_to),
+            ])
 
     def _action_open_graph(self, measures):
         self.ensure_one()
@@ -103,10 +121,4 @@ class StudentRequestStatsWizard(models.TransientModel):
     def action_open_status_graph(self):
         return self._action_open_graph(['new_requests', 'processing_requests', 'overdue_requests', 'near_overdue_requests'])
 
-    def action_open_visits_graph(self):
-        action = self.env.ref('student_request.action_student_request_stats_graph').sudo().read()[0]
-        action['domain'] = [('stat_date', '>=', self.date_from), ('stat_date', '<=', self.date_to)]
-        action['context'] = dict(self.env.context, group_by=f'stat_date:{self.period}')
-        # Use a dedicated graph view for visits/created_requests if needed; fallback to main graph
-        # To focus on visits, users can toggle measures in graph UI
-        return action
+    # Hành động biểu đồ "truy cập" đã được loại bỏ cùng với số liệu visits
