@@ -8,7 +8,7 @@
     </record>
  <!-- NEW: Student create request (new page, no inheritance) -->
     <record id="menu_student_request_create_new" model="ir.ui.menu">
-        <field name="name">Tạo yêu cầu (Mới)</field>
+        <field name="name">Tạo yêu cầu</field>
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_student_service_request_create_new"/>
         <field name="sequence">20</field>
@@ -41,7 +41,7 @@
 
     <!-- Menu: mở trực tiếp Biểu đồ thống kê (Graph/Pivot/List) -->
     <record id="menu_student_request_stats_graph" model="ir.ui.menu">
-        <field name="name">Biểu đồ thống kê (Chi tiết)</field>
+        <field name="name">Biểu đồ thống kê</field>
         <field name="parent_id" ref="student_request_root"/>
         <field name="action" ref="action_student_request_stats_graph"/>
         <field name="sequence">91</field>
