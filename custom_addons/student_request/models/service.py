@@ -875,14 +875,18 @@ class ServiceRequest(models.Model):
 
     def _search(self, args, offset=0, limit=None, order=None):
         uid = self.env.user.id
-        if uid == 1:
+        user = self.env.user
+        # Cho phép Admin hệ thống (base.group_system) và ERP Manager bỏ qua lọc bổ sung
+        if uid == 1 or user.has_group('base.group_system') or user.has_group('base.group_erp_manager'):
             return super()._search(args, offset=offset, limit=limit, order=order)
 
         admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
         # Tạo domain filter
-        domain = ['|', 
+        # OR: là người duyệt, người đang nhận duyệt, hoặc chính người gửi yêu cầu
+        domain = ['|', '|',
             ('users', 'in', [uid]), # Đã dồn user trực tiếp vào đây
-            ('approve_user_id', '=', uid)
+            ('approve_user_id', '=', uid),
+            ('request_user_id', '=', uid)
         ]
         if admin_profile and admin_profile.department_id and admin_profile.dormitory_clusters:
             if admin_profile.role_ids:

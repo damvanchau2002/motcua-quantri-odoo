@@ -8,5 +8,6 @@ from . import request_extension
 from . import request_review
 from . import service
 from . import stats
+from . import stats_service
 from . import menu_permission_manager
 from . import board_override

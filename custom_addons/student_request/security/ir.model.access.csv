@@ -45,3 +45,6 @@ access_student_request_stats_wizard,student.request.stats.wizard,model_student_r
 access_menu_permission_manager_admin,menu.permission.manager.admin,model_menu_permission_manager,base.group_system,1,1,1,1
 access_menu_permission_line_admin,menu.permission.line.admin,model_menu_permission_line,base.group_system,1,1,1,1
 access_menu_permission_wizard_admin,menu.permission.wizard.admin,model_menu_permission_wizard,base.group_system,1,1,1,1
+access_student_request_stats_service_user,student.request.stats.service user,model_student_request_stats_service,base.group_user,1,0,0,0
+access_student_request_stats_service_admin,student.request.stats.service admin,model_student_request_stats_service,base.group_system,1,0,0,0
+access_student_request_stats_service_erp,student.request.stats.service erp manager,model_student_request_stats_service,base.group_erp_manager,1,0,0,0

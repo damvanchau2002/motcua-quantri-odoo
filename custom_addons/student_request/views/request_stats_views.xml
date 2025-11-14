@@ -1,85 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Graph view: trạng thái yêu cầu theo ngày -->
-    <record id="view_student_request_stats_graph" model="ir.ui.view">
-        <field name="name">student.request.stats.graph</field>
-        <field name="model">student.request.stats</field>
+    <!-- Graph: thống kê theo dịch vụ -->
+    <record id="view_student_request_service_stats_graph" model="ir.ui.view">
+        <field name="name">student.request.stats.service.graph</field>
+        <field name="model">student.request.stats.service</field>
         <field name="arch" type="xml">
-            <graph string="Biểu đồ thống kê yêu cầu" type="bar">
-                <field name="stat_date" type="row"/>
-                <field name="new_requests" type="measure"/>
-                <field name="processing_requests" type="measure"/>
-                <field name="overdue_requests" type="measure"/>
-                <field name="near_overdue_requests" type="measure"/>
+            <graph string="Thống kê theo dịch vụ" type="bar">
+                <field name="service_id" type="row"/>
                 <field name="created_requests" type="measure"/>
+                <field name="new_requests" type="measure"/>
+                <field name="overdue_requests" type="measure"/>
             </graph>
         </field>
     </record>
 
-    <!-- Search view: lọc theo ngày -->
-    <record id="view_student_request_stats_search" model="ir.ui.view">
-        <field name="name">student.request.stats.search</field>
-        <field name="model">student.request.stats</field>
+    <!-- Search: lọc nhanh theo dịch vụ và trạng thái -->
+    <record id="view_student_request_service_stats_search" model="ir.ui.view">
+        <field name="name">student.request.stats.service.search</field>
+        <field name="model">student.request.stats.service</field>
         <field name="arch" type="xml">
-            <search string="Lọc thống kê">
-                <filter name="stat_date" string="Ngày" date="stat_date"/>
-                <filter name="stat_date_month" string="Tháng" date="stat_date" context="{'group_by': 'stat_date:month'}"/>
-                <filter name="stat_date_year" string="Năm" date="stat_date" context="{'group_by': 'stat_date:year'}"/>
-                <separator string="Khoảng thời gian nhanh"/>
-                <filter name="stat_date_today" string="Hôm nay"
-                        domain="[('stat_date','>=', context_today()), ('stat_date','&lt;', context_today() + relativedelta(days=1))]"
-                        context="{'group_by': 'stat_date:day'}"/>
-                <filter name="stat_date_last_7_days" string="7 ngày gần đây"
-                        domain="[('stat_date','>=', context_today() + relativedelta(days=-6)), ('stat_date','&lt;=', context_today())]"
-                        context="{'group_by': 'stat_date:day'}"/>
-                <filter name="stat_date_this_month" string="Tháng này"
-                        domain="[('stat_date','>=', context_today() + relativedelta(day=1)), ('stat_date','&lt;=', context_today())]"
-                        context="{'group_by': 'stat_date:day'}"/>
-                <filter name="stat_date_last_month" string="Tháng trước"
-                        domain="[('stat_date','>=', context_today() + relativedelta(day=1, months=-1)), ('stat_date','&lt;', context_today() + relativedelta(day=1))]"
-                        context="{'group_by': 'stat_date:day'}"/>
-                <filter name="stat_date_this_year" string="Năm nay"
-                        domain="[('stat_date','>=', context_today() + relativedelta(month=1, day=1)), ('stat_date','&lt;=', context_today())]"
-                        context="{'group_by': 'stat_date:month'}"/>
-                <filter name="stat_date_last_year" string="Năm trước"
-                        domain="[('stat_date','>=', context_today() + relativedelta(month=1, day=1, years=-1)), ('stat_date','&lt;', context_today() + relativedelta(month=1, day=1))]"
-                        context="{'group_by': 'stat_date:month'}"/>
+            <search string="Lọc thống kê theo dịch vụ">
+                <field name="service_id"/>
+                <separator string="Trạng thái"/>
+                <filter name="new_only" string="Yêu cầu mới" domain="[('new_requests','>',0)]"/>
+                <filter name="overdue_only" string="Yêu cầu quá hạn" domain="[('overdue_requests','>',0)]"/>
                 <group expand="0" string="Nhóm theo">
-                    <filter name="group_by_stat_date_day" string="Ngày" context="{'group_by': 'stat_date:day'}"/>
-                    <filter name="group_by_stat_date_month" string="Tháng" context="{'group_by': 'stat_date:month'}"/>
-                    <filter name="group_by_stat_date_year" string="Năm" context="{'group_by': 'stat_date:year'}"/>
-                    <filter name="group_by_stat_date_week" string="Tuần" context="{'group_by': 'stat_date:week'}"/>
-                    <filter name="group_by_stat_date_quarter" string="Quý" context="{'group_by': 'stat_date:quarter'}"/>
+                    <filter name="group_by_service" string="Dịch vụ" context="{'group_by': 'service_id'}"/>
                 </group>
             </search>
         </field>
     </record>
 
-    <!-- Pivot view: phân tích tổng hợp -->
-    <record id="view_student_request_stats_pivot" model="ir.ui.view">
-        <field name="name">student.request.stats.pivot</field>
-        <field name="model">student.request.stats</field>
-        <field name="arch" type="xml">
-            <pivot string="Pivot thống kê">
-                <field name="stat_date" type="col"/>
-                <field name="new_requests" type="measure"/>
-                <field name="processing_requests" type="measure"/>
-                <field name="overdue_requests" type="measure"/>
-                <field name="near_overdue_requests" type="measure"/>
-                <field name="created_requests" type="measure"/>
-            </pivot>
-        </field>
-    </record>
-
-    <!-- Action mở biểu đồ -->
+    <!-- Action: mở trực tiếp graph theo dịch vụ -->
     <record id="action_student_request_stats_graph" model="ir.actions.act_window">
         <field name="name">Biểu đồ thống kê</field>
-        <field name="res_model">student.request.stats</field>
-        <field name="view_mode">graph,pivot,list</field>
-        <field name="search_view_id" ref="view_student_request_stats_search"/>
-        <field name="context">{"graph_measure": "new_requests", "graph_groupby": "stat_date:day", "search_default_stat_date": 1, "search_default_group_by_stat_date_day": 1}</field>
+        <field name="res_model">student.request.stats.service</field>
+        <field name="view_mode">graph</field>
+        <field name="view_id" ref="view_student_request_service_stats_graph"/>
+        <field name="search_view_id" ref="view_student_request_service_stats_search"/>
+        <field name="context">{"graph_measure": "created_requests", "graph_groupby": "service_id", "graph_stacked": true}</field>
     </record>
-
-    
 
 </odoo>
