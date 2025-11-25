@@ -129,7 +129,22 @@ class Service(models.Model):
 
     users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
     role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
-
+    
+    form_field_ids = fields.One2many(
+        'student.service.form.field',
+        'service_id',
+        string='Form Fields',
+        help='Các trường thông tin sẽ hiển thị trong form tạo yêu cầu'
+    )
+    form_field_count = fields.Integer(
+        string='Số fields',
+        compute='_compute_form_field_count', 
+        store=False
+    )
+    @api.depends('form_field_ids')
+    def _compute_form_field_count(self):
+        for rec in self:
+            rec.form_field_count = len(rec.form_field_ids)
     @api.model
     def get_group_system_id(self):
         return self.env.ref('base.group_system').id
@@ -536,7 +551,29 @@ class ServiceRequest(models.Model):
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
         ondelete='cascade'
     )
-
+    custom_data = fields.Text(
+        string='Dữ liệu form',
+        help='JSON chứa dữ liệu các trường custom'
+    )
+    @api.constrains('custom_data', 'service_id')
+    def _validate_custom_data(self):
+        """Validate required fields"""
+        import json
+        for rec in self:
+            if not rec.service_id or not rec.service_id.form_field_ids:
+                continue
+            
+            try:
+                data = json.loads(rec.custom_data or '{}')
+            except:
+                raise ValidationError('Dữ liệu form không hợp lệ (JSON error)')
+            
+            # Check required fields
+            for field in rec.service_id.form_field_ids:
+                if field.required:
+                    value = data.get(field.name)
+                    if not value and value != 0:  # Allow 0 for numbers
+                        raise ValidationError(f'Trường "{field.label}" là bắt buộc!')
     @api.depends('service_id', 'service_id.step_selection_ids')
     def _compute_service_step_selection_ids(self):
         for rec in self:

@@ -48,8 +48,24 @@
                         <group string="Phân công duyệt">
                             <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Settings')]" help="Người cụ thể nhận được thông báo duyệt dịch vụ này"/>
                             <field name="role_ids" widget="many2many_tags" help="Các vai trò nhận được thông báo duyệt dịch vụ này"/>
-                        </group>
+</group>
                     </group>
+                    <notebook>
+                        <page string="Form Fields" name="form_fields">
+                            <field name="form_field_ids" nolabel="1" context="{'default_service_id': id}">
+                                <list editable="bottom">
+                                    <field name="sequence"/>
+                                    <field name="name" placeholder="VD: student_id"/>
+                                    <field name="label" placeholder="VD: Mã sinh viên"/>
+                                    <field name="field_type"/>
+                                    <field name="placeholder"/>
+                                    <field name="required"/>
+                                    <field name="options" invisible="field_type != 'select'" 
+                                           placeholder="Mỗi dòng 1 option"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>

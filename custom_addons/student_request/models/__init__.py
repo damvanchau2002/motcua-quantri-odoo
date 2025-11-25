@@ -1,3 +1,4 @@
+from . import service_form_field
 from . import assign_wizard
 from . import dashboard_wizard
 from . import emailmng
