@@ -13,8 +13,7 @@ class StudentRequestStatsService(models.Model):
     overdue_requests = fields.Integer(string='Yêu cầu quá hạn', readonly=True)
 
     def init(self):
-        # Xóa bảng nếu lỡ tồn tại, sau đó xóa view nếu có
-        self._cr.execute("DROP TABLE IF EXISTS student_request_stats_service CASCADE")
+        # Xóa view nếu có (đây là VIEW chứ không phải TABLE)
         tools.drop_view_if_exists(self._cr, 'student_request_stats_service')
         # Tạo lại view an toàn
         self._cr.execute(
