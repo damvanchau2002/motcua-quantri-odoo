@@ -69,6 +69,24 @@
                                 </form>
                             </field>
                             <field name="note"/>
+                            <!-- Dynamic Input Table -->
+                            <field name="input_ids" nolabel="1" colspan="2">
+                                <list editable="bottom">
+                                    <field name="service_form_field_id" column_invisible="1"/>
+                                    <field name="label" string="Tên trường" readonly="1"/>
+                                    <field name="field_type" string="Loại" readonly="1"/>
+                                    <field name="required" string="Bắt buộc" readonly="1"/>
+                                    <field name="placeholder" string="Gợi ý" readonly="1" optional="hide"/>
+                                    
+                                    <!-- All value fields hidden by default - user toggles via settings icon -->
+                                    <field name="value_char" string="Text" optional="hide"/>
+                                    <field name="value_text" string="Textarea" widget="text" optional="hide"/>
+                                    <field name="value_float" string="Number" optional="hide"/>
+                                    <field name="value_date" string="Date" optional="hide"/>
+                                    <field name="value_boolean" string="Checkbox" widget="boolean_toggle" optional="hide"/>
+                                    <field name="value_selection" string="Select" optional="hide"/>
+                                </list>
+                            </field>
                             <field name="request_user_id"/>
                         </group>
                         <group string="Thông tin yêu cầu">
@@ -433,6 +451,31 @@
                         <field name="student_user_ids" invisible="1"/>
                                              <!-- Allow all users to select a student sender. Use context variable for group reference -->
                         <field name="request_user_id" string="Sinh viên gửi" domain="[('groups_id', 'in', [context.get('student_req_group_id')])]" options="{'no_create': True, 'no_create_edit': True}"/>
+                        
+                        <!-- Dynamic Input Table -->
+                        <field name="input_ids" nolabel="1" colspan="2" invisible="not service_id">
+                            <list>
+                                <field name="sequence" widget="handle"/>
+                                <field name="label"/>   
+                                <field name="field_type"/>
+                                <field name="value_display" string="Giá trị"/>
+                            </list>
+                            <form>
+                                <group>
+                                    <field name="label" readonly="1"/>
+                                    <field name="field_type" invisible="1"/>
+                                    <field name="required" invisible="1"/>
+                                    
+                                    <!-- Show only relevant value field based on field_type -->
+                                    <field name="value_char" string="Giá trị" invisible="field_type not in ['text']"/>
+                                    <field name="value_text" string="Giá trị" widget="text" invisible="field_type not in ['textarea']"/>
+                                    <field name="value_float" string="Giá trị" invisible="field_type not in ['number']"/>
+                                    <field name="value_date" string="Giá trị" invisible="field_type not in ['date']"/>
+                                    <field name="value_boolean" string="Giá trị" invisible="field_type not in ['checkbox']"/>
+                                    <field name="value_selection" string="Giá trị" invisible="field_type not in ['select']"/>
+                                </group>
+                            </form>
+                        </field>
                     </group>
                     <group invisible="id != 0">
                         <button name="action_create_new" string="Gửi yêu cầu" type="object" class="btn-primary"/>

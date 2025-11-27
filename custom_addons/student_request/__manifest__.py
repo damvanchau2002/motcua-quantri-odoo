@@ -67,6 +67,9 @@
             'student_request/static/src/css/image_gallery.css',
             'student_request/static/src/js/image_viewer.js',
             'student_request/static/src/js/image_gallery.js',
+            # Dynamic Form Widget
+            'student_request/static/src/js/dynamic_form_widget.js',
+            'student_request/static/src/xml/dynamic_form_widget.xml',
         ],
     },
 }

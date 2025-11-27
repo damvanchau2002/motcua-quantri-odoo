@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="student_request.DynamicFormWidget" owl="1">
+        <div class="o_dynamic_form_widget">
+            <t t-if="state.formFields.length === 0">
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"/> Vui lòng chọn dịch vụ để hiển thị form.
+                </div>
+            </t>
+            <t t-else="">
+                <div class="row">
+                    <t t-foreach="state.formFields" t-as="field" t-key="field.name">
+                        <div class="col-md-6 mb-3">
+                            <label t-att-for="'field_' + field.name" class="form-label">
+                                <t t-esc="field.label"/>
+                                <span t-if="field.required" class="text-danger">*</span>
+                            </label>
+                            
+                            <!-- Text Input -->
+                            <t t-if="field.field_type === 'char'">
+                                <input type="text" 
+                                       t-att-id="'field_' + field.name"
+                                       class="form-control"
+                                       t-att-value="getFieldValue(field.name)"
+                                       t-att-placeholder="field.placeholder"
+                                       t-att-readonly="props.readonly"
+                                       t-on-change="(ev) => this.onFieldChange(field.name, ev)"/>
+                            </t>
+                            
+                            <!-- Textarea -->
+                            <t t-if="field.field_type === 'text'">
+                                <textarea t-att-id="'field_' + field.name"
+                                         class="form-control"
+                                         t-att-placeholder="field.placeholder"
+                                         t-att-readonly="props.readonly"
+                                         t-on-change="(ev) => this.onFieldChange(field.name, ev)"
+                                         rows="3"><t t-esc="getFieldValue(field.name)"/></textarea>
+                            </t>
+                            
+                            <!-- Number Input -->
+                            <t t-if="field.field_type === 'integer' or field.field_type === 'float'">
+                                <input type="number" 
+                                       t-att-id="'field_' + field.name"
+                                       class="form-control"
+                                       t-att-value="getFieldValue(field.name)"
+                                       t-att-placeholder="field.placeholder"
+                                       t-att-readonly="props.readonly"
+                                       t-att-step="field.field_type === 'float' ? '0.01' : '1'"
+                                       t-on-change="(ev) => this.onFieldChange(field.name, ev)"/>
+                            </t>
+                            
+                            <!-- Date Input -->
+                            <t t-if="field.field_type === 'date'">
+                                <input type="date" 
+                                       t-att-id="'field_' + field.name"
+                                       class="form-control"
+                                       t-att-value="getFieldValue(field.name)"
+                                       t-att-readonly="props.readonly"
+                                       t-on-change="(ev) => this.onFieldChange(field.name, ev)"/>
+                            </t>
+                            
+                            <!-- Datetime Input -->
+                            <t t-if="field.field_type === 'datetime'">
+                                <input type="datetime-local" 
+                                       t-att-id="'field_' + field.name"
+                                       class="form-control"
+                                       t-att-value="getFieldValue(field.name)"
+                                       t-att-readonly="props.readonly"
+                                       t-on-change="(ev) => this.onFieldChange(field.name, ev)"/>
+                            </t>
+                            
+                            <!-- Boolean Checkbox -->
+                            <t t-if="field.field_type === 'boolean'">
+                                <div class="form-check">
+                                    <input type="checkbox" 
+                                           t-att-id="'field_' + field.name"
+                                           class="form-check-input"
+                                           t-att-checked="getFieldValue(field.name)"
+                                           t-att-disabled="props.readonly"
+                                           t-on-change="(ev) => this.onFieldChange(field.name, ev)"/>
+                                </div>
+                            </t>
+                            
+                            <!-- Selection Dropdown -->
+                            <t t-if="field.field_type === 'selection'">
+                                <select t-att-id="'field_' + field.name"
+                                       class="form-select"
+                                       t-att-disabled="props.readonly"
+                                       t-on-change="(ev) => this.onFieldChange(field.name, ev)">
+                                    <option value="">-- Chọn --</option>
+                                    <t t-set="options" t-value="field.selection_options ? JSON.parse(field.selection_options) : []"/>
+                                    <t t-foreach="options" t-as="option" t-key="option[0]">
+                                        <option t-att-value="option[0]" 
+                                               t-att-selected="getFieldValue(field.name) === option[0]">
+                                            <t t-esc="option[1]"/>
+                                        </option>
+                                    </t>
+                                </select>
+                            </t>
+                            
+                            <!-- Help text -->
+                            <small t-if="field.placeholder" class="form-text text-muted">
+                                <t t-esc="field.placeholder"/>
+                            </small>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </div>
+    </t>
+</templates>
