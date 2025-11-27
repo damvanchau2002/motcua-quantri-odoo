@@ -26,6 +26,7 @@ class ServiceFormField(models.Model):
         ('textarea', 'Textarea (nhiều dòng)'),
         ('number', 'Number'),
         ('date', 'Date'),
+        ('date_multi', 'Chọn nhiều ngày'),
         ('select', 'Dropdown'),
         ('checkbox', 'Checkbox'),
         ('file', 'File Upload')

@@ -55,3 +55,6 @@ access_service_request_input_public,student.service.request.input.public,model_s
 access_service_request_input_manager,student.service.request.input.manager,model_student_service_request_input,base.group_system,1,1,1,1
 access_student_service_option_user,access_student_service_option_user,model_student_service_option,base.group_user,1,1,1,1
 access_student_service_option_admin,access_student_service_option_admin,model_student_service_option,base.group_system,1,1,1,1
+access_service_request_input_date_user,student.service.request.input.date.user,model_student_service_request_input_date,base.group_user,1,1,1,1
+access_service_request_input_date_public,student.service.request.input.date.public,model_student_service_request_input_date,base.group_public,1,1,1,0
+access_service_request_input_date_manager,student.service.request.input.date.manager,model_student_service_request_input_date,base.group_system,1,1,1,1

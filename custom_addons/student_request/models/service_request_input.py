@@ -17,6 +17,7 @@ class ServiceRequestInput(models.Model):
     ('textarea', 'Textarea (nhiều dòng)'),
     ('number', 'Number'),
     ('date', 'Date'),
+    ('date_multi', 'Chọn nhiều ngày'),
     ('select', 'Dropdown'),
     ('checkbox', 'Checkbox'),
     ], string='Loại dữ liệu')
@@ -30,6 +31,9 @@ class ServiceRequestInput(models.Model):
         string='Selected Options',
         help='Dropdown với options từ service form field'
     )
+    
+    # Multi Date field
+    date_ids = fields.One2many('student.service.request.input.date', 'input_id', string='Các ngày đã chọn')
     
     @api.onchange('selected_option_ids')
     def _onchange_selected_options(self):
@@ -53,7 +57,8 @@ class ServiceRequestInput(models.Model):
     
 
     @api.depends('field_type', 'value_char', 'value_text', 'value_integer', 'value_float', 
-                 'value_date', 'value_datetime', 'value_boolean', 'value_selection')
+                 'value_date', 'value_datetime', 'value_boolean', 'value_selection',
+                 'date_ids', 'date_ids.date')
     def _compute_value_display(self):
         for rec in self:
             val = ''
@@ -70,5 +75,16 @@ class ServiceRequestInput(models.Model):
                 val = 'Có' if rec.value_boolean else 'Không'
             elif rec.field_type == 'select':
                 val = rec.value_selection or ''
+            elif rec.field_type == 'date_multi':
+                dates = rec.date_ids.mapped('date')
+                val = ', '.join([d.strftime('%d/%m/%Y') for d in dates if d])
             
             rec.value_display = val
+
+class ServiceRequestInputDate(models.Model):
+    _name = 'student.service.request.input.date'
+    _description = 'Selected Dates'
+    _order = 'date'
+    
+    input_id = fields.Many2one('student.service.request.input', ondelete='cascade')
+    date = fields.Date(string='Ngày', required=True)
