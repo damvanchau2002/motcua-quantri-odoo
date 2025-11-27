@@ -9,21 +9,35 @@ class ServiceRequestInput(models.Model):
     service_form_field_id = fields.Many2one('student.service.form.field', string='Cấu hình trường')
     
     # Normal fields (NOT related) - populated directly from onchange
-    sequence = fields.Integer(string='Thứ tự', readonly=True)
-    name = fields.Char(string='Mã trường (JSON)', readonly=True)
-    label = fields.Char(string='Tên trường', readonly=True)
+    sequence = fields.Integer(string='Thứ tự')
+    name = fields.Char(string='Mã trường (JSON)')
+    label = fields.Char(string='Tên trường')
     field_type = fields.Selection([
-        ('text', 'Text (1 dòng)'),
-        ('textarea', 'Textarea (nhiều dòng)'),
-        ('number', 'Number'),
-        ('date', 'Date'),
-        ('select', 'Dropdown'),
-        ('checkbox', 'Checkbox'),
-    ], string='Loại dữ liệu', readonly=True)
-    required = fields.Boolean(string='Bắt buộc', readonly=True)
-    placeholder = fields.Char(string='Gợi ý', readonly=True)
-    selection_options = fields.Text(string='Các lựa chọn', readonly=True)
-
+    ('text', 'Text (1 dòng)'),
+    ('textarea', 'Textarea (nhiều dòng)'),
+    ('number', 'Number'),
+    ('date', 'Date'),
+    ('select', 'Dropdown'),
+    ('checkbox', 'Checkbox'),
+    ], string='Loại dữ liệu')
+    required = fields.Boolean(string='Bắt buộc')
+    placeholder = fields.Char(string='Gợi ý')
+    selection_options = fields.Text(string='Các lựa chọn')
+    # Computed field to convert selection_options to Selection format
+    # Many2many field for options
+    selected_option_ids = fields.Many2many(
+        'student.service.option',
+        string='Selected Options',
+        help='Dropdown với options từ service form field'
+    )
+    
+    @api.onchange('selected_option_ids')
+    def _onchange_selected_options(self):
+        """Sync selected options to value_selection"""
+        if self.selected_option_ids:
+            self.value_selection = ', '.join(self.selected_option_ids.mapped('name'))
+        else:
+            self.value_selection = False
     # Value fields
     value_char = fields.Char(string='Giá trị')
     value_text = fields.Text(string='Giá trị')
