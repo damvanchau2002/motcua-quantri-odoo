@@ -1631,6 +1631,15 @@ class ServiceApiController(http.Controller):
             # Thông tin phản hồi
             'acceptance': req.acceptance or '',
             
+            # Dynamic form inputs
+            'inputs': [{
+                'name': inp.name,
+                'label': inp.label,
+                'type': inp.field_type,
+                'value_display': inp.value_display,
+                'required': inp.required,
+            } for inp in req.input_ids],
+            
             'histories': sumhistories
         }
 
