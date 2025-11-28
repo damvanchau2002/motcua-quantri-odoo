@@ -15,6 +15,16 @@ from datetime import datetime, timedelta
 from .utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
 
 
+def normalize_date_input(date_str):
+    if not date_str:
+        return False
+    try:
+        # Try parsing DD/MM/YYYY
+        return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
+    except ValueError:
+        return date_str # Assume it's already YYYY-MM-DD or let Odoo handle the error
+
+
 def get_user_received_requests(env, cluster_id, service, step):
     """ Lấy danh sách các Users sẽ nhận được yêu cầu
         :param env: Odoo environment
@@ -45,7 +55,7 @@ def get_user_received_requests(env, cluster_id, service, step):
     return received_users
 
 
-def create_request(env, serviceid, requestid, userid, note, attachments):
+def create_request(env, serviceid, requestid, userid, note, attachments, input_data=None):
     """
     Tạo hoặc cập nhật yêu cầu dịch vụ
             :param env: Odoo environment
@@ -54,6 +64,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
             :param userid: ID của người dùng yêu cầu
             :param note: Ghi chú của yêu cầu
             :param attachments: Danh sách ID của các file đính kèm
+            :param input_data: Dict chứa dữ liệu dynamic form {field_name: value}
         :return: Record của yêu cầu dịch vụ đã tạo hoặc cập nhật
     """
     if not userid:
@@ -188,6 +199,73 @@ def create_request(env, serviceid, requestid, userid, note, attachments):
         vals = env['student.service.request'].sudo().with_user(sysuser).create(vals)
         send_fcm_request(env, vals, 0)
         pass
+    
+    # Xử lý input_data để tạo input_ids
+    if input_data and isinstance(input_data, dict):
+        input_ids_commands = []
+        
+        # Lấy danh sách form fields của service
+        form_fields = service.form_field_ids
+        
+        for field in form_fields:
+            field_name = field.name
+            if field_name not in input_data:
+                continue  # Bỏ qua nếu không có dữ liệu
+            
+            value = input_data[field_name]
+            
+            # Chuẩn bị dữ liệu cho input record
+            input_vals = {
+                'service_form_field_id': field.id,
+                'sequence': field.sequence,
+                'name': field.name,
+                'label': field.label,
+                'field_type': field.field_type,
+                'required': field.required,
+                'placeholder': field.placeholder,
+            }
+            
+            # Gán giá trị tùy theo loại field
+            if field.field_type == 'text':
+                input_vals['value_char'] = value
+            elif field.field_type == 'textarea':
+                input_vals['value_text'] = value
+            elif field.field_type == 'number':
+                input_vals['value_float'] = float(value) if value else 0.0
+            elif field.field_type == 'date':
+                input_vals['value_date'] = normalize_date_input(value)
+            elif field.field_type == 'checkbox':
+                input_vals['value_boolean'] = bool(value)
+            elif field.field_type == 'select':
+                # value là list các option IDs
+                if isinstance(value, list):
+                    input_vals['selected_option_ids'] = [(6, 0, value)]
+                elif isinstance(value, int):
+                    input_vals['selected_option_ids'] = [(6, 0, [value])]
+            elif field.field_type == 'date_multi':
+                # value là list các ngày ['2025-11-27', '2025-11-28', ...]
+                # Tạo input record trước, sau đó tạo date_ids
+                input_record = env['student.service.request.input'].sudo().create(input_vals)
+                
+                # Tạo các bản ghi date
+                if isinstance(value, list):
+                    for date_str in value:
+                        env['student.service.request.input.date'].sudo().create({
+                            'input_id': input_record.id,
+                            'date': normalize_date_input(date_str)
+                        })
+                
+                # Thêm vào danh sách input_ids
+                input_ids_commands.append((4, input_record.id))
+                continue  # Đã xử lý xong, bỏ qua phần create bên dưới
+            
+            # Tạo input record (trừ date_multi đã xử lý ở trên)
+            input_ids_commands.append((0, 0, input_vals))
+        
+        # Cập nhật input_ids cho request
+        if input_ids_commands:
+            vals.sudo().write({'input_ids': input_ids_commands})
+    
     return vals
 
 
@@ -439,7 +517,7 @@ class ServiceApiController(http.Controller):
             headers=self._get_cors_headers()
         )
 
-    # Tạo yêu cầu dịch vụ mới
+       # Tạo yêu cầu dịch vụ mới
     # Fromdata: { service_id, request_user_id, note, files: [file1, file2, ...] }
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def create_service_request(self, **post):
@@ -451,7 +529,7 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
                     ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+                    ('Access-Control-Max-Age', '86400'),
                 ]
             )
             
@@ -480,9 +558,20 @@ class ServiceApiController(http.Controller):
             request_id = form.get('request_id')
             request_user_id = form.get('request_user_id')
             note = form.get('note', '')
+            
+            # --- SỬA Ở ĐÂY: Đổi input_data thành dynamic_data ---
+            input_data_str = form.get('dynamic_data', '{}') 
+            _logger.info(f"DEBUG: Received dynamic_data: {input_data_str}") # Thêm log để kiểm tra
+
+            # Parse input_data
+            try:
+                input_data = json.loads(input_data_str) if input_data_str else {}
+            except json.JSONDecodeError:
+                _logger.error(f"JSON Decode Error: {input_data_str}")
+                input_data = {}
 
             # Gọi hàm tạo yêu cầu
-            request_rec = create_request(request.env, service_id, request_id, request_user_id, note, attachment_ids)
+            request_rec = create_request(request.env, service_id, request_id, request_user_id, note, attachment_ids, input_data)
 
             return Response(
                 json.dumps({
@@ -493,7 +582,13 @@ class ServiceApiController(http.Controller):
                         'service_id': request_rec.service_id.id,
                         'service_name': request_rec.service_id.name,
                         'content': request_rec.note,
-                        'request_date': format_datetime_local(request_rec.create_date, request_user_id)
+                        'request_date': format_datetime_local(request_rec.create_date, request_user_id),
+                        'inputs': [{
+                            'name': inp.name,
+                            'label': inp.label,
+                            'type': inp.field_type,
+                            'value_display': inp.value_display,
+                        } for inp in request_rec.input_ids]
                     }
                 }),
                 content_type='application/json',
@@ -507,6 +602,7 @@ class ServiceApiController(http.Controller):
             )
 
         except Exception as e:
+            _logger.exception("Error creating service request") # Log lỗi chi tiết
             return Response(
                 json.dumps({
                     'success': False,
@@ -522,11 +618,9 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
-
-        
-    # Cập nhật yêu cầu dịch vụ
+       # Cập nhật yêu cầu dịch vụ
     # todo: cần kiểm tra trạng thái của yêu cầu trước khi cập nhật (chỉ cho cập nhật nếu là pending hoặc repairing )
-    # Formdata: { request_id, request_user_id, note, files: [file1, file2, ...] }
+    # Formdata: { request_id, request_user_id, note, files: [file1, file2, ...], dynamic_data: "{...}" }
     @http.route('/api/service/request/update', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def update_service_request(self, **kw):
         if request.httprequest.method == 'OPTIONS':
@@ -545,12 +639,24 @@ class ServiceApiController(http.Controller):
             httprequest = request.httprequest
             files = httprequest.files.getlist('attachment')
             sysuser = request.env['res.users'].sudo().browse(1)
+            
             # Lấy dữ liệu từ form
             form = httprequest.form
             request_id = form.get('request_id')
             request_user_id = form.get('request_user_id')
             note = form.get('note', '')
             removed_image_ids = form.get('removed_image_ids', '[]')  # Danh sách ID ảnh cần xóa
+            
+            # --- SỬA Ở ĐÂY: Đổi input_data thành dynamic_data ---
+            input_data_str = form.get('dynamic_data', '{}') 
+            _logger.info(f"DEBUG UPDATE: Received dynamic_data: {input_data_str}")
+
+            # Parse input_data
+            try:
+                input_data = json.loads(input_data_str) if input_data_str else {}
+            except json.JSONDecodeError:
+                _logger.error(f"JSON Decode Error in Update: {input_data_str}")
+                input_data = {}
 
             if not request_id:
                 raise ValueError("Thiếu request_id")
@@ -609,6 +715,65 @@ class ServiceApiController(http.Controller):
                 attachments=all_attachment_ids
             )
 
+            # Xử lý cập nhật input_data (dynamic form)
+            if input_data and isinstance(input_data, dict):
+                _logger.info(f"Updating dynamic inputs for request {request_id}")
+                
+                # Xóa các input cũ
+                service_request.input_ids.sudo().unlink()
+                
+                # Tạo lại input_ids mới
+                input_ids_commands = []
+                form_fields = service_request.service_id.form_field_ids
+                
+                for field in form_fields:
+                    field_name = field.name
+                    if field_name not in input_data:
+                        continue
+                    
+                    value = input_data[field_name]
+                    
+                    input_vals = {
+                        'service_form_field_id': field.id,
+                        'sequence': field.sequence,
+                        'name': field.name,
+                        'label': field.label,
+                        'field_type': field.field_type,
+                        'required': field.required,
+                        'placeholder': field.placeholder,
+                    }
+                    
+                    if field.field_type == 'text':
+                        input_vals['value_char'] = value
+                    elif field.field_type == 'textarea':
+                        input_vals['value_text'] = value
+                    elif field.field_type == 'number':
+                        input_vals['value_float'] = float(value) if value else 0.0
+                    elif field.field_type == 'date':
+                        input_vals['value_date'] = normalize_date_input(value)
+                    elif field.field_type == 'checkbox':
+                        input_vals['value_boolean'] = bool(value)
+                    elif field.field_type == 'select':
+                        if isinstance(value, list):
+                            input_vals['selected_option_ids'] = [(6, 0, value)]
+                        elif isinstance(value, int):
+                            input_vals['selected_option_ids'] = [(6, 0, [value])]
+                    elif field.field_type == 'date_multi':
+                        input_record = request.env['student.service.request.input'].sudo().create(input_vals)
+                        if isinstance(value, list):
+                            for date_str in value:
+                                request.env['student.service.request.input.date'].sudo().create({
+                                    'input_id': input_record.id,
+                                    'date': normalize_date_input(date_str)
+                                })
+                        input_ids_commands.append((4, input_record.id))
+                        continue
+                    
+                    input_ids_commands.append((0, 0, input_vals))
+                
+                if input_ids_commands:
+                    service_request.sudo().write({'input_ids': input_ids_commands})
+
             # Nếu có bước đang ở trạng thái 'adjust_profile', chuyển về 'pending' và gửi thông báo
             if current_step:
                 current_step = current_step[0]  # Lấy bước đầu tiên
@@ -664,7 +829,13 @@ class ServiceApiController(http.Controller):
                         'name': att.name,
                         'url': f'/api/download/image/{att.id}'
                     } for att in request_rec.image_attachment_ids],
-                    'adjustment_completed': bool(current_step),  # Thông báo có hoàn thành điều chỉnh không
+                    'inputs': [{
+                        'name': inp.name,
+                        'label': inp.label,
+                        'type': inp.field_type,
+                        'value_display': inp.value_display,
+                    } for inp in service_request.input_ids],
+                    'adjustment_completed': bool(current_step),
                     'final_state': service_request.final_state
                 }),
                 content_type='application/json',
@@ -691,7 +862,6 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
-
     # TODO Lấy các yêu cầu dịch vụ của 1 User có kèm lịch sử duyệt
     @http.route('/api/service/request/user', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_requests_by_user(self):
@@ -1460,6 +1630,15 @@ class ServiceApiController(http.Controller):
             
             # Thông tin phản hồi
             'acceptance': req.acceptance or '',
+            
+            # Dynamic form inputs
+            'inputs': [{
+                'name': inp.name,
+                'label': inp.label,
+                'type': inp.field_type,
+                'value_display': inp.value_display,
+                'required': inp.required,
+            } for inp in req.input_ids],
             
             'histories': sumhistories
         }

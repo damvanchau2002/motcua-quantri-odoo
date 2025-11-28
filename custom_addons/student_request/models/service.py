@@ -129,7 +129,22 @@ class Service(models.Model):
 
     users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
     role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
-
+    
+    form_field_ids = fields.One2many(
+        'student.service.form.field',
+        'service_id',
+        string='Form Fields',
+        help='Các trường thông tin sẽ hiển thị trong form tạo yêu cầu'
+    )
+    form_field_count = fields.Integer(
+        string='Số fields',
+        compute='_compute_form_field_count', 
+        store=False
+    )
+    @api.depends('form_field_ids')
+    def _compute_form_field_count(self):
+        for rec in self:
+            rec.form_field_count = len(rec.form_field_ids)
     @api.model
     def get_group_system_id(self):
         return self.env.ref('base.group_system').id
@@ -536,7 +551,131 @@ class ServiceRequest(models.Model):
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
         ondelete='cascade'
     )
-
+    input_ids = fields.One2many(
+        'student.service.request.input',
+        'request_id',
+        string='Thông tin chi tiết',
+        help='Bảng nhập liệu động'
+    )
+    
+    custom_data = fields.Text(
+        string='Dữ liệu form',
+        compute='_compute_custom_data',
+        inverse='_inverse_custom_data',
+        store=True,
+        help='JSON chứa dữ liệu các trường custom (auto-sync với input_ids)'
+    )
+    
+    @api.onchange('service_id')
+    def _onchange_service_id_for_inputs(self):
+        """Initialize inputs when service is selected"""
+        if not self.service_id:
+            self.input_ids = [(5, 0, 0)]
+            return
+        
+        new_inputs = [(5, 0, 0)]
+        for field in self.service_id.form_field_ids:
+            new_inputs.append((0, 0, {
+                'service_form_field_id': field.id,
+                # Copy all values directly (onchange won't fire for command created records)
+                'sequence': field.sequence,
+                'name': field.name,
+                'label': field.label,
+                'field_type': field.field_type,
+                'required': field.required,
+                'placeholder': field.placeholder,
+                'selection_options': field.options,
+            }))
+        self.input_ids = new_inputs
+    
+    @api.depends('input_ids.value_char', 'input_ids.value_text', 
+                 'input_ids.value_integer', 'input_ids.value_float', 
+                 'input_ids.value_date', 'input_ids.value_datetime', 
+                 'input_ids.value_boolean', 'input_ids.value_selection')
+    def _compute_custom_data(self):
+        """Compute JSON from input_ids"""
+        import json
+        for rec in self:
+            data = {}
+            for input_rec in rec.input_ids:
+                key = input_rec.name
+                if not key:
+                    continue
+                    
+                val = None
+                # Map field_type from ServiceFormField
+                if input_rec.field_type == 'text':
+                    val = input_rec.value_char
+                elif input_rec.field_type == 'textarea':
+                    val = input_rec.value_text
+                elif input_rec.field_type == 'number':
+                    val = input_rec.value_float
+                elif input_rec.field_type == 'date':
+                    val = str(input_rec.value_date) if input_rec.value_date else None
+                elif input_rec.field_type == 'checkbox':
+                    val = input_rec.value_boolean
+                elif input_rec.field_type == 'select':
+                    val = input_rec.value_selection
+                    
+                if val is not None and val != False and val != '':
+                    data[key] = val
+            
+            rec.custom_data = json.dumps(data, ensure_ascii=False) if data else '{}'
+    
+    def _inverse_custom_data(self):
+        """Populate input_ids from JSON (backward compatibility)"""
+        import json
+        for rec in self:
+            if not rec.custom_data:
+                continue
+                
+            try:
+                data = json.loads(rec.custom_data)
+                for input_rec in rec.input_ids:
+                    key = input_rec.name
+                    if key in data:
+                        val = data[key]
+                        if input_rec.field_type == 'text':
+                            input_rec.value_char = val
+                        elif input_rec.field_type == 'textarea':
+                            input_rec.value_text = val
+                        elif input_rec.field_type == 'number':
+                            input_rec.value_float = float(val) if val else 0.0
+                        elif input_rec.field_type == 'date':
+                            input_rec.value_date = val if isinstance(val, str) else False
+                        elif input_rec.field_type == 'checkbox':
+                            input_rec.value_boolean = bool(val)
+                        elif input_rec.field_type == 'select':
+                            input_rec.value_selection = val
+            except Exception as e:
+                _logger.warning(f"Error parsing custom_data: {e}")
+    
+    @api.constrains('input_ids')
+    def _validate_inputs(self):
+        """Validate required fields in input table"""
+        from odoo.exceptions import ValidationError
+        for rec in self:
+            for input_rec in rec.input_ids:
+                if input_rec.required:
+                    has_value = False
+                    if input_rec.field_type == 'text':
+                        has_value = bool(input_rec.value_char)
+                    elif input_rec.field_type == 'textarea':
+                        has_value = bool(input_rec.value_text)
+                    elif input_rec.field_type in ['number', 'checkbox']:
+                        has_value = True  # 0, False are valid
+                    elif input_rec.field_type == 'date':
+                        has_value = bool(input_rec.value_date)
+                    elif input_rec.field_type == 'select':
+                        has_value = bool(input_rec.value_selection)
+                    
+                    if not has_value:
+                        raise ValidationError(f'Trường "{input_rec.label}" là bắt buộc!')
+    @api.constrains('custom_data', 'service_id')
+    def _validate_custom_data(self):
+        """Validate required fields (legacy - now using _validate_inputs)"""
+        # Keep for backward compatibility but validation moved to _validate_inputs
+        pass
     @api.depends('service_id', 'service_id.step_selection_ids')
     def _compute_service_step_selection_ids(self):
         for rec in self:
@@ -1984,6 +2123,44 @@ class ServiceStepSelection(models.Model):
     def name_get(self):
         """Override name_get to display both sequence and step name"""
         result = []
+        for record in self:
+            # Sử dụng field name đã được compute
+            display = record.name or f"Bước {record.sequence}"
+            result.append((record.id, display))
+        return result
+
+    @api.model
+    def create(self, vals):
+        _logger.info(f"ServiceStepSelection create called with vals: {vals}")
+        
+        # Tự động gán sequence nếu không có
+        if 'sequence' not in vals or vals['sequence'] == 0:
+            service_id = vals.get('service_id')
+            if service_id:
+                last_sequence = self.search([('service_id', '=', service_id)], order='sequence desc', limit=1)
+                vals['sequence'] = (last_sequence.sequence + 1) if last_sequence else 1
+                _logger.info(f"Auto-assigned sequence: {vals['sequence']}")
+        
+        try:
+            result = super().create(vals)
+            _logger.info(f"ServiceStepSelection created successfully with ID: {result.id}")
+            return result
+        except Exception as e:
+            _logger.error(f"Error creating ServiceStepSelection: {str(e)}")
+            raise
+
+    def read(self, fields=None, load='_classic_read'):
+        _logger.info(f"ServiceStepSelection read called for IDs: {self.ids}, fields: {fields}")
+        result = super().read(fields, load)
+        _logger.info(f"ServiceStepSelection read result: {result}")
+        return result
+
+    @api.model
+    def search_read(self, domain=None, fields=None, offset=0, limit=None, order=None):
+        _logger.info(f"ServiceStepSelection search_read called with domain: {domain}, fields: {fields}")
+        result = super().search_read(domain, fields, offset, limit, order)
+        _logger.info(f"ServiceStepSelection search_read result count: {len(result)}")
+        return result
         for record in self:
             # Sử dụng field name đã được compute
             display = record.name or f"Bước {record.sequence}"

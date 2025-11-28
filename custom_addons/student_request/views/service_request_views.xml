@@ -46,29 +46,79 @@
                         </button>
                     </div>
                     
-                    <header>
+                 <!--    <header>
                         Tạo yêu cầu mới:
                         <button name="action_request_extension" type="object" 
                                 string="Yêu cầu gia hạn" class="btn-warning"
                                 invisible="final_state in ['closed', 'approved', 'cancelled'] or not expired_date"
                                 help="Yêu cầu gia hạn thời gian xử lý"/>
-                    </header>
+                    </header> -->
                     <group>
                         <group string="Nội dung yêu cầu">
                             <field name="service_id"/>
-                            <field name="image_attachment_ids" mode="list,form" nolabel="1">
-                                <list string="Ảnh đính kèm" create="false" edit="false" delete="false">
+                            <field name="image_attachment_ids" widget="many2many" mode="kanban" string="Ảnh đính kèm">
+                                <kanban>
                                     <field name="name"/>
-                                    <field name="datas" widget="image" options="{'size': [100, 100]}" readonly="1"/>
-                                </list>
-                                <form string="Ảnh đính kèm">
+                                    <field name="datas"/>
+                                    <templates>
+                                        <t t-name="kanban-box">
+                                            <div class="oe_kanban_global_click" style="display: inline-block; margin: 5px;">
+                                                <img t-att-src="kanban_image('ir.attachment', 'datas', record.id.raw_value)" 
+                                                    style="max-width: 150px; max-height: 150px; cursor: pointer;"/>
+                                                <div class="oe_kanban_details" style="text-align: center;">
+                                                    <field name="name"/>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                </kanban>
+                                <form>
                                     <sheet>
                                         <field name="name"/>
-                                        <field name="datas" widget="image" options="{'size': [400, 300]}"/>
+                                        <field name="datas" widget="image"/>
                                     </sheet>
                                 </form>
                             </field>
                             <field name="note"/>
+                            <!-- Dynamic Input Table -->
+                            <field name="input_ids" nolabel="1" colspan="2">
+                                <list create="0" delete="0" decoration-muted="not required">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="label" string="Tên trường"/>
+                                    <field name="value_display" string="Giá trị hiển thị" decoration-bf="1"/>
+                                    <field name="field_type" string="Loại" widget="badge" decoration-info="1"/>
+                                    <field name="required" column_invisible="1"/>
+                                </list>
+                                <form>
+                                    <sheet>
+                                        <group>
+                                            <field name="field_type" invisible="1"/>
+                                            <div class="oe_title" colspan="2">
+                                                <label for="label" string="Câu hỏi" style="font-weight: bold;"/>
+                                                <h1><field name="label" readonly="1" nolabel="1"/></h1>
+                                                <field name="placeholder" readonly="1" invisible="not placeholder" class="text-muted" nolabel="1"/>
+                                            </div>
+                                            
+                                            <group string="Nhập câu trả lời">
+                                                <field name="value_char" string="Trả lời" invisible="field_type != 'text'" required="required"/>
+                                                <field name="value_text" string="Trả lời" widget="text" invisible="field_type != 'textarea'" required="required"/>
+                                                <field name="value_float" string="Trả lời" invisible="field_type != 'number'" required="required"/>
+                                                <field name="value_date" string="Trả lời" invisible="field_type != 'date'" required="required"/>
+                                                
+                                                <field name="date_ids" string="Chọn các ngày" invisible="field_type != 'date_multi'" required="required">
+                                                    <list editable="bottom">
+                                                        <field name="date"/>
+                                                    </list>
+                                                </field>
+
+                                                <field name="value_boolean" string="Trả lời" widget="boolean_toggle" invisible="field_type != 'checkbox'"/>
+                                                <field name="selected_option_ids" string="Trả lời" widget="many2many_tags" invisible="field_type != 'select'" required="required"/>
+                                                <field name="required" invisible="1"/>
+                                            </group>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
                             <field name="request_user_id"/>
                         </group>
                         <group string="Thông tin yêu cầu">
@@ -433,6 +483,31 @@
                         <field name="student_user_ids" invisible="1"/>
                                              <!-- Allow all users to select a student sender. Use context variable for group reference -->
                         <field name="request_user_id" string="Sinh viên gửi" domain="[('groups_id', 'in', [context.get('student_req_group_id')])]" options="{'no_create': True, 'no_create_edit': True}"/>
+                        
+                        <!-- Dynamic Input Table -->
+                        <field name="input_ids" nolabel="1" colspan="2" invisible="not service_id">
+                            <list>
+                                <field name="sequence" widget="handle"/>
+                                <field name="label"/>   
+                                <field name="field_type"/>
+                                <field name="value_display" string="Giá trị"/>
+                            </list>
+                            <form>
+                                <group>
+                                    <field name="label" readonly="1"/>
+                                    <field name="field_type" invisible="1"/>
+                                    <field name="required" invisible="1"/>
+                                    
+                                    <!-- Show only relevant value field based on field_type -->
+                                    <field name="value_char" string="Giá trị" invisible="field_type not in ['text']"/>
+                                    <field name="value_text" string="Giá trị" widget="text" invisible="field_type not in ['textarea']"/>
+                                    <field name="value_float" string="Giá trị" invisible="field_type not in ['number']"/>
+                                    <field name="value_date" string="Giá trị" invisible="field_type not in ['date']"/>
+                                    <field name="value_boolean" string="Giá trị" invisible="field_type not in ['checkbox']"/>
+                                    <field name="value_selection" string="Giá trị" invisible="field_type not in ['select']"/>
+                                </group>
+                            </form>
+                        </field>
                     </group>
                     <group invisible="id != 0">
                         <button name="action_create_new" string="Gửi yêu cầu" type="object" class="btn-primary"/>

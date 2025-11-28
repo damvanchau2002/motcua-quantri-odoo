@@ -210,3 +210,65 @@ class ServiceApiController(http.Controller):
                 ('Access-Control-Allow-Credentials', 'true')
             ]
         )
+
+    # Lấy cấu trúc Form nhập liệu của dịch vụ
+    @http.route('/api/service/<int:service_id>/form', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def get_service_form(self, service_id, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return Response(status=200, headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true'),
+                ('Access-Control-Max-Age', '86400'),
+            ])
+
+        service = request.env['student.service'].sudo().browse(service_id)
+        if not service.exists():
+            return Response(
+                json.dumps({'success': False, 'message': 'Service not found'}),
+                content_type='application/json',
+                status=404,
+                headers=[('Access-Control-Allow-Origin', '*')]
+            )
+
+        fields_data = []
+        for field in service.form_field_ids:
+            field_data = {
+                'id': field.id,
+                'name': field.name,
+                'label': field.label,
+                'type': field.field_type,
+                'required': field.required,
+                'placeholder': field.placeholder or '',
+                'sequence': field.sequence,
+            }
+            
+            # Nếu là dropdown -> Lấy options
+            if field.field_type == 'select':
+                field_data['options'] = [
+                    {'id': opt.id, 'name': opt.name} 
+                    for opt in field.option_ids
+                ]
+            
+            fields_data.append(field_data)
+
+        return Response(
+            json.dumps({
+                'success': True,
+                'message': 'Cấu trúc form dịch vụ',
+                'data': {
+                    'service_id': service.id,
+                    'service_name': service.name,
+                    'fields': fields_data
+                }
+            }),
+            content_type='application/json',
+            status=200,
+            headers=[
+                ('Access-Control-Allow-Origin', '*'),
+                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                ('Access-Control-Allow-Credentials', 'true')
+            ]
+        )

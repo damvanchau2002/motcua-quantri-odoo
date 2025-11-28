@@ -25,6 +25,7 @@
         # View files
         'views/service_group_views.xml',
         'views/service_views.xml',
+        'views/service_form_field_views.xml',  # Dynamic form fields
         'views/service_step_views.xml',
         'views/service_file_views.xml',
         'views/service_request_views.xml',
@@ -48,10 +49,12 @@
         'views/user_permission_views.xml',
         'views/permission_manager_views.xml',
         'views/ir_attachment_views.xml',
-        'views/menu_permission_views.xml',
         
-        # Menu (phải để cuối)
+        # Menu (phải load trước các file cần reference menu)
         'views/menus.xml',
+        
+        # Menu permission (cần menu_service_user_config từ menus.xml)
+        'views/menu_permission_views.xml',
     ],
     'installable': True,
     'application': True,
@@ -64,6 +67,9 @@
             'student_request/static/src/css/image_gallery.css',
             'student_request/static/src/js/image_viewer.js',
             'student_request/static/src/js/image_gallery.js',
+            # Dynamic Form Widget
+            'student_request/static/src/js/dynamic_form_widget.js',
+            'student_request/static/src/xml/dynamic_form_widget.xml',
         ],
     },
 }
