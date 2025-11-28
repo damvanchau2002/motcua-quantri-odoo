@@ -22,7 +22,7 @@ class ServiceFormField(models.Model):
         help='Tên kỹ thuật (VD: student_id). Chỉ dùng a-z, 0-9, _'
     )
     field_type = fields.Selection([
-        ('text', 'Text (1 dòng)'),
+        ('text', 'Text'),
         ('textarea', 'Textarea (nhiều dòng)'),
         ('number', 'Number'),
         ('date', 'Date'),
