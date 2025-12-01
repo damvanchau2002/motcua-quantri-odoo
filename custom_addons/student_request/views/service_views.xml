@@ -48,16 +48,18 @@
                         <group string="Phân công duyệt">
                             <field name="users" widget="many2many_tags" domain="[('groups_id.name', '=', 'Settings')]" help="Người cụ thể nhận được thông báo duyệt dịch vụ này"/>
                             <field name="role_ids" widget="many2many_tags" help="Các vai trò nhận được thông báo duyệt dịch vụ này"/>
-</group>
+                        </group>
                     </group>
                     <notebook>
                         <page string="Form Fields" name="form_fields">
                             <field name="form_field_ids" nolabel="1" context="{'default_service_id': id}">
                                 <list editable="bottom">
                                     <field name="sequence"/>
-                                    <field name="name" placeholder="VD: student_id"/>
+                                    <!-- ⭐ READONLY sau khi tạo để tránh thay đổi field key -->
+                                    <field name="name" placeholder="VD: student_id" readonly="id"/>
                                     <field name="label" placeholder="VD: Mã sinh viên"/>
-                                    <field name="field_type"/>
+                                    <!-- ⭐ READONLY field_type sau khi tạo để tránh conflict -->
+                                    <field name="field_type" readonly="id"/>
                                     <field name="placeholder"/>
                                     <field name="required"/>
                                     <field name="options" invisible="field_type != 'select'" 
@@ -75,18 +77,5 @@
         <field name="res_model">student.service</field>
         <field name="view_mode">list,form</field>
     </record>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 </odoo>

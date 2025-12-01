@@ -67,7 +67,7 @@ class ServiceApiController(http.Controller):
         if request.httprequest.method == 'OPTIONS':
             return Response(
                 status=200,
-                headers=[
+                headers=[ 
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
                     ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),

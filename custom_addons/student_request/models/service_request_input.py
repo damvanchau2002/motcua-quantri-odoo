@@ -13,8 +13,8 @@ class ServiceRequestInput(models.Model):
     name = fields.Char(string='Mã trường (JSON)')
     label = fields.Char(string='Tên trường')
     field_type = fields.Selection([
-    ('text', 'Text (1 dòng)'),
-    ('textarea', 'Textarea (nhiều dòng)'),
+    ('text', 'Text'),
+    ('textarea', 'Textarea'),
     ('number', 'Number'),
     ('date', 'Date'),
     ('date_multi', 'Chọn nhiều ngày'),
