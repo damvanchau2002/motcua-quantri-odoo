@@ -1,3 +1,4 @@
+from . import field_template
 from . import service_form_field
 from . import service_option
 from . import service_request_input

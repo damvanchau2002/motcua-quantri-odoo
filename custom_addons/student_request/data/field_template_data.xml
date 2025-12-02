@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Common Field Templates -->
+        <record id="field_template_student_id" model="student.service.field.template">
+            <field name="name">student_id</field>
+            <field name="label">Mã sinh viên</field>
+            <field name="description">Mã số sinh viên (8 chữ số)</field>
+            <field name="field_type_suggestion">text</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="field_template_full_name" model="student.service.field.template">
+            <field name="name">full_name</field>
+            <field name="label">Họ và tên</field>
+            <field name="description">Họ và tên đầy đủ của sinh viên</field>
+            <field name="field_type_suggestion">text</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="field_template_phone" model="student.service.field.template">
+            <field name="name">phone</field>
+            <field name="label">Số điện thoại</field>
+            <field name="description">Số điện thoại liên hệ</field>
+            <field name="field_type_suggestion">text</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <record id="field_template_email" model="student.service.field.template">
+            <field name="name">email</field>
+            <field name="label">Email</field>
+            <field name="description">Địa chỉ email liên hệ</field>
+            <field name="field_type_suggestion">text</field>
+            <field name="sequence">40</field>
+        </record>
+
+        <record id="field_template_id_card_number" model="student.service.field.template">
+            <field name="name">id_card_number</field>
+            <field name="label">Số CMND/CCCD</field>
+            <field name="description">Số chứng minh nhân dân hoặc căn cước công dân</field>
+            <field name="field_type_suggestion">text</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <record id="field_template_date_of_birth" model="student.service.field.template">
+            <field name="name">date_of_birth</field>
+            <field name="label">Ngày sinh</field>
+            <field name="description">Ngày tháng năm sinh</field>
+            <field name="field_type_suggestion">date</field>
+            <field name="sequence">60</field>
+        </record>
+
+        <record id="field_template_dormitory_room" model="student.service.field.template">
+            <field name="name">dormitory_room</field>
+            <field name="label">Phòng ký túc xá</field>
+            <field name="description">Số phòng ký túc xá hiện tại</field>
+            <field name="field_type_suggestion">text</field>
+            <field name="sequence">70</field>
+        </record>
+
+        <record id="field_template_reason" model="student.service.field.template">
+            <field name="name">reason</field>
+            <field name="label">Lý do</field>
+            <field name="description">Lý do gửi yêu cầu</field>
+            <field name="field_type_suggestion">textarea</field>
+            <field name="sequence">80</field>
+        </record>
+
+        <record id="field_template_start_date" model="student.service.field.template">
+            <field name="name">start_date</field>
+            <field name="label">Ngày bắt đầu</field>
+            <field name="description">Ngày bắt đầu áp dụng</field>
+            <field name="field_type_suggestion">date</field>
+            <field name="sequence">90</field>
+        </record>
+
+        <record id="field_template_end_date" model="student.service.field.template">
+            <field name="name">end_date</field>
+            <field name="label">Ngày kết thúc</field>
+            <field name="description">Ngày kết thúc áp dụng</field>
+            <field name="field_type_suggestion">date</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <record id="field_template_address" model="student.service.field.template">
+            <field name="name">address</field>
+            <field name="label">Địa chỉ</field>
+            <field name="description">Địa chỉ liên hệ</field>
+            <field name="field_type_suggestion">textarea</field>
+            <field name="sequence">110</field>
+        </record>
+
+        <record id="field_template_note" model="student.service.field.template">
+            <field name="name">note</field>
+            <field name="label">Ghi chú</field>
+            <field name="description">Ghi chú thêm</field>
+            <field name="field_type_suggestion">textarea</field>
+            <field name="sequence">120</field>
+        </record>
+
+    </data>
+</odoo>

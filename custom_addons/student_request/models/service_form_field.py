@@ -16,11 +16,22 @@ class ServiceFormField(models.Model):
         ondelete='cascade',
         index=True
     )
+    
+    # Template field - dropdown selection
+    field_template_id = fields.Many2one(
+        'student.service.field.template',
+        string='Template field',
+        help='Chọn template có sẵn hoặc tạo mới',
+        ondelete='restrict'
+    )
+    
+    # Computed field to get the actual name value
     name = fields.Char(
         string='Tên field', 
         required=True,
         help='Tên kỹ thuật (VD: student_id). Chỉ dùng a-z, 0-9, _'
     )
+    
     field_type = fields.Selection([
         ('text', 'Text'),
         ('textarea', 'Textarea (nhiều dòng)'),
@@ -51,6 +62,16 @@ class ServiceFormField(models.Model):
         default=10,
         help='Thứ tự hiển thị trong form'
     )
+    
+    @api.onchange('field_template_id')
+    def _onchange_field_template(self):
+        """Auto-fill name, label, and field_type from template"""
+        if self.field_template_id:
+            self.name = self.field_template_id.name
+            if not self.label or self.label == '':
+                self.label = self.field_template_id.label
+            if self.field_template_id.field_type_suggestion:
+                self.field_type = self.field_template_id.field_type_suggestion
     
     # Cho select dropdown
     options = fields.Text(

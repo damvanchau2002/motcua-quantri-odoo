@@ -55,11 +55,15 @@
                             <field name="form_field_ids" nolabel="1" context="{'default_service_id': id}">
                                 <list editable="bottom">
                                     <field name="sequence"/>
+                                    <!-- ⭐ Chọn từ Template hoặc tạo mới -->
+                                    <field name="field_template_id" 
+                                           placeholder="Chọn template hoặc để trống"
+                                           options="{'no_create_edit': True}"/>
                                     <!-- ⭐ READONLY sau khi tạo để tránh thay đổi field key -->
                                     <field name="name" placeholder="VD: student_id" readonly="id"/>
                                     <field name="label" placeholder="VD: Mã sinh viên"/>
                                     <!-- ⭐ READONLY field_type sau khi tạo để tránh conflict -->
-                                    <field name="field_type" readonly="id"/>
+                                    <field name="field_type" />
                                     <field name="placeholder"/>
                                     <field name="required"/>
                                     <field name="options" invisible="field_type != 'select'" 

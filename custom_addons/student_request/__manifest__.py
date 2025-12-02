@@ -15,6 +15,7 @@
         # Data files (nên load trước views)
         # 'data/model_data.xml',  # Removed: ir.model entries cause ParseError and are unnecessary
         'data/service_step_data.xml',
+        'data/field_template_data.xml',  # Field template initial data
         'data/cron_data.xml',
         'data/stats_cron.xml',
         'data/email_templates.xml',
@@ -24,6 +25,7 @@
         
         # View files
         'views/service_group_views.xml',
+        'views/field_template_views.xml',  # Field templates
         'views/service_views.xml',
         'views/service_form_field_views.xml',  # Dynamic form fields
         'views/service_step_views.xml',
