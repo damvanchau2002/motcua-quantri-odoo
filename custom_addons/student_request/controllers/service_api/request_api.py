@@ -241,9 +241,6 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
                 option_ids = value if isinstance(value, list) else [value] if isinstance(value, int) else []
                 if option_ids:
                     input_vals['selected_option_ids'] = [(6, 0, option_ids)]
-                    # CRITICAL: Set value_selection directly (onchange won't fire during create)
-                    options = env['student.service.option'].sudo().browse(option_ids)
-                    input_vals['value_selection'] = ', '.join(options.mapped('name'))
             elif field.field_type == 'date_multi':
                 # value là list các ngày ['2025-11-27', '2025-11-28', ...]
                 # Tạo input record trước, sau đó tạo date_ids
@@ -759,9 +756,6 @@ class ServiceApiController(http.Controller):
                         option_ids = value if isinstance(value, list) else [value] if isinstance(value, int) else []
                         if option_ids:
                             input_vals['selected_option_ids'] = [(6, 0, option_ids)]
-                            # CRITICAL: Set value_selection directly (onchange won't fire during create)
-                            options = request.env['student.service.option'].sudo().browse(option_ids)
-                            input_vals['value_selection'] = ', '.join(options.mapped('name'))
                     elif field.field_type == 'date_multi':
                         input_record = request.env['student.service.request.input'].sudo().create(input_vals)
                         if isinstance(value, list):
