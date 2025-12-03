@@ -11,7 +11,10 @@
                 <field name="name"/>
                 <field name="label"/>
                 <field name="field_type_suggestion"/>
-                <field name="description"/>
+                <field name="placeholder" optional="hide"/>
+                <field name="required"/>
+                <field name="options" optional="hide"/>
+                <field name="description" optional="hide"/>
                 <field name="active" widget="boolean_toggle"/>
             </list>
         </field>
@@ -28,14 +31,19 @@
                             <field name="name" placeholder="VD: student_id, full_name, phone"/>
                             <field name="label" placeholder="VD: Mã sinh viên, Họ và tên"/>
                             <field name="field_type_suggestion"/>
+                            <field name="placeholder" placeholder="VD: Nhập mã sinh viên..."/>
                         </group>
                         <group>
+                            <field name="required"/>
                             <field name="sequence"/>
                             <field name="active"/>
                         </group>
                     </group>
                     <group>
                         <field name="description" placeholder="Mô tả chi tiết về field này..."/>
+                    </group>
+                    <group string="Options (cho Dropdown)">
+                        <field name="options" placeholder="Option 1&#10;Option 2&#10;Option 3" nolabel="1"/>
                     </group>
                 </sheet>
             </form>

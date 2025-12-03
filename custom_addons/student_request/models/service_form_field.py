@@ -65,13 +65,29 @@ class ServiceFormField(models.Model):
     
     @api.onchange('field_template_id')
     def _onchange_field_template(self):
-        """Auto-fill name, label, and field_type from template"""
+        """Auto-fill name, label, field_type, placeholder, required, and options from template"""
         if self.field_template_id:
-            self.name = self.field_template_id.name
+            template = self.field_template_id
+            self.name = template.name
+            
+            # Auto-fill label if empty
             if not self.label or self.label == '':
-                self.label = self.field_template_id.label
-            if self.field_template_id.field_type_suggestion:
-                self.field_type = self.field_template_id.field_type_suggestion
+                self.label = template.label
+            
+            # Auto-fill field_type from suggestion
+            if template.field_type_suggestion:
+                self.field_type = template.field_type_suggestion
+            
+            # Auto-fill placeholder
+            if template.placeholder:
+                self.placeholder = template.placeholder
+            
+            # Auto-fill required default
+            self.required = template.required
+            
+            # Auto-fill options
+            if template.options:
+                self.options = template.options
     
     # Cho select dropdown
     options = fields.Text(

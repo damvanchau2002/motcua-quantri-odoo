@@ -25,27 +25,32 @@ class ServiceFieldTemplate(models.Model):
     )
     field_type_suggestion = fields.Selection([
         ('text', 'Text'),
-        ('textarea', 'Textarea (nhiều dòng)'),
+        ('textarea', 'Textarea'),
         ('number', 'Number'),
         ('date', 'Date'),
         ('date_multi', 'Chọn nhiều ngày'),
         ('select', 'Dropdown'),
         ('checkbox', 'Checkbox'),
-        ('file', 'File Upload')
-    ], string='Loại field đề xuất', default='text',
-       help='Gợi ý loại field phù hợp cho template này')
+    ], string='Loại field đề xuất', help='Loại field được đề xuất khi sử dụng template này')
     
-    sequence = fields.Integer(
-        string='Thứ tự',
-        default=10,
-        help='Thứ tự hiển thị trong danh sách'
+    placeholder = fields.Char(
+        string='Placeholder',
+        help='Gợi ý hiển thị trong ô nhập liệu (VD: "Nhập mã sinh viên")'
     )
     
-    active = fields.Boolean(
-        string='Kích hoạt',
-        default=True,
-        help='Bỏ chọn để ẩn template này khỏi danh sách chọn'
+    required = fields.Boolean(
+        string='Bắt buộc',
+        default=False,
+        help='Đánh dấu field này là bắt buộc nhập'
     )
+    
+    options = fields.Text(
+        string='Options',
+        help='Các lựa chọn cho dropdown (mỗi dòng một option)'
+    )
+    
+    sequence = fields.Integer(string='Thứ tự', default=10, help='Thứ tự hiển thị trong danh sách')
+    active = fields.Boolean(string='Hoạt động', default=True)
     
     # SQL constraint
     _sql_constraints = [
