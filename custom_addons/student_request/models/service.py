@@ -667,7 +667,8 @@ class ServiceRequest(models.Model):
                     elif input_rec.field_type == 'date':
                         has_value = bool(input_rec.value_date)
                     elif input_rec.field_type == 'select':
-                        has_value = bool(input_rec.value_selection)
+                        # Check both selected_option_ids (web form) and value_selection (API)
+                        has_value = bool(input_rec.selected_option_ids) or bool(input_rec.value_selection)  
                     
                     if not has_value:
                         raise ValidationError(f'Trường "{input_rec.label}" là bắt buộc!')

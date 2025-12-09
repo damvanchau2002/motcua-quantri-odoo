@@ -13,8 +13,8 @@ class ServiceRequestInput(models.Model):
     name = fields.Char(string='Mã trường (JSON)')
     label = fields.Char(string='Tên trường')
     field_type = fields.Selection([
-    ('text', 'Text (1 dòng)'),
-    ('textarea', 'Textarea (nhiều dòng)'),
+    ('text', 'Text'),
+    ('textarea', 'Textarea'),
     ('number', 'Number'),
     ('date', 'Date'),
     ('date_multi', 'Chọn nhiều ngày'),
@@ -35,13 +35,14 @@ class ServiceRequestInput(models.Model):
     # Multi Date field
     date_ids = fields.One2many('student.service.request.input.date', 'input_id', string='Các ngày đã chọn')
     
-    @api.onchange('selected_option_ids')
-    def _onchange_selected_options(self):
-        """Sync selected options to value_selection"""
-        if self.selected_option_ids:
-            self.value_selection = ', '.join(self.selected_option_ids.mapped('name'))
-        else:
-            self.value_selection = False
+    @api.depends('selected_option_ids', 'selected_option_ids.name')
+    def _compute_value_selection(self):
+        for rec in self:
+            if rec.selected_option_ids:
+                rec.value_selection = ', '.join(rec.selected_option_ids.mapped('name'))
+            else:
+                rec.value_selection = False
+
     # Value fields
     value_char = fields.Char(string='Giá trị')
     value_text = fields.Text(string='Giá trị')
@@ -50,7 +51,7 @@ class ServiceRequestInput(models.Model):
     value_date = fields.Date(string='Giá trị')
     value_datetime = fields.Datetime(string='Giá trị')
     value_boolean = fields.Boolean(string='Giá trị')
-    value_selection = fields.Char(string='Giá trị')
+    value_selection = fields.Char(string='Giá trị', compute='_compute_value_selection', store=True)
 
     # Computed display value
     value_display = fields.Char(string='Giá trị hiển thị', compute='_compute_value_display')

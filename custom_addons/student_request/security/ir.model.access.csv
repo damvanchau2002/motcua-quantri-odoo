@@ -58,3 +58,5 @@ access_student_service_option_admin,access_student_service_option_admin,model_st
 access_service_request_input_date_user,student.service.request.input.date.user,model_student_service_request_input_date,base.group_user,1,1,1,1
 access_service_request_input_date_public,student.service.request.input.date.public,model_student_service_request_input_date,base.group_public,1,1,1,0
 access_service_request_input_date_manager,student.service.request.input.date.manager,model_student_service_request_input_date,base.group_system,1,1,1,1
+access_field_template_user,student.service.field.template.user,model_student_service_field_template,base.group_user,1,0,0,0
+access_field_template_manager,student.service.field.template.manager,model_student_service_field_template,base.group_system,1,1,1,1
