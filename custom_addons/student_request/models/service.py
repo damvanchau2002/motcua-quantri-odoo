@@ -870,7 +870,7 @@ class ServiceRequest(models.Model):
         for record in self:
             if record.request_user_id:
                 # Tìm profile sinh viên
-                student_profile = self.env['student.user.profile'].search([
+                student_profile = self.env['student.user.profile'].sudo().search([
                     ('user_id', '=', record.request_user_id.id)
                 ], limit=1)
                 
@@ -892,7 +892,7 @@ class ServiceRequest(models.Model):
                     
                     # Map cluster
                     if student_profile.dormitory_cluster_id:
-                        cluster = self.env['student.dormitory.cluster'].search([
+                        cluster = self.env['student.dormitory.cluster'].sudo().search([
                             ('qlsv_cluster_id', '=', student_profile.dormitory_cluster_id)
                         ], limit=1)
                         record.dormitory_cluster_id = cluster.id if cluster else False

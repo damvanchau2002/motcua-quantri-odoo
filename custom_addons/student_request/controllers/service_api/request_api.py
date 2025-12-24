@@ -127,6 +127,12 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
             'final_state': 'pending',
             'dormitory_cluster_id': cluster_id,  # Gán cụm KTX nếu có
             'expired_date': Datetime.now() + timedelta(hours=service.duration or 168),  # Mặc định là 168 giờ nếu không có expired_duration
+            
+            # Gán thông tin profile sinh viên ngay khi tạo
+            'request_user_phone': user_profile.phone or user.phone or user.mobile or '',
+            'request_user_dormitory_full': user_profile.dormitory_full_name or '',
+            'request_user_dormitory_house': user_profile.dormitory_house_name or '',
+            'request_user_dormitory_room': user_profile.dormitory_room_id or '',
         }
 
     # Tạo mới yêu cầu các bước xử lý
