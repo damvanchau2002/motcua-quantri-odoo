@@ -1083,7 +1083,6 @@ class ServiceRequest(models.Model):
         return super()._search(final_args, offset=offset, limit=limit, order=order)
 
 
-    # Cron job kiểm tra các request sắp hết hạn và gửi cảnh báo
     @api.model
     def cron_check_timeout_requests(self):
         """Kiểm tra và cập nhật trạng thái timeout cho các request"""
@@ -1879,7 +1878,6 @@ class StudentDormitoryArea(models.Model):
     description = fields.Text('Mô tả khu')
     cluster_ids = fields.One2many('student.dormitory.cluster', 'area_id', string='Các cụm thuộc khu')
     
-    @api.model
     def action_sync_cluster(self):
         return action_sync_area_cluster(self)
 
@@ -1903,7 +1901,6 @@ class StudentDormitoryCluster(models.Model):
     name = fields.Char('Tên cụm', required=True)
     description = fields.Text('Mô tả cụm')
 
-    @api.model
     def action_sync_cluster(self):
         return action_sync_area_cluster(self)
 
