@@ -175,10 +175,20 @@ class ResUsers(models.Model):
             else:
                 return self._action_reset_password(signup_type="reset")
         except MailDeliveryException as mde:
-            if len(mde.args) == 2 and isinstance(mde.args[1], ConnectionRefusedError):
-                raise UserError(_("Could not contact the mail server, please check your outgoing email server configuration")) from mde
-            else:
-                raise UserError(_("There was an error when trying to deliver your Email, please check your configuration")) from mde
+            _logger.warning("MailDeliveryException suppressed: %s", mde)
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Warning',
+                    'message': _('Action performed, but email delivery failed. Please check server logs.'),
+                    'sticky': False
+                }
+            }
+            # if len(mde.args) == 2 and isinstance(mde.args[1], ConnectionRefusedError):
+            #     raise UserError(_("Could not contact the mail server, please check your outgoing email server configuration")) from mde
+            # else:
+            #     raise UserError(_("There was an error when trying to deliver your Email, please check your configuration")) from mde
 
     def _action_reset_password(self, signup_type="reset"):
         """ create signup token for each user, and send their signup url by email """

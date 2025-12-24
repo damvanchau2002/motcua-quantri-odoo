@@ -21,6 +21,7 @@
         'data/email_templates.xml',
         'data/automated_actions.xml',  # Fixed XML validation error
         'data/user_group_assignments.xml',  # User group assignments
+        'data/update_cluster_action.xml',   # Server action to update cluster info
         # 'data/permission_rules_data.xml',  # Commented out to remove permission restrictions
         
         # View files

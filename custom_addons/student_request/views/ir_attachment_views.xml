@@ -11,7 +11,7 @@
                 <field name="mimetype"/>
                 <field name="datas"/>
                 <templates>
-                    <t t-name="kanban-box">
+                    <t t-name="card">
                         <div class="oe_kanban_global_click" style="max-width: 300px;">
                             <div class="o_kanban_image" style="text-align: center;">
                                 <field name="datas" widget="image" options="{'size': [200, 200], 'preview_image': 'datas'}" readonly="1"/>

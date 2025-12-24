@@ -279,7 +279,7 @@ class ServiceRequestStep(models.Model):
         'student.service.step.selection',
         string='Bước duyệt (theo dịch vụ)',
         compute='_compute_selection_id',
-        store=False,
+        store=True,
         readonly=True
     )
     # Giữ tương thích: lấy bước gốc từ selection_id.step_id
@@ -709,7 +709,7 @@ class ServiceRequest(models.Model):
             # Gán recordset trực tiếp để đảm bảo domain xử lý đúng
             rec.student_user_ids = users
 
-    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này', )
+    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', compute='_compute_user_profile_info', store=True, readonly=False, help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này')
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
     request_user_phone = fields.Char('Số điện thoại', compute='_compute_user_profile_info', store=True, help='Số điện thoại của sinh viên gửi yêu cầu')
@@ -889,15 +889,26 @@ class ServiceRequest(models.Model):
                     record.request_user_dormitory_full = student_profile.dormitory_full_name or ''
                     record.request_user_dormitory_house = student_profile.dormitory_house_name or ''
                     record.request_user_dormitory_room = student_profile.dormitory_room_id or ''
+                    
+                    # Map cluster
+                    if student_profile.dormitory_cluster_id:
+                        cluster = self.env['student.dormitory.cluster'].search([
+                            ('qlsv_cluster_id', '=', student_profile.dormitory_cluster_id)
+                        ], limit=1)
+                        record.dormitory_cluster_id = cluster.id if cluster else False
+                    else:
+                        record.dormitory_cluster_id = False
                 else:
                     record.request_user_dormitory_full = ''
                     record.request_user_dormitory_house = ''
                     record.request_user_dormitory_room = ''
+                    record.dormitory_cluster_id = False
             else:
                 record.request_user_phone = ''
                 record.request_user_dormitory_full = ''
                 record.request_user_dormitory_house = ''
                 record.request_user_dormitory_room = ''
+                record.dormitory_cluster_id = False
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):
         """Tăng thời gian hết hạn của yêu cầu dịch vụ"""
@@ -1016,11 +1027,20 @@ class ServiceRequest(models.Model):
     def _search(self, args, offset=0, limit=None, order=None):
         uid = self.env.user.id
         user = self.env.user
-        # Cho phép Admin hệ thống (base.group_system) và ERP Manager bỏ qua lọc bổ sung
-        if uid == 1 or user.has_group('base.group_system') or user.has_group('base.group_erp_manager'):
+        
+        # Tìm profile quản trị viên
+        admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
+
+        # Cho phép Superuser (uid=1) luôn thấy hết
+        if uid == 1:
             return super()._search(args, offset=offset, limit=limit, order=order)
 
-        admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
+        # Cho phép Admin hệ thống (base.group_system) và ERP Manager bỏ qua lọc bổ sung
+        # CHỈ KHI họ chưa được cấu hình trong admin_profile. 
+        # Nếu đã cấu hình profile, hệ thống sẽ ưu tiên lọc theo phạm vi quản lý của profile đó.
+        if (user.has_group('base.group_system') or user.has_group('base.group_erp_manager')) and not admin_profile:
+            return super()._search(args, offset=offset, limit=limit, order=order)
+
         # Tạo domain filter
         # OR: là người duyệt, người đang nhận duyệt, hoặc chính người gửi yêu cầu
         domain = ['|', '|',
@@ -1028,13 +1048,35 @@ class ServiceRequest(models.Model):
             ('approve_user_id', '=', uid),
             ('request_user_id', '=', uid)
         ]
-        if admin_profile and admin_profile.department_id and admin_profile.dormitory_clusters:
-            if admin_profile.role_ids:
-                domain = ['|'] + domain + [
-                    '&',
-                    ('service_id.role_ids', 'in', admin_profile.role_ids.ids),
-                    ('dormitory_cluster_id', 'in', admin_profile.dormitory_clusters.ids)
-                ]
+        
+        if admin_profile:
+            # Lấy danh sách cluster được phép (từ cấu hình cụm)
+            allowed_cluster_ids = admin_profile.dormitory_clusters.ids or []
+            
+            # Nếu không chọn cụm cụ thể nào, nhưng có chọn Khu vực, thì lấy tất cả cụm trong khu đó
+            if not allowed_cluster_ids and admin_profile.dormitory_area_id:
+                clusters_in_area = self.env['student.dormitory.cluster'].search([
+                    ('area_id', '=', admin_profile.dormitory_area_id.id)
+                ])
+                allowed_cluster_ids = clusters_in_area.ids
+
+            # Nếu có cấu hình cụm/khu vực thì thêm điều kiện lọc theo cụm
+            if allowed_cluster_ids:
+                # Logic lọc theo cụm + vai trò (nếu có)
+                if admin_profile.role_ids:
+                    # Nếu có role: Cụm phải khớp VÀ (Service không yêu cầu role HOẶC Service có role khớp)
+                    domain = ['|'] + domain + [
+                        '&',
+                        ('dormitory_cluster_id', 'in', allowed_cluster_ids),
+                        '|',
+                            ('service_id.role_ids', '=', False),
+                            ('service_id.role_ids', 'in', admin_profile.role_ids.ids)
+                    ]
+                else:
+                    # Nếu không có role: Chỉ cần khớp cụm (coi như quản lý chung của cụm)
+                    domain = ['|'] + domain + [
+                        ('dormitory_cluster_id', 'in', allowed_cluster_ids)
+                    ]
         
         final_args = domain + args
         # Bỏ tham số count - không có trong _search()
@@ -1838,7 +1880,7 @@ class StudentDormitoryArea(models.Model):
     cluster_ids = fields.One2many('student.dormitory.cluster', 'area_id', string='Các cụm thuộc khu')
     
     @api.model
-    def action_sync_cluster(self, vals):
+    def action_sync_cluster(self):
         return action_sync_area_cluster(self)
 
     def action_back(self):
@@ -1862,7 +1904,7 @@ class StudentDormitoryCluster(models.Model):
     description = fields.Text('Mô tả cụm')
 
     @api.model
-    def action_sync_cluster(self, vals):
+    def action_sync_cluster(self):
         return action_sync_area_cluster(self)
 
     def action_back(self):
