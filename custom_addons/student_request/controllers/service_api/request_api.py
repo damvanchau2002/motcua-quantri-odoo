@@ -203,6 +203,15 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
         raise ValueError("Thiếu ID yêu cầu")
     except Exception as e:
         vals = env['student.service.request'].sudo().with_user(sysuser).create(vals)
+        
+        # Cập nhật lại thông tin profile để đảm bảo dữ liệu được lưu (do field compute có thể ghi đè bằng giá trị rỗng)
+        vals.sudo().write({
+            'request_user_phone': user_profile.phone or user.phone or user.mobile or '',
+            'request_user_dormitory_full': user_profile.dormitory_full_name or '',
+            'request_user_dormitory_house': user_profile.dormitory_house_name or '',
+            'request_user_dormitory_room': user_profile.dormitory_room_id or '',
+        })
+        
         send_fcm_request(env, vals, 0)
         pass
     
