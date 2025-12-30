@@ -66,6 +66,12 @@
         <field name="action" ref="action_student_service_step"/>
         <field name="groups_id" eval="[(4, ref('group_menu_service_steps'))]"/>
     </record>
+    <record id="student_state_menu" model="ir.ui.menu">
+        <field name="name">Trạng thái xử lý</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_student_service_request_state"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
+    </record>
     <record id="student_file_menu" model="ir.ui.menu">
         <field name="name">Giấy tờ nộp kèm</field>
         <field name="parent_id" ref="student_request_config"/>

@@ -33,6 +33,7 @@
                         <field name="state"/>
                     </group>
                     <group string="Phân công">
+                        <field name="status_ids" widget="many2many_tags" options="{'no_create': True}" />
                         <field name="user_ids" widget="many2many_tags"/>
                         <field name="department_id" />
                     </group>

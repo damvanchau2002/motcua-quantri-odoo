@@ -201,6 +201,12 @@ class ServiceStep(models.Model):
     description = fields.Text('Mô tả bước')
     nextstep = fields.Integer('Bước tiếp theo', default=99)
     state = fields.Integer('Trạng thái', default=1)  # Trạng thái bước, mặc định là 1 (có thể chỉnh sửa)
+    
+    status_ids = fields.Many2many(
+        'student.service.request.state',
+        string='Trạng thái hợp lệ',
+        help='Các trạng thái được phép chọn trong bước này. Nếu trống, tất cả trạng thái đều được phép.'
+    )
 
     # tạm thời chưa dùng:
     user_ids = fields.Many2many('res.users', string='Người thực hiện', help='Những người cố định được phân công thực hiện duyệt bước này')
@@ -242,6 +248,33 @@ class ServiceFileCheckbox(models.Model):
     file_id = fields.Many2one('student.service.file', string='File cần nộp')
     checked = fields.Boolean('Đã chọn', default=False)
 
+# Model quản lý trạng thái động
+class ServiceRequestState(models.Model):
+    _name = 'student.service.request.state'
+    _description = 'Trạng thái xử lý'
+
+    name = fields.Char('Tên trạng thái', required=True, translate=True)
+    code = fields.Char('Mã', required=True) 
+    type = fields.Selection([
+        ('repairing', 'Chờ sửa chữa'),
+        ('pending', 'Chờ duyệt'),
+        ('assigned', 'Đã phân công'),
+        ('extended', 'Đã gia hạn'),
+        ('ignored', 'Đã bỏ qua'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Từ chối'),
+        ('adjust_profile', 'Điều chỉnh hồ sơ'),
+        ('cancelled', 'Đã hủy'),
+        ('closed', 'Đã đóng')
+    ], string='Loại trạng thái (Hệ thống)', required=True, default='pending', help="Mapping với logic xử lý của hệ thống")
+    description = fields.Text('Mô tả')
+    sequence = fields.Integer('Thứ tự', default=10)
+    color = fields.Integer('Màu sắc', default=0)
+    
+    _sql_constraints = [
+        ('code_uniq', 'unique(code)', 'Mã trạng thái phải là duy nhất!')
+    ]
+
 # Lịch sử duyệt
 class ServiceRequestStepHistory(models.Model):
     _name = 'student.service.request.step.history'
@@ -251,6 +284,7 @@ class ServiceRequestStepHistory(models.Model):
     request_id = fields.Many2one('student.service.request', string='Yêu cầu dịch vụ')
     step_id = fields.Many2one('student.service.request.step', string='Bước duyệt', ondelete='cascade')
     user_id = fields.Many2one('res.users', string='Người duyệt', ondelete='cascade')
+    status_id = fields.Many2one('student.service.request.state', string='Trạng thái (Chi tiết)', ondelete='set null')
     state = fields.Selection([
         ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
@@ -263,6 +297,18 @@ class ServiceRequestStepHistory(models.Model):
         ('adjust_profile', 'Điều chỉnh hồ sơ'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
+    
+    @api.model
+    def create(self, vals):
+        if 'state' in vals and 'status_id' not in vals:
+             state_code = vals['state']
+             status = self.env['student.service.request.state'].search([
+                 ('type', '=', state_code)
+             ], limit=1)
+             if status:
+                 vals['status_id'] = status.id
+        return super().create(vals)
+        
     date = fields.Datetime('Ngày thực hiện', default=fields.Datetime.now)
     note = fields.Text('Ghi chú', help='Ghi chú cho lịch sử thao tác duyệt này')
 
@@ -353,6 +399,23 @@ class ServiceRequestStep(models.Model):
             rec.selection_id = selection
 
     # TÌNH TRẠNG XỬ LÝ
+    status_id = fields.Many2one('student.service.request.state', string='Trạng thái (Chi tiết)', ondelete='restrict')
+    
+    available_status_ids = fields.Many2many(
+        'student.service.request.state',
+        compute='_compute_available_status_ids'
+    )
+
+    @api.depends('base_step_id.status_ids')
+    def _compute_available_status_ids(self):
+        all_states = self.env['student.service.request.state'].search([])
+        for rec in self:
+            if rec.base_step_id and rec.base_step_id.status_ids:
+                rec.available_status_ids = rec.base_step_id.status_ids
+            else:
+                # If no specific statuses defined, allow all
+                rec.available_status_ids = all_states
+
     state = fields.Selection([
         ('repairing', 'Chờ sửa chữa'),
         ('pending', 'Chờ duyệt'),
@@ -411,10 +474,9 @@ class ServiceRequestStep(models.Model):
         help='Các giấy tờ cần nộp trong bước này'
     )
     # Đánh dấu các giấy tờ đã nộp  (chỉ bước 1 mới có)
-    file_checkbox_ids = fields.Many2many(
-        'student.service.file',
-        'student_service_step_file_checkbox_rel',  # bảng quan hệ riêng cho file_checkbox_ids
-        'step_id', 'file_id',
+    file_checkbox_ids = fields.One2many(
+        'student.service.file.checkbox',
+        'step_id',
         string='Hồ sơ đã nộp',
         help='Các giấy tờ đã nộp trong bước này'
     )
@@ -460,6 +522,30 @@ class ServiceRequestStep(models.Model):
             'type': 'ir.actions.act_window_close',
         }
 
+    @api.onchange('status_id')
+    def _onchange_status_id(self):
+        if self.status_id:
+            self.state = self.status_id.type
+
+    def write(self, vals):
+        # Sync status_id -> state
+        if 'status_id' in vals:
+            status = self.env['student.service.request.state'].browse(vals['status_id'])
+            if status:
+                vals['state'] = status.type
+        
+        # Sync state -> status_id (if not provided)
+        if 'state' in vals and 'status_id' not in vals:
+            state_code = vals['state']
+            # Find matching status
+            status = self.env['student.service.request.state'].search([
+                ('type', '=', state_code)
+            ], limit=1)
+            if status:
+                vals['status_id'] = status.id
+                
+        return super().write(vals)
+
     def action_confirm_approve(self):
         # Nếu tạo mới:
         #if vals.get('approve_content') == self.approve_content and vals.get('assign_user_id') == self.assign_user_id.id and vals.get('state') == self.state:
@@ -475,7 +561,8 @@ class ServiceRequestStep(models.Model):
             self.assign_user_id.id if self.assign_user_id else None, 
             self.file_checkbox_ids.ids, 
             self.final_data,
-            self.department_id.id if self.department_id else 0
+            self.department_id.id if self.department_id else 0,
+            status_id=self.status_id.id if self.status_id else None
         )
         
         # Gửi thông báo khi trạng thái là "Điều chỉnh hồ sơ"

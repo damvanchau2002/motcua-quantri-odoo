@@ -31,6 +31,59 @@
         <field name="target">new</field>
     </record>
 
+    <!-- View form cho bước duyệt (Popup) -->
+    <record id="view_service_request_step_form" model="ir.ui.view">
+        <field name="name">student.service.request.step.form</field>
+        <field name="model">student.service.request.step</field>
+        <field name="arch" type="xml">
+            <form string="Chi tiết bước duyệt">
+                <header>
+                    <button name="action_confirm_approve" string="Xác nhận" type="object" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="display_step_name" readonly="1"/>
+                            <field name="assign_user_id" options="{'no_create': True}"/>
+                            <field name="department_id" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="available_status_ids" invisible="1"/>
+                            <field name="status_id" options="{'no_create': True}" domain="[('id', 'in', available_status_ids)]"/>
+                            <field name="state" readonly="1" force_save="1"/>
+                            <field name="approve_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Nội dung duyệt">
+                        <field name="approve_content"/>
+                        <field name="final_data" invisible="base_secquence != 99"/>
+                    </group>
+                    <notebook>
+                        <page string="File đính kèm" invisible="not file_checkbox_ids">
+                             <field name="file_checkbox_ids">
+                                <list editable="bottom">
+                                    <field name="file_id" readonly="1"/>
+                                    <field name="checked"/>
+                                </list>
+                             </field>
+                        </page>
+                        <page string="Lịch sử">
+                            <field name="history_ids" readonly="1">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="user_id"/>
+                                    <field name="status_id"/>
+                                    <field name="state"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <!-- View form tạo yêu cầu dịch vụ -->
     <record id="view_service_request_form" model="ir.ui.view">
         <field name="name">student.service.request.form</field>
@@ -150,7 +203,7 @@
                     </group>
 
                     <group invisible="(id == 0 or final_state == 'closed')" string="Các bước duyệt">
-                        <field name="step_ids_active" widget="kanban" nolabel="1" no_create="true" no_open="true" options="{'no_create': true, 'no_open': true}">
+                        <field name="step_ids_active" widget="kanban" nolabel="1" no_create="true" options="{'no_create': true}">
                             <kanban>
                                 <templates>
                                     <t t-name="kanban-box" t-if="!record.disabled.raw_value">
@@ -163,7 +216,10 @@
                                             <div class="oe_kanban_details card-body">
                                                 <div>
                                                     Trạng thái: 
-                                                    <span><field name="state"/></span>
+                                                    <field name="status_id" invisible="not status_id"/>
+                                                    <span invisible="status_id">
+                                                        <field name="state"/>
+                                                    </span>
                                                 </div>
                                                 <div>Nội dung duyệt: <field name="approve_content"/></div>
                                                 <div>
@@ -425,7 +481,9 @@
                             <field name="step_selection_ids" widget="many2many_tags" readonly="1"/>
                         </group>
                         <group string="Thông tin duyệt">
-                            <field name="state"/>
+                            <field name="available_status_ids" invisible="1"/>
+                            <field name="status_id" options="{'no_create': True}" domain="[('id', 'in', available_status_ids)]"/>
+                            <field name="state" readonly="1" force_save="1"/>
                             <field name="approve_content"/>
                             <field name="assign_user_id" domain="[('id', 'in', allowed_user_ids)]"/> 
                             <field name="department_id" />

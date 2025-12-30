@@ -330,7 +330,7 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 
 
 #Duyệt 1 bước (env, dịch vụ, bước, người duyệt, ghi chú, action duyệt, user được giao, file đính kèm, kết luận)
-def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data, department_id = 0):
+def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, docs, final_data, department_id=0, status_id=None):
     """
     Duyệt 1 bước nào đó: Cập nhật bước yêu cầu dịch vụ (Update a service request step).
     Args:
@@ -344,6 +344,7 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         docs (list): Danh sách tài liệu đính kèm (List of attached documents).
         final_data (str): Dữ liệu cuối cùng của yêu cầu (Final data of the request).
         department_id (int, optional): ID của phòng ban liên quan (ID of the related department). Mặc định là 0.
+        status_id (int, optional): ID của trạng thái chi tiết (dynamic status). Mặc định là None.
     Returns:
         dict or bool: Trả về dict chứa thông tin cập nhật nếu thành công, False nếu không tìm thấy bước (Returns a dict with updated information if successful, False if the step is not found).
     """
@@ -413,14 +414,18 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 
 
     # Tạo bản ghi history cho bước đang duyệt
-    hh = env['student.service.request.step.history'].sudo().with_user(system_user).create({
+    history_vals = {
         'request_id': requestid,
         'step_id': step.id,
         'state': act,
         'user_id': userid,
         'note': note,
         'date': Datetime.now(),
-    })
+    }
+    if status_id:
+        history_vals['status_id'] = status_id
+        
+    hh = env['student.service.request.step.history'].sudo().with_user(system_user).create(history_vals)
 
     vals = {
         'request_id': requestid,
@@ -431,6 +436,8 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         'assign_user_id': nextuserid if nextuserid else 0,
         'history_ids': [(4, hh.id)],
     }
+    if status_id:
+        vals['status_id'] = status_id
     
     if step.base_secquence == 1:
         vals['file_ids'] = step.file_ids
