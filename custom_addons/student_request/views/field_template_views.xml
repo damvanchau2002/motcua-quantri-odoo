@@ -64,11 +64,6 @@
         </field>
     </record>
 
-    <menuitem 
-        id="menu_field_template" 
-        name="Field Templates" 
-        parent="student_request_config"
-        action="action_field_template"
-        sequence="15"/>
+
 
 </odoo>

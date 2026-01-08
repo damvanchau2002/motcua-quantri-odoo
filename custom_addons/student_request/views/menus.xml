@@ -90,6 +90,13 @@
         <field name="action" ref="action_student_dormitory_cluster"/>
         <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
     </record>
+    <record id="menu_field_template" model="ir.ui.menu">
+        <field name="name">Field Templates</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_field_template"/>
+        <field name="sequence">15</field>
+        <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
+    </record>
 
     <!-- User management under config -->
     <record id="menu_service_user_config" model="ir.ui.menu">
