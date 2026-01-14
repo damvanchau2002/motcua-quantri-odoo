@@ -1397,7 +1397,41 @@ class ServiceApiController(http.Controller):
                             dormitory_info['dormitory_cluster'] = cluster.name or 'Không có thông tin'
                             if cluster.area_id:
                                 dormitory_info['dormitory_area'] = cluster.area_id.name or 'Không có thông tin'
+                # Lấy thông tin input dynamic
+                inputs = []
+                for input_item in req.input_ids.sorted('sequence'):
+                     inputs.append({
+                        'name': input_item.name,
+                        'label': input_item.label,
+                        'value': input_item.value_display or '',
+                        'type': input_item.field_type,
+                    })
+
+                # Lấy danh sách file đính kèm
+                attachments = []
+                # 1. Từ field image_attachment_ids
+                for att in req.image_attachment_ids:
+                    attachments.append({
+                        'id': att.id,
+                        'name': att.name,
+                        'url': f"/web/content/{att.id}",
+                        'mimetype': att.mimetype
+                    })
                 
+                # 2. Từ ir.attachment (linked via res_model/res_id) - tránh trùng lặp
+                linked_atts = request.env['ir.attachment'].sudo().search([
+                    ('res_model', '=', 'student.service.request'),
+                    ('res_id', '=', req.id),
+                    ('id', 'not in', req.image_attachment_ids.ids)
+                ])
+                for att in linked_atts:
+                    attachments.append({
+                        'id': att.id,
+                        'name': att.name,
+                        'url': f"/web/content/{att.id}",
+                        'mimetype': att.mimetype
+                    })
+
                 results.append({
                     'id': req.id,
 
@@ -1424,6 +1458,8 @@ class ServiceApiController(http.Controller):
                         'name': req.service_id.name,
                         'description': req.service_id.description,
                     } if req.service_id else {},
+                    'inputs': inputs,
+                    'attachments': attachments,
 
                  
                     'steps': steps,
@@ -1462,23 +1498,223 @@ class ServiceApiController(http.Controller):
     @http.route('/api/service/request/detail/<int:request_id>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_service_request_detail(self, request_id):
         if request.httprequest.method == 'OPTIONS':
-                            return Response(
-                                status=200,
-                                headers=[
-                                    ('Access-Control-Allow-Origin', '*'),
-                                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                    ('Access-Control-Allow-Credentials', 'true'),
-                                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
-                                ]
-                            )
-        sysuser = request.env['res.users'].sudo().browse(1)
-        req = request.env['student.service.request'].sudo().with_user(sysuser).browse(request_id)
-        if not req.exists():
             return Response(
-                json.dumps({'success': False, 'message': 'Service request not found', 'data': {}}),
+                status=200,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true'),
+                    ('Access-Control-Max-Age', '86400')
+                ]
+            )
+
+        try:
+            sysuser = request.env['res.users'].sudo().browse(1)
+            req = request.env['student.service.request'].sudo().with_user(sysuser).browse(request_id)
+            if not req.exists():
+                return Response(
+                    json.dumps({'success': False, 'message': 'Service request not found', 'data': {}}),
+                    content_type='application/json',
+                    status=404,
+                    headers=[
+                        ('Access-Control-Allow-Origin', '*'),
+                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                        ('Access-Control-Allow-Credentials', 'true')
+                    ]
+                )
+
+            # Sắp xếp steps theo base_secquence
+            sorted_steps = req.step_ids.sorted(lambda s: s.base_secquence or 0)
+            
+            sumhistories = []
+            for step in sorted_steps:
+                for h in step.history_ids:
+                    sumhistories.append({
+                        'id': h.id,
+                        'step_id': step.id,
+                        'step_name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
+                        'state': h.state,
+                        'user_id': h.user_id.id if h.user_id else None,
+                        'user_name': h.user_id.name if h.user_id else '',
+                        'note': h.note,
+                        'date': format_datetime_local(h.date),
+                    })
+            
+            # Populate inputs correctly
+            inputs = []
+            if req.input_ids:
+                for inp in req.input_ids.sorted('sequence'):
+                    inputs.append({
+                        'name': inp.name,
+                        'label': inp.label,
+                        'type': inp.field_type,
+                        'value_display': inp.value_display,
+                        'required': inp.required,
+                    })
+
+            # Populate attachments
+            attachments = []
+            if req.image_attachment_ids:
+                attachments = req.image_attachment_ids.ids
+
+            req_data = {
+                'id': req.id,
+                
+                # Thông tin service đầy đủ
+                'service_id': req.service_id.id if req.service_id else None,
+                'service_name': req.service_id.name if req.service_id else '',
+                'service_description': req.service_id.description if req.service_id else '',
+                
+                'name': req.name,
+                'note': req.note,
+                'inputs': inputs,
+                'attachments': attachments,
+                
+                'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
+                'request_date': format_datetime_local(req.request_date),
+                'expired_date': format_datetime_local(req.expired_date) if hasattr(req, 'expired_date') and req.expired_date else None,
+
+                'request_user_id': req.request_user_id.id if req.request_user_id else None,
+                'request_user_name': req.request_user_id.name if req.request_user_id else '',
+                'request_user_phone': req.request_user_phone or '',
+                'request_user_dormitory_full': req.request_user_dormitory_full or '',
+                'request_user_dormitory_house': req.request_user_dormitory_house or '',
+                'request_user_dormitory_room': req.request_user_dormitory_room or '',
+                
+                # Thông tin người đang xử lý
+                'user_processing_id': req.user_processing_id.id if hasattr(req, 'user_processing_id') and req.user_processing_id else None,
+                'user_processing_name': req.user_processing_id.name if hasattr(req, 'user_processing_id') and req.user_processing_id else '',
+                
+                # Thông tin hủy yêu cầu
+                'cancel_reason': req.cancel_reason or '',
+                'cancel_date': format_datetime_local(req.cancel_date) if req.cancel_date else None,
+                'cancel_user_id': req.cancel_user_id.id if req.cancel_user_id else None,
+                'cancel_user_name': req.cancel_user_id.name if req.cancel_user_id else '',
+
+                # Service step selections được sắp xếp theo sequence
+                'service_step_selection_ids': [{
+                    'id': selection.id,
+                    'sequence': selection.sequence,
+                    'step_id': selection.step_id.id if selection.step_id else None,
+                    'step_name': selection.step_name or '',
+                    'step_description': selection.step_description or '',
+                    'name': selection.name or '',
+                    
+                    # Thông tin từ ServiceStep (step_id)
+                    'base_step_name': selection.step_id.name if selection.step_id else '',
+                    'base_step_sequence': selection.step_id.sequence if selection.step_id else 0,
+                    'base_step_nextstep': selection.step_id.nextstep if selection.step_id else 99,
+                    'base_step_state': selection.step_id.state if selection.step_id else 1,
+                    
+                    # Thông tin phân công từ ServiceStep
+                    'step_user_ids': [{'id': u.id, 'name': u.name} for u in selection.step_id.user_ids] if selection.step_id else [],
+                    'step_role_ids': [{'id': r.id, 'name': r.name} for r in selection.step_id.role_ids] if selection.step_id else [],
+                    'step_department_id': selection.step_id.department_id.id if selection.step_id and selection.step_id.department_id else None,
+                    'step_department_name': selection.step_id.department_id.name if selection.step_id and selection.step_id.department_id else '',
+                    
+                    # Trạng thái mặc định
+                    'state': 'pending', 
+                    'activated': False,
+                    'disabled': True,
+                    'approve_content': '',
+                    'approve_date': '',
+                    'final_data': '',
+                    
+                    # Thông tin phân công (trống)
+                    'assign_user_id': None,
+                    'assign_user_name': '',
+                    'assigned_department_id': None,
+                    'assigned_department_name': '',
+                    
+                    # File và history (trống)
+                    'file_ids': [],
+                    'file_checkbox_ids': [],
+                    'history_ids': [],
+                } for selection in req.service_id.step_selection_ids.sorted('sequence')] if req.service_id and req.service_id.step_selection_ids else [],
+
+                # Steps được sắp xếp theo base_secquence
+                'step_ids': [{
+                    'id': step.id,
+                    'sequence': step.base_secquence or 0,
+                    'step_id': step.base_step_id.id if step.base_step_id else None,
+                    'step_name': step.display_step_name or '',
+                    'step_description': step.base_step_id.description if step.base_step_id else '',
+                    'name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
+                    
+                    # Thông tin từ ServiceStep
+                    'base_step_name': step.base_step_id.name if step.base_step_id else '',
+                    'base_step_sequence': step.base_step_id.sequence if step.base_step_id else 0,
+                    'base_step_nextstep': step.base_step_id.nextstep if step.base_step_id else 99,
+                    'base_step_state': step.base_step_id.state if step.base_step_id else 1,
+                    
+                    # Thông tin phân công từ ServiceStep
+                    'step_user_ids': [{'id': u.id, 'name': u.name} for u in step.base_step_id.user_ids] if step.base_step_id else [],
+                    'step_role_ids': [{'id': r.id, 'name': r.name} for r in step.base_step_id.role_ids] if step.base_step_id else [],
+                    'step_department_id': step.base_step_id.department_id.id if step.base_step_id and step.base_step_id.department_id else None,
+                    'step_department_name': step.base_step_id.department_id.name if step.base_step_id and step.base_step_id.department_id else '',
+                    
+                    # Trạng thái thực tế
+                    'state': step.state,
+                    'activated': not step.disabled,
+                    'disabled': step.disabled,
+                    'approve_content': step.approve_content or '',
+                    'approve_date': format_datetime_local(step.approve_date) if step.approve_date else '',
+                    'final_data': step.final_data or '',
+                    
+                    # Thông tin phân công thực tế
+                    'assign_user_id': step.assign_user_id.id if step.assign_user_id else None,
+                    'assign_user_name': step.assign_user_id.name if step.assign_user_id else '',
+                    'assigned_department_id': step.department_id.id if step.department_id else None,
+                    'assigned_department_name': step.department_id.name if step.department_id else '',
+                    
+                    # Thông tin selection
+                    'selection_id': step.selection_id.id if step.selection_id else None,
+                    'selection_name': step.selection_id.name if step.selection_id else '',
+                    
+                    # File và history
+                    'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
+                    'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
+                    'history_ids': [{
+                        'id': h.id,
+                        'state': h.state,
+                        'user_id': h.user_id.id if h.user_id else None,
+                        'user_name': h.user_id.name if h.user_id else '',
+                        'note': h.note,
+                        'date': format_datetime_local(h.date),
+                    } for h in step.history_ids],
+                } for step in sorted_steps],
+                
+                'users': [{'id': u.id, 'name': u.name} for u in req.users],
+                'role_ids': [{'id': r.id, 'name': r.name} for r in req.role_ids],
+
+                'final_state': req.final_state,
+                'final_data': req.final_data,
+                'final_star': req.final_star or 0,
+                'approve_content': req.approve_content,
+                'approve_date': format_datetime_local(req.approve_date),
+                'approve_user_id': req.approve_user_id.id if req.approve_user_id else None,
+                'approve_user_name': req.approve_user_id.name if req.approve_user_id else '',
+                
+                # Thông tin thống kê và trạng thái
+                'is_new': req.is_new,
+                'is_expired': req.is_expired if hasattr(req, 'is_expired') else False,
+                'send_expired_warning': req.send_expired_warning,
+                'expiry_warning_sent': req.expiry_warning_sent,
+                'extension_count': req.extension_count if hasattr(req, 'extension_count') else 0,
+                'total_extended_hours': req.total_extended_hours if hasattr(req, 'total_extended_hours') else 0,
+                
+                # Thông tin phản hồi
+                'acceptance': req.acceptance or '',
+                
+                'histories': sumhistories
+            }
+
+            return Response(
+                json.dumps({'success': True, 'message': 'Thành công', 'data': req_data}),
                 content_type='application/json',
-                status=404,
+                status=200,
                 headers=[
                     ('Access-Control-Allow-Origin', '*'),
                     ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
@@ -1486,194 +1722,18 @@ class ServiceApiController(http.Controller):
                     ('Access-Control-Allow-Credentials', 'true')
                 ]
             )
-
-        # Sắp xếp steps theo base_secquence như trong model
-        sorted_steps = req.step_ids.sorted(lambda s: s.base_secquence or 0)
-        
-        sumhistories = []
-        for step in sorted_steps:
-            for h in step.history_ids:
-                sumhistories.append({
-                    'id': h.id,
-                    'step_id': step.id,
-                    'step_name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
-                    'state': h.state,
-                    'user_id': h.user_id.id if h.user_id else None,
-                    'user_name': h.user_id.name if h.user_id else '',
-                    'note': h.note,
-                    'date': format_datetime_local(h.date),
-                })
-        
-        req_data = {
-            'id': req.id,
-            
-            # Thông tin service đầy đủ
-            'service_id': req.service_id.id if req.service_id else None,
-            'service_name': req.service_id.name if req.service_id else '',
-            'service_description': req.service_id.description if req.service_id else '',
-            
-            'name': req.name,
-            'note': req.note,
-            
-            'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
-            'request_date': format_datetime_local(req.request_date),
-            'expired_date': format_datetime_local(req.expired_date) if hasattr(req, 'expired_date') and req.expired_date else None,
-
-            'request_user_id': req.request_user_id.id if req.request_user_id else None,
-            'request_user_name': req.request_user_id.name if req.request_user_id else '',
-            'request_user_phone': req.request_user_phone or '',
-            'request_user_dormitory_full': req.request_user_dormitory_full or '',
-            'request_user_dormitory_house': req.request_user_dormitory_house or '',
-            'request_user_dormitory_room': req.request_user_dormitory_room or '',
-            
-            # Thông tin người đang xử lý
-            'user_processing_id': req.user_processing_id.id if hasattr(req, 'user_processing_id') and req.user_processing_id else None,
-            'user_processing_name': req.user_processing_id.name if hasattr(req, 'user_processing_id') and req.user_processing_id else '',
-            
-            # Thông tin hủy yêu cầu
-            'cancel_reason': req.cancel_reason or '',
-            'cancel_date': format_datetime_local(req.cancel_date) if req.cancel_date else None,
-            'cancel_user_id': req.cancel_user_id.id if req.cancel_user_id else None,
-            'cancel_user_name': req.cancel_user_id.name if req.cancel_user_id else '',
-
-            # Service step selections được sắp xếp theo sequence
-            'service_step_selection_ids': [{
-                'id': selection.id,
-                'sequence': selection.sequence,
-                'step_id': selection.step_id.id if selection.step_id else None,
-                'step_name': selection.step_name or '',
-                'step_description': selection.step_description or '',
-                'name': selection.name or '',
-                
-                # Thông tin từ ServiceStep (step_id)
-                'base_step_name': selection.step_id.name if selection.step_id else '',
-                'base_step_sequence': selection.step_id.sequence if selection.step_id else 0,
-                'base_step_nextstep': selection.step_id.nextstep if selection.step_id else 99,
-                'base_step_state': selection.step_id.state if selection.step_id else 1,
-                
-                # Thông tin phân công từ ServiceStep
-                'step_user_ids': [{'id': u.id, 'name': u.name} for u in selection.step_id.user_ids] if selection.step_id else [],
-                'step_role_ids': [{'id': r.id, 'name': r.name} for r in selection.step_id.role_ids] if selection.step_id else [],
-                'step_department_id': selection.step_id.department_id.id if selection.step_id and selection.step_id.department_id else None,
-                'step_department_name': selection.step_id.department_id.name if selection.step_id and selection.step_id.department_id else '',
-                
-                # Trạng thái mặc định cho selection (chưa có request step tương ứng)
-                'state': 'pending',  # Trạng thái mặc định
-                'activated': False,  # Chưa kích hoạt
-                'disabled': True,    # Mặc định khóa
-                'approve_content': '',
-                'approve_date': '',
-                'final_data': '',
-                
-                # Thông tin phân công (trống vì chưa có request step)
-                'assign_user_id': None,
-                'assign_user_name': '',
-                'assigned_department_id': None,
-                'assigned_department_name': '',
-                
-                # File và history (trống vì chưa có request step)
-                'file_ids': [],
-                'file_checkbox_ids': [],
-                'history_ids': [],
-            } for selection in req.service_id.step_selection_ids.sorted('sequence')] if req.service_id and req.service_id.step_selection_ids else [],
-
-            # Steps được sắp xếp theo base_secquence và bao gồm đầy đủ thông tin từ model
-            'step_ids': [{
-                'id': step.id,
-                'sequence': step.base_secquence or 0,  # Dùng base_secquence làm sequence chính
-                'step_id': step.base_step_id.id if step.base_step_id else None,
-                'step_name': step.display_step_name or '',
-                'step_description': step.base_step_id.description if step.base_step_id else '',
-                'name': step.display_step_name or (step.base_step_id.name if step.base_step_id else ''),
-                
-                # Thông tin từ ServiceStep (base_step_id)
-                'base_step_name': step.base_step_id.name if step.base_step_id else '',
-                'base_step_sequence': step.base_step_id.sequence if step.base_step_id else 0,
-                'base_step_nextstep': step.base_step_id.nextstep if step.base_step_id else 99,
-                'base_step_state': step.base_step_id.state if step.base_step_id else 1,
-                
-                # Thông tin phân công từ ServiceStep
-                'step_user_ids': [{'id': u.id, 'name': u.name} for u in step.base_step_id.user_ids] if step.base_step_id else [],
-                'step_role_ids': [{'id': r.id, 'name': r.name} for r in step.base_step_id.role_ids] if step.base_step_id else [],
-                'step_department_id': step.base_step_id.department_id.id if step.base_step_id and step.base_step_id.department_id else None,
-                'step_department_name': step.base_step_id.department_id.name if step.base_step_id and step.base_step_id.department_id else '',
-                
-                # Trạng thái thực tế của request step
-                'state': step.state,
-                'activated': not step.disabled,  # Ngược lại với disabled
-                'disabled': step.disabled,
-                'approve_content': step.approve_content or '',
-                'approve_date': format_datetime_local(step.approve_date) if step.approve_date else '',
-                'final_data': step.final_data or '',
-                
-                # Thông tin phân công thực tế
-                'assign_user_id': step.assign_user_id.id if step.assign_user_id else None,
-                'assign_user_name': step.assign_user_id.name if step.assign_user_id else '',
-                'assigned_department_id': step.department_id.id if step.department_id else None,
-                'assigned_department_name': step.department_id.name if step.department_id else '',
-                
-                # Thông tin selection
-                'selection_id': step.selection_id.id if step.selection_id else None,
-                'selection_name': step.selection_id.name if step.selection_id else '',
-                
-                # File và history
-                'file_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_ids],
-                'file_checkbox_ids': [{'id': f.id, 'name': f.name, 'description': f.description} for f in step.file_checkbox_ids],
-                'history_ids': [{
-                    'id': h.id,
-                    'state': h.state,
-                    'user_id': h.user_id.id if h.user_id else None,
-                    'user_name': h.user_id.name if h.user_id else '',
-                    'note': h.note,
-                    'date': format_datetime_local(h.date),
-                } for h in step.history_ids],
-            } for step in sorted_steps],  # Dùng sorted_steps
-            
-            'users': [{'id': u.id, 'name': u.name} for u in req.users],
-            'role_ids': [{'id': r.id, 'name': r.name} for r in req.role_ids],
-
-            'final_state': req.final_state,
-            'final_data': req.final_data,
-            'final_star': req.final_star or 0,
-            'approve_content': req.approve_content,
-            'approve_date': format_datetime_local(req.approve_date),
-            'approve_user_id': req.approve_user_id.id if req.approve_user_id else None,
-            'approve_user_name': req.approve_user_id.name if req.approve_user_id else '',
-            
-            # Thông tin thống kê và trạng thái
-            'is_new': req.is_new,
-            'is_expired': req.is_expired if hasattr(req, 'is_expired') else False,
-            'send_expired_warning': req.send_expired_warning,
-            'expiry_warning_sent': req.expiry_warning_sent,
-            'extension_count': req.extension_count if hasattr(req, 'extension_count') else 0,
-            'total_extended_hours': req.total_extended_hours if hasattr(req, 'total_extended_hours') else 0,
-            
-            # Thông tin phản hồi
-            'acceptance': req.acceptance or '',
-            
-            # Dynamic form inputs
-            'inputs': [{
-                'name': inp.name,
-                'label': inp.label,
-                'type': inp.field_type,
-                'value_display': inp.value_display,
-                'required': inp.required,
-            } for inp in req.input_ids],
-            
-            'histories': sumhistories
-        }
-
-        return Response(
-            json.dumps({'success': True, 'message': 'Thành công', 'data': req_data}),
-            content_type='application/json',
-            status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ('Access-Control-Allow-Credentials', 'true')
-            ]
-        )
+        except Exception as e:
+            return Response(
+                json.dumps({'success': False, 'message': f'Server Error: {str(e)}', 'data': {}}),
+                content_type='application/json',
+                status=500,
+                headers=[
+                    ('Access-Control-Allow-Origin', '*'),
+                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
+                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+                    ('Access-Control-Allow-Credentials', 'true')
+                ]
+            )
 
     # Lấy danh sách thông báo của user
     @http.route('/api/service/request/approve', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)

@@ -84,6 +84,12 @@
         <field name="action" ref="action_student_dormitory_area"/>
         <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
     </record>
+    <record id="student_dormitory_sync_menu" model="ir.ui.menu">
+        <field name="name">Đồng bộ KTX</field>
+        <field name="parent_id" ref="student_request_config"/>
+        <field name="action" ref="action_sync_dormitory_data_server"/>
+        <field name="groups_id" eval="[(4, ref('group_menu_configuration'))]"/>
+    </record>
     <record id="student_dormitory_cluster" model="ir.ui.menu">
         <field name="name">Cụm ký túc xá</field>
         <field name="parent_id" ref="student_request_config"/>

@@ -34,7 +34,6 @@ def action_sync_area_cluster(self):
                 vals = {
                     'area_id': area.get("Id"),
                     'name': area.get("Name"),
-                    'description': area.get("Description", ''),
                 }
                 area_rec = area_obj.search([('area_id', '=', area.get("Id"))], limit=1)
                 if area_rec:
@@ -51,7 +50,6 @@ def action_sync_area_cluster(self):
                     'qlsv_area_id': area_id,
                     'area_id': area_rec.id if area_rec else False,
                     'name': cluster.get("Name"),
-                    'description': '',
                 }
                 cluster_rec = cluster_obj.search([('qlsv_cluster_id', '=', cluster.get("Id"))], limit=1)
                 if cluster_rec:
@@ -1965,7 +1963,7 @@ class StudentDormitoryArea(models.Model):
     description = fields.Text('Mô tả khu')
     cluster_ids = fields.One2many('student.dormitory.cluster', 'area_id', string='Các cụm thuộc khu')
     
-    def action_sync_cluster(self):
+    def action_sync_area_cluster(self):
         return action_sync_area_cluster(self)
 
     def action_back(self):
