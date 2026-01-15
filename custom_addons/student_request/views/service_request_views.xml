@@ -109,7 +109,30 @@
                     <group>
                         <group string="Nội dung yêu cầu">
                             <field name="service_id"/>
-                            <field name="image_attachment_ids" widget="many2many" mode="kanban" string="Ảnh đính kèm">
+                            <field name="image_attachment_ids" widget="many2many" mode="kanban" string="Ảnh đính kèm (Sinh viên)">
+                                <kanban>
+                                    <field name="name"/>
+                                    <field name="datas"/>
+                                    <templates>
+                                        <t t-name="card">
+                                            <div class="oe_kanban_global_click" style="display: inline-block; margin: 5px;">
+                                                <img t-att-src="'/web/image/ir.attachment/' + record.id.raw_value + '/datas'" 
+                                                    style="max-width: 150px; max-height: 150px; cursor: pointer;"/>
+                                                <div class="oe_kanban_details" style="text-align: center;">
+                                                    <field name="name"/>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                </kanban>
+                                <form>
+                                    <sheet>
+                                        <field name="name"/>
+                                        <field name="datas" widget="image"/>
+                                    </sheet>
+                                </form>
+                            </field>
+                            <field name="processor_image_attachment_ids" widget="many2many" mode="kanban" string="Ảnh đính kèm (Cán bộ)">
                                 <kanban>
                                     <field name="name"/>
                                     <field name="datas"/>

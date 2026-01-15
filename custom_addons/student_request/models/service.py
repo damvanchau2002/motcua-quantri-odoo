@@ -630,10 +630,20 @@ class ServiceRequest(models.Model):
     note = fields.Text('Ghi chú', help='Ghi chú bổ sung cho yêu cầu dịch vụ do SV nhập')
     image_attachment_ids = fields.Many2many(
         'ir.attachment',
-        string='Ảnh đính kèm',
+        string='Ảnh đính kèm (Sinh viên)',
         domain=[('mimetype', 'ilike', 'image')],
         help='Ảnh đính kèm khi gửi yêu cầu dịch vụ',
         # Ảnh đính kèm Gửi theo yêu cầu dịch vụ (là các ảnh giấy tờ liên quan) 
+        ondelete='cascade'
+    )
+    processor_image_attachment_ids = fields.Many2many(
+        'ir.attachment',
+        'student_request_processor_img_rel',
+        'request_id',
+        'attachment_id',
+        string='Ảnh đính kèm (Cán bộ)',
+        domain=[('mimetype', 'ilike', 'image')],
+        help='Ảnh đính kèm do cán bộ xử lý tải lên',
         ondelete='cascade'
     )
     input_ids = fields.One2many(

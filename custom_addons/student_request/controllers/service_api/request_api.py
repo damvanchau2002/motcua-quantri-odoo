@@ -105,7 +105,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
                 'service_id': service.id,
                 'request_user_id': user.id,
                 'note': note,
-                'image_attachment_ids': [(6, 0, attachments)],
+                'image_attachment_ids': [(4, att_id) for att_id in attachments],
                 'request_date': Datetime.now(),
                 'expired_date': Datetime.now() + timedelta(hours=service.duration or 168),  # Mặc định là 168 giờ nếu không có expired_duration
                 'final_state': 'pending',
@@ -1866,10 +1866,10 @@ class ServiceApiController(http.Controller):
                     })
                     attachment_ids.append(attachment.id)
                 
-                # Cập nhật ảnh vào yêu cầu
+                # Cập nhật ảnh vào yêu cầu (Ảnh của cán bộ xử lý)
                 if attachment_ids:
                     req.sudo().with_user(sysuser).write({
-                        'image_attachment_ids': [(4, att_id) for att_id in attachment_ids]
+                        'processor_image_attachment_ids': [(4, att_id) for att_id in attachment_ids]
                     })
 
             # Cập nhật bước duyệt
