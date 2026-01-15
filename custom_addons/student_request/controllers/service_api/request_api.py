@@ -440,8 +440,13 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
         vals['status_id'] = status_id
     
     if step.base_secquence == 1:
-        vals['file_ids'] = step.file_ids
-        vals['file_checkbox_ids'] = step.file_checkbox_ids
+        vals['file_ids'] = [(6, 0, step.file_ids.ids)]
+        if docs:
+            # Nếu có danh sách docs (checked_ids) gửi lên thì cập nhật
+            vals['file_checkbox_ids'] = [(6, 0, docs)]
+        else:
+            # Nếu không có thì giữ nguyên
+            vals['file_checkbox_ids'] = [(6, 0, step.file_checkbox_ids.ids)]
 
     next_step_users = []
     department_user_id = 0
@@ -1749,16 +1754,52 @@ class ServiceApiController(http.Controller):
                             ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
                         ]
                     )
-        params = request.httprequest.get_json(force=True, silent=True) or {}
-        request_id = params.get('request_id')
-        user_id = params.get('user_id')
-        asign_user_id = params.get('asign_user_id', 0)
-        department_id = params.get('department_id', 0)
-        step_id = params.get('step_id')
-        checked_ids = params.get('checked_ids')
-        state = params.get('state', '')
-        note = params.get('note', '')
-        final = params.get('final', '')
+        
+        # Hỗ trợ cả JSON và Form Data (multipart/form-data)
+        # Lưu ý: Không dùng force=True cho get_json để tránh lỗi đọc stream khi upload file
+        params = request.httprequest.get_json(silent=True) or request.httprequest.form or {}
+        
+        # Log params để debug
+        _logger.info(f"Approve Request Params: {params}")
+
+        try:
+            request_id = params.get('request_id')
+            user_id = params.get('user_id')
+            asign_user_id = int(params.get('asign_user_id', 0) or 0)
+            department_id = int(params.get('department_id', 0) or 0)
+            step_id = params.get('step_id')
+            checked_ids = params.get('checked_ids')
+            state = params.get('state', '')
+            note = params.get('note', '')
+            final = params.get('final', '')
+        except Exception as e:
+            _logger.error(f"Error parsing params: {e}")
+            return Response(
+                json.dumps({'success': False, 'message': 'Invalid parameters'}),
+                content_type='application/json',
+                status=400
+            )
+
+        # Xử lý checked_ids nếu là string (do gửi qua Form Data)
+        if checked_ids:
+            if isinstance(checked_ids, str):
+                try:
+                    checked_ids = json.loads(checked_ids)
+                except:
+                    checked_ids = []
+            elif isinstance(checked_ids, bool):
+                 checked_ids = []
+            
+            # Ensure list of ints
+            if isinstance(checked_ids, list):
+                try:
+                    checked_ids = [int(x) for x in checked_ids]
+                except:
+                    checked_ids = []
+            else:
+                checked_ids = []
+        else:
+            checked_ids = []
 
         if not request_id or not user_id or not step_id:
             return Response(
@@ -1808,8 +1849,31 @@ class ServiceApiController(http.Controller):
             )
 
         try:
+            # Xử lý upload ảnh (nếu có)
+            files = request.httprequest.files.getlist('attachment')
+            attachment_ids = []
+            if files:
+                for file_storage in files:
+                    file_data = file_storage.read()
+                    base64_data = base64.b64encode(file_data).decode('utf-8')
+                    attachment = request.env['ir.attachment'].sudo().create({
+                        'name': file_storage.filename,
+                        'datas': base64_data,
+                        'res_model': 'student.service.request',
+                        'res_id': req.id,
+                        'type': 'binary',
+                        'mimetype': file_storage.mimetype or 'application/octet-stream',
+                    })
+                    attachment_ids.append(attachment.id)
+                
+                # Cập nhật ảnh vào yêu cầu
+                if attachment_ids:
+                    req.sudo().with_user(sysuser).write({
+                        'image_attachment_ids': [(4, att_id) for att_id in attachment_ids]
+                    })
+
             # Cập nhật bước duyệt
-            vals = update_request_step(request.env, request_id, step_id, user_id, note, state, asign_user_id, checked_ids, final, department_id)
+            vals = update_request_step(request.env, int(request_id), int(step_id), int(user_id), note, state, asign_user_id, checked_ids, final, department_id)
             step.sudo().with_user(sysuser).write(vals)
             return Response(
                 json.dumps({'success': True, 'message': 'Yêu cầu đã được duyệt', 'data': {'request_id': req.id, 'step_id': step.id, 'user_id': user.id, 'state': state, 'note': note}}),
