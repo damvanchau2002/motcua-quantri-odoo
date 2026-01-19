@@ -16,20 +16,21 @@ from .utils import *
 
 class AuthApiController(http.Controller):
 
+    def _get_cors_headers(self):
+        origin = request.httprequest.headers.get('Origin')
+        return [
+            ('Access-Control-Allow-Origin', origin if origin else '*'),
+            ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+            ('Access-Control-Allow-Credentials', 'true'),
+            ('Access-Control-Max-Age', '86400')
+        ]
+
     #API làm mới JWT token
     @http.route('/api/public_user/refresh_token', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def refresh_token(self):
         if request.httprequest.method == 'OPTIONS':
-                    return Response(
-                        status=200,
-                        headers=[
-                            ('Access-Control-Allow-Origin', '*'),
-                            ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                            ('Access-Control-Allow-Credentials', 'true'),
-                            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                        ]
-                    )          
+            return Response(status=200, headers=self._get_cors_headers())
         params = request.httprequest.get_json(force=True, silent=True) or {}
         auth_header = request.httprequest.headers.get('Authorization')
         token = None
@@ -42,36 +43,17 @@ class AuthApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Missing authorization token'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         payload = decode_jwt_token(token, SECRET_KEY)
         if request.httprequest.method == 'OPTIONS':
-         return Response(
-                            status=200,
-                            headers=[
-                                ('Access-Control-Allow-Origin', '*'),
-                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                ('Access-Control-Allow-Credentials', 'true'),
-                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                            ]
-                        )  
+            return Response(status=200, headers=self._get_cors_headers())
         if 'error' in payload:
             return Response(
                 json.dumps({'success': False, 'message': payload['error']}),
                 content_type='application/json',
                 status=401,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         uid = payload.get('uid')
         if not uid:
@@ -79,61 +61,20 @@ class AuthApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Invalid token payload'}),
                 content_type='application/json',
                 status=401,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         new_token = generate_jwt_token(uid, SECRET_KEY)
-        if request.httprequest.method == 'OPTIONS':
-                            return Response(
-                                status=200,
-                                headers=[
-                                    ('Access-Control-Allow-Origin', '*'),
-                                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                    ('Access-Control-Allow-Credentials', 'true'),
-                                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                                ]
-                            )   
         return Response(
             json.dumps({'success': True, 'message': 'Token refreshed', 'token_auth': new_token}),
             content_type='application/json',
             status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ('Access-Control-Allow-Credentials', 'true')
-            ]
+            headers=self._get_cors_headers()
         )
 
     # Bắt tất cả các request OPTIONS để hỗ trợ CORS preflight
     @http.route('/api/<path:any>', type='http', auth='public', methods=['OPTIONS'], csrf=False)
     def catch_all_options(self, any):
-        if request.httprequest.method == 'OPTIONS':
-                            return Response(
-                                status=200,
-                                headers=[
-                                    ('Access-Control-Allow-Origin', '*'),
-                                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                    ('Access-Control-Allow-Credentials', 'true'),
-                                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                                ]
-                            )      
-        return Response(
-            '',
-            status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ('Access-Control-Allow-Credentials', 'true')
-            ]
-        )
+        return Response(status=200, headers=self._get_cors_headers())
     # Đăng nhập public user 
     @http.route('/api/public_user/login', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def public_user_login(self):
@@ -143,16 +84,7 @@ class AuthApiController(http.Controller):
         except Exception:
             pass
         if request.httprequest.method == 'OPTIONS':
-                        return Response(
-                            status=200,
-                            headers=[
-                                ('Access-Control-Allow-Origin', '*'),
-                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                ('Access-Control-Allow-Credentials', 'true'),
-                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                            ]
-                        )   
+            return Response(status=200, headers=self._get_cors_headers())
         params = request.httprequest.get_json(force=True, silent=True) or {}
         username = params.get('username')
         password = params.get('password')
@@ -164,24 +96,14 @@ class AuthApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Thiếu tên đăng nhập.'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         if not password:
             return Response(
                 json.dumps({'success': False, 'message': 'Thiếu mật khẩu.'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
         external_api_url = "https://sv_test.ktxhcm.edu.vn/MotCuaApi/Login"
@@ -231,12 +153,7 @@ class AuthApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=502,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
 
             # external_data đã được lấy trong vòng lặp trên (nếu có)
@@ -249,12 +166,7 @@ class AuthApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=502,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
 
             success = external_data.get('Success', False)
@@ -275,12 +187,7 @@ class AuthApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=401,  # Sai thông tin đăng nhập hoặc không tìm thấy sinh viên
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
             # Thành công: xử lý dữ liệu từ external API
             data = external_data.get('Data', {})
@@ -307,12 +214,7 @@ class AuthApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=200,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
             
             full_name = data.get('FullName')
@@ -525,12 +427,7 @@ class AuthApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
             # Nếu API trả về lỗi hoặc không có dữ liệu mong muốn
@@ -543,38 +440,21 @@ class AuthApiController(http.Controller):
                     }),
                     content_type='application/json',
                     status=401,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e), 'data': ''}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
     @http.route('/api/avatar/<string:student_code>', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def proxy_avatar(self, student_code):
         if request.httprequest.method == 'OPTIONS':
-                        return Response(
-                            status=200,
-                            headers=[
-                                ('Access-Control-Allow-Origin', '*'),
-                                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                ('Access-Control-Allow-Credentials', 'true'),
-                                ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
-                            ]
-                        )     
+            return Response(status=200, headers=self._get_cors_headers())
+        
+        # Logic xử lý proxy avatar ở đây (nếu có thêm code phía sau)
         profile = request.env['student.user.profile'].sudo().search([('student_code', '=', student_code)], limit=1)
         if not profile or not profile.avatar_url:
             return Response(status=404)
@@ -585,24 +465,15 @@ class AuthApiController(http.Controller):
                 return Response(
                     resp.content,
                     content_type=resp.headers.get("Content-Type", "image/jpeg"),
-                    headers=[('Access-Control-Allow-Origin', '*')]
+                    headers=self._get_cors_headers()
                 )
         except Exception as e:
-            return Response(str(e), status=500)
+            return Response(str(e), status=500, headers=self._get_cors_headers())
     # Đăng nhập Oauth (Odoo)
     @http.route('/api/public_user/oauth', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def oauth_login(self):   
         if request.httprequest.method == 'OPTIONS':
-            return Response(
-                status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
-                ]
-            )
+            return Response(status=200, headers=self._get_cors_headers())
      
         params = request.httprequest.get_json(force=True, silent=True) or {}
         user_id = params.get('user_id')
@@ -746,12 +617,7 @@ class AuthApiController(http.Controller):
                 }}),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
         except Exception as e:
@@ -759,11 +625,6 @@ class AuthApiController(http.Controller):
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 

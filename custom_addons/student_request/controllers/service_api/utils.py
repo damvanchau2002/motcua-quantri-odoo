@@ -48,6 +48,16 @@ FIREBASE_SDK_JSON = 'firebase-adminsdk-fbsvc-75fb4407a3.json'
 # Thread lock for Firebase app initialization
 _firebase_lock = threading.Lock()
 
+def get_cors_headers(request):
+    origin = request.httprequest.headers.get('Origin')
+    return [
+        ('Access-Control-Allow-Origin', origin if origin else '*'),
+        ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+        ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+        ('Access-Control-Allow-Credentials', 'true'),
+        ('Access-Control-Max-Age', '86400')
+    ]
+
 # Tạo JWT token với uid và secretkey, thời hạn 30 ngày
 def generate_jwt_token(uid, secretkey):
     payload = {
@@ -89,11 +99,7 @@ def check_jwt_token(request, secretkey):
             json.dumps({'success': False, 'message': 'Token expired or Invalid', 'data': ''}),
             content_type='application/json',
             status=401,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'GET, POST, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-            ]
+            headers=get_cors_headers(request)
         )
 
     except Exception as e:
@@ -101,11 +107,7 @@ def check_jwt_token(request, secretkey):
             json.dumps({'success': False, 'message': str(e), 'data': ''}),
             content_type='application/json',
             status=401,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-            ]
+            headers=get_cors_headers(request)
         )
 
 # Lấy Firebase app - Thread Safe Version with Lock

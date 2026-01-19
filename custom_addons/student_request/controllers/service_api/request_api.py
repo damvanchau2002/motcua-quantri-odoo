@@ -529,12 +529,13 @@ def update_request_step(env, requestid, stepid, userid, note, act, nextuserid, d
 class ServiceApiController(http.Controller):
 
     def _get_cors_headers(self):
+        origin = request.httprequest.headers.get('Origin')
         return [
-            ('Access-Control-Allow-Origin', '*'),
-            ('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'),
-            ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
+            ('Access-Control-Allow-Origin', origin if origin else '*'),
+            ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
             ('Access-Control-Allow-Credentials', 'true'),
-            ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
+            ('Access-Control-Max-Age', '86400')
         ]
         
     def _handle_options_request(self):
@@ -548,16 +549,7 @@ class ServiceApiController(http.Controller):
     @http.route('/api/service/request/create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def create_service_request(self, **post):
         if request.httprequest.method == 'OPTIONS':
-            return Response(
-                status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '86400'),
-                ]
-            )
+            return Response(status=200, headers=self._get_cors_headers())
             
         try:
             httprequest = request.httprequest

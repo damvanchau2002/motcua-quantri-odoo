@@ -9,6 +9,16 @@ _logger = logging.getLogger(__name__)
 
 class MaintenanceAPI(http.Controller):
     
+    def _get_cors_headers(self):
+        origin = request.httprequest.headers.get('Origin')
+        return [
+            ('Access-Control-Allow-Origin', origin if origin else '*'),
+            ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+            ('Access-Control-Allow-Credentials', 'true'),
+            ('Access-Control-Max-Age', '86400')
+        ]
+
     @http.route('/api/maintenance/status', type='http', auth='none', methods=['GET', 'OPTIONS'], csrf=False)
     def get_maintenance_status(self, **kwargs):
         """
@@ -25,27 +35,20 @@ class MaintenanceAPI(http.Controller):
         }
         """
         try:
-            # Helpers for dynamic CORS
-            def _get_cors_headers(allow_methods='GET, OPTIONS'):
-                origin = request.httprequest.headers.get('Origin') or '*'
-                req_headers = request.httprequest.headers.get('Access-Control-Request-Headers') or 'Content-Type, Authorization'
-                return [
-                    ('Access-Control-Allow-Origin', origin),
-                    ('Vary', 'Origin'),
-                    ('Access-Control-Allow-Methods', allow_methods),
-                    ('Access-Control-Allow-Headers', req_headers),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '600'),
-                    ('Access-Control-Expose-Headers', 'Content-Type'),
-                ]
-
-            def _make_empty_cors_response(allow_methods='GET, OPTIONS'):
-                return request.make_response('', headers=_get_cors_headers(allow_methods))
-
             # Handle CORS preflight request
             if request.httprequest.method == 'OPTIONS':
-                return _make_empty_cors_response('GET, OPTIONS')
+                return request.make_response('', headers=self._get_cors_headers())
 
+            # Helper thống nhất cấu trúc JSON response
+            def _make_response(payload, status_code=200):
+                headers = [('Content-Type', 'application/json; charset=utf-8')] + self._get_cors_headers()
+                response = request.make_response(
+                    json.dumps(payload, ensure_ascii=False),
+                    headers=headers
+                )
+                response.status_code = status_code
+                return response
+            
             # Lấy thông tin bảo trì từ ir.config_parameter
             config_param = request.env['ir.config_parameter'].sudo()
             
@@ -114,16 +117,6 @@ class MaintenanceAPI(http.Controller):
                     return dt_vn.isoformat()
                 except Exception:
                     return None
-
-            # Helper thống nhất cấu trúc JSON response
-            def _make_response(payload, status_code=200, allow_methods='GET, OPTIONS'):
-                headers = [('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers(allow_methods)
-                response = request.make_response(
-                    json.dumps(payload, ensure_ascii=False),
-                    headers=headers
-                )
-                response.status_code = status_code
-                return response
             
             try:
                 if maintenance_status == 'on':
@@ -187,7 +180,7 @@ class MaintenanceAPI(http.Controller):
                 'data': data,
                 'error': None
             }
-            return _make_response(payload, 200, 'GET, OPTIONS')
+            return _make_response(payload, 200)
             
         except Exception as e:
             _logger.error(f"Error in get_maintenance_status: {str(e)}")
@@ -199,7 +192,7 @@ class MaintenanceAPI(http.Controller):
                     'message': str(e)
                 }
             }
-            return _make_response(payload, 500, 'GET, OPTIONS')
+            return _make_response(payload, 500)
 
     @http.route('/api/maintenance/set', type='http', auth='user', methods=['POST', 'OPTIONS'], csrf=False)
     def set_maintenance_status(self, **kwargs):
@@ -223,26 +216,9 @@ class MaintenanceAPI(http.Controller):
         }
         """
         try:
-            # Helpers for dynamic CORS (reuse definitions if needed)
-            def _get_cors_headers(allow_methods='POST, OPTIONS'):
-                origin = request.httprequest.headers.get('Origin') or '*'
-                req_headers = request.httprequest.headers.get('Access-Control-Request-Headers') or 'Content-Type, Authorization'
-                return [
-                    ('Access-Control-Allow-Origin', origin),
-                    ('Vary', 'Origin'),
-                    ('Access-Control-Allow-Methods', allow_methods),
-                    ('Access-Control-Allow-Headers', req_headers),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '600'),
-                    ('Access-Control-Expose-Headers', 'Content-Type'),
-                ]
-
-            def _make_empty_cors_response(allow_methods='POST, OPTIONS'):
-                return request.make_response('', headers=_get_cors_headers(allow_methods))
-
             # Handle CORS preflight request
             if request.httprequest.method == 'OPTIONS':
-                return _make_empty_cors_response('POST, OPTIONS')
+                return request.make_response('', headers=self._get_cors_headers())
 
             # Kiểm tra quyền admin
             if not request.env.user.has_group('base.group_system'):
@@ -256,7 +232,7 @@ class MaintenanceAPI(http.Controller):
                 }
                 response = request.make_response(
                     json.dumps(payload, ensure_ascii=False),
-                    headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
+                    headers=[('Content-Type', 'application/json; charset=utf-8')] + self._get_cors_headers()
                 )
                 response.status_code = 403
                 return response
@@ -279,7 +255,7 @@ class MaintenanceAPI(http.Controller):
                 }
                 response = request.make_response(
                     json.dumps(payload, ensure_ascii=False),
-                    headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
+                    headers=[('Content-Type', 'application/json; charset=utf-8')] + self._get_cors_headers()
                 )
                 response.status_code = 400
                 return response
@@ -351,7 +327,7 @@ class MaintenanceAPI(http.Controller):
             }
             response = request.make_response(
                 json.dumps(payload, ensure_ascii=False),
-                headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
+                headers=[('Content-Type', 'application/json; charset=utf-8')] + self._get_cors_headers()
             )
             return response
             
@@ -366,7 +342,7 @@ class MaintenanceAPI(http.Controller):
             }
             response = request.make_response(
                 json.dumps(payload, ensure_ascii=False),
-                headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
+                headers=[('Content-Type', 'application/json; charset=utf-8')] + self._get_cors_headers()
             )
             response.status_code = 400
             return response
@@ -383,7 +359,7 @@ class MaintenanceAPI(http.Controller):
             }
             response = request.make_response(
                 json.dumps(payload, ensure_ascii=False),
-                headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
+                headers=[('Content-Type', 'application/json; charset=utf-8')] + self._get_cors_headers()
             )
             response.status_code = 500
             return response
@@ -403,21 +379,8 @@ class MaintenanceAPI(http.Controller):
         """
         try:
             # Handle CORS preflight request with dynamic headers
-            def _get_cors_headers(allow_methods='POST, OPTIONS'):
-                origin = request.httprequest.headers.get('Origin') or '*'
-                req_headers = request.httprequest.headers.get('Access-Control-Request-Headers') or 'Content-Type, Authorization'
-                return [
-                    ('Access-Control-Allow-Origin', origin),
-                    ('Vary', 'Origin'),
-                    ('Access-Control-Allow-Methods', allow_methods),
-                    ('Access-Control-Allow-Headers', req_headers),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '600'),
-                    ('Access-Control-Expose-Headers', 'Content-Type'),
-                ]
-
             if request.httprequest.method == 'OPTIONS':
-                return request.make_response('', headers=_get_cors_headers('POST, OPTIONS'))
+                return request.make_response('', headers=self._get_cors_headers())
 
             # Kiểm tra quyền admin
             if not request.env.user.has_group('base.group_system'):
@@ -427,7 +390,7 @@ class MaintenanceAPI(http.Controller):
                 }
                 response = request.make_response(
                     json.dumps(error_response, ensure_ascii=False),
-                    headers=[('Content-Type', 'application/json; charset=utf-8')] + _get_cors_headers('POST, OPTIONS')
+                    headers=[('Content-Type', 'application/json; charset=utf-8')] + self._get_cors_headers()
                 )
                 response.status_code = 403
                 return response
@@ -468,8 +431,7 @@ class MaintenanceAPI(http.Controller):
                 json.dumps(error_response, ensure_ascii=False),
                 headers=[
                     ('Content-Type', 'application/json; charset=utf-8'),
-                    ('Access-Control-Allow-Origin', '*'),
-                ]
+                ] + self._get_cors_headers()
             )
             response.status_code = 500
             return response

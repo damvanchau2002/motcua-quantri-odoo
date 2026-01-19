@@ -12,20 +12,21 @@ from datetime import datetime, timedelta
 
 class ServiceApiController(http.Controller):
 
+    def _get_cors_headers(self):
+        origin = request.httprequest.headers.get('Origin')
+        return [
+            ('Access-Control-Allow-Origin', origin if origin else '*'),
+            ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+            ('Access-Control-Allow-Credentials', 'true'),
+            ('Access-Control-Max-Age', '86400')
+        ]
+
     # Lấy danh sách các nhóm dịch vụ và các dịch vụ trong nhóm
     @http.route('/api/service/groups', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
     def get_groups_and_services(self):
         if request.httprequest.method == 'OPTIONS': 
-                            return Response(
-                                status=200,
-                                headers=[
-                                    ('Access-Control-Allow-Origin', '*'),
-                                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                    ('Access-Control-Allow-Credentials', 'true'),
-                                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                                ]
-                            )
+            return Response(status=200, headers=self._get_cors_headers())
         groups = request.env['student.service.group'].search([])
         result = []
         for group in groups:
@@ -53,53 +54,19 @@ class ServiceApiController(http.Controller):
             }),
             content_type='application/json',
             status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ('Access-Control-Allow-Credentials', 'true')
-            ]
+            headers=self._get_cors_headers()
         )
 
     # Bắt tất cả các request OPTIONS để hỗ trợ CORS preflight
     @http.route('/student_service/<path:any>', type='http', auth='public', methods=['OPTIONS'], csrf=False)
     def catch_all_st_options(self, any):
-        if request.httprequest.method == 'OPTIONS':
-            return Response(
-                status=200,
-                headers=[ 
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                ]
-            )
-        return Response(
-            '',
-            status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ('Access-Control-Allow-Credentials', 'true')
-            ]
-        )
+        return Response(status=200, headers=self._get_cors_headers())
 
     # Lấy danh sách các dịch vụ
     @http.route('/student_service/api/services', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def list_services(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
-                        return Response(
-                            status=200,
-                            headers=[
-                                ('Access-Control-Allow-Origin', '*'),
-                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                ('Access-Control-Allow-Credentials', 'true'),
-                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                            ]
-                        )
+            return Response(status=200, headers=self._get_cors_headers())
         services = request.env['student.service'].sudo().search([])
         data = [
             {
@@ -117,28 +84,14 @@ class ServiceApiController(http.Controller):
             }),
             content_type='application/json',
             status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ('Access-Control-Allow-Credentials', 'true')
-            ]
+            headers=self._get_cors_headers()
         )
 
     # Lấy thông tin chi tiết của 1 dịch vụ
     @http.route('/student_service/api/service/<int:service_id>', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
     def get_service_detail(self, service_id, **kwargs):
         if request.httprequest.method == 'OPTIONS':
-                        return Response(
-                            status=200,
-                            headers=[
-                                ('Access-Control-Allow-Origin', '*'),
-                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                ('Access-Control-Allow-Credentials', 'true'),
-                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                            ]
-                        )
+            return Response(status=200, headers=self._get_cors_headers())
         service = request.env['student.service'].sudo().browse(service_id)
         if not service.exists():
             return Response(
@@ -146,12 +99,7 @@ class ServiceApiController(http.Controller):
                 json.dumps({'error': 'Service not found'}),
                 content_type='application/json',
                 status=404,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         data = {
             'id': service.id,
@@ -265,10 +213,5 @@ class ServiceApiController(http.Controller):
             }),
             content_type='application/json',
             status=200,
-            headers=[
-                ('Access-Control-Allow-Origin', '*'),
-                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                ('Access-Control-Allow-Credentials', 'true')
-            ]
+            headers=self._get_cors_headers()
         )

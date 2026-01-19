@@ -15,19 +15,20 @@ import pytz
 
 class NotificationApiController(http.Controller):
     
+    def _get_cors_headers(self):
+        origin = request.httprequest.headers.get('Origin')
+        return [
+            ('Access-Control-Allow-Origin', origin if origin else '*'),
+            ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+            ('Access-Control-Allow-Credentials', 'true'),
+            ('Access-Control-Max-Age', '86400')
+        ]
+
     @http.route('/api/notifications/my', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
     def get_my_notifications(self):
         if request.httprequest.method == 'OPTIONS':
-            return Response(
-                status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                ]
-            )
+            return Response(status=200, headers=self._get_cors_headers())
 
         try:
             params = request.params
@@ -40,12 +41,7 @@ class NotificationApiController(http.Controller):
                     json.dumps({'success': False, 'message': 'Missing user_id'}),
                     content_type='application/json',
                     status=400,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
 
             user_id_int = int(user_id)
@@ -66,12 +62,7 @@ class NotificationApiController(http.Controller):
                     json.dumps({'success': False, 'message': 'User profile not found'}),
                     content_type='application/json',
                     status=404,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
 
             # Xây dựng domain để query thông báo
@@ -117,12 +108,7 @@ class NotificationApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
         except Exception as e:
@@ -133,12 +119,7 @@ class NotificationApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
 
@@ -146,16 +127,7 @@ class NotificationApiController(http.Controller):
     @http.route('/api/notifications/detail', type='http', methods=['POST', 'OPTIONS'], auth='public', csrf=False)
     def get_notification_detail(self):
         if request.httprequest.method == 'OPTIONS':
-            return Response(
-                status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
-                ]
-            )
+            return Response(status=200, headers=self._get_cors_headers())
 
         params = request.httprequest.get_json(force=True, silent=True) or {}
         notify_id = params.get('notify_id')
@@ -164,12 +136,7 @@ class NotificationApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Missing notify_id'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
         try:
@@ -179,12 +146,7 @@ class NotificationApiController(http.Controller):
                     json.dumps({'success': False, 'message': 'Notification not found'}),
                     content_type='application/json',
                     status=404,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
             data = {
                 'id': notify.id,
@@ -200,40 +162,21 @@ class NotificationApiController(http.Controller):
                 json.dumps({'success': True, 'message': 'Chi tiết thông báo', 'data': data}),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
     # API đánh dấu thông báo đã đọc
     @http.route('/api/notifications/read', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def mark_notification_as_read(self):
         if request.httprequest.method == 'OPTIONS':
-            return Response(
-                status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                    ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                ]
-            )
+            return Response(status=200, headers=self._get_cors_headers())
 
         params = request.httprequest.get_json(force=True, silent=True) or {}
         user_id = params.get('user_id')
@@ -243,12 +186,7 @@ class NotificationApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Missing user_id or notify_id'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         try:
             notify = request.env['student.notify'].sudo().browse(int(notify_id))
@@ -258,52 +196,28 @@ class NotificationApiController(http.Controller):
                     json.dumps({'success': False, 'message': 'Notification or user not found'}),
                     content_type='application/json',
                     status=404,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
             notify.sudo().write({'read_user_ids': [(4, user.id)]})
             return Response(
                 json.dumps({'success': True, 'message': 'Notification marked as read'}),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
     
     # API đánh dấu đã đọc tất cả thông báo của user
     @http.route('/api/notifications/read_all', type='http', auth='public', methods=['POST','OPTIONS'], csrf=False)
     def mark_all_notifications_as_read(self):
         if request.httprequest.method == 'OPTIONS':
-                return Response(
-                    status=200,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true'),
-                        ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                    ]
-                )
+            return Response(status=200, headers=self._get_cors_headers())
         params = request.httprequest.get_json(force=True, silent=True) or {}
         user_id = params.get('user_id')
         if not user_id:
@@ -311,12 +225,7 @@ class NotificationApiController(http.Controller):
                 json.dumps({'success': False, 'message': 'Missing user_id'}),
                 content_type='application/json',
                 status=400,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         try:
             user = request.env['res.users'].sudo().browse(int(user_id))
@@ -325,12 +234,7 @@ class NotificationApiController(http.Controller):
                     json.dumps({'success': False, 'message': 'User not found'}),
                     content_type='application/json',
                     status=404,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true')
-                    ]
+                    headers=self._get_cors_headers()
                 )
             # Chỉ đánh dấu đọc các thông báo gửi trực tiếp cho user, không theo cụm KTX
             base_domain = [('user_ids', 'in', [user.id])]
@@ -341,40 +245,21 @@ class NotificationApiController(http.Controller):
                 json.dumps({'success': True, 'message': 'Đã đánh dấu tất cả thông báo là đã đọc'}),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
         except Exception as e:
             return Response(
                 json.dumps({'success': False, 'message': str(e)}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'POST, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
    
     # API lấy số lượng thông báo chưa đọc
     @http.route('/api/notifications/unread/count', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_unread_notifications_count(self):
         if request.httprequest.method == 'OPTIONS':
-                return Response(
-                    status=200,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true'),
-                        ('Access-Control-Max-Age', '86400')  # Cache preflight for 24 hours
-                    ]
-                )
+            return Response(status=200, headers=self._get_cors_headers())
         try:
             params = request.params
             user_id = params.get('user_id')
@@ -386,7 +271,8 @@ class NotificationApiController(http.Controller):
                         'message': 'Missing user_id'
                     }),
                     content_type='application/json',
-                    status=400
+                    status=400,
+                    headers=self._get_cors_headers()
                 )
             
             user_id_int = int(user_id)
@@ -409,7 +295,8 @@ class NotificationApiController(http.Controller):
                         'message': 'User profile not found'
                     }),
                     content_type='application/json',
-                    status=404
+                    status=404,
+                    headers=self._get_cors_headers()
                 )
 
             # Xây dựng domain để query thông báo
@@ -440,12 +327,7 @@ class NotificationApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )
 
         except Exception as e:
@@ -456,10 +338,5 @@ class NotificationApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true')
-                ]
+                headers=self._get_cors_headers()
             )

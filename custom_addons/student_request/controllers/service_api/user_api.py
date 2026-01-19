@@ -13,20 +13,21 @@ from datetime import datetime, timedelta
 
 class UserApiController(http.Controller):
     
+    def _get_cors_headers(self):
+        origin = request.httprequest.headers.get('Origin')
+        return [
+            ('Access-Control-Allow-Origin', origin if origin else '*'),
+            ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
+            ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+            ('Access-Control-Allow-Credentials', 'true'),
+            ('Access-Control-Max-Age', '86400')
+        ]
+
     # Lấy danh sách users có quyền phân công (từ admin profiles)
     @http.route('/api/users/forassign', type='http', auth='public', methods=['GET','OPTIONS'], csrf=False)
     def get_settings_users(self):
         if request.httprequest.method == 'OPTIONS':
-                        return Response(
-                            status=200,
-                            headers=[
-                                ('Access-Control-Allow-Origin', '*'),
-                                ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                                ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                                ('Access-Control-Allow-Credentials', 'true'),
-                                ('Access-Control-Max-Age', '86400'),  # Cache preflight for 24 hours
-                            ]
-                        )  
+            return Response(status=200, headers=self._get_cors_headers())
         
         try:
             # Lấy tất cả admin profiles đã được kích hoạt
@@ -40,12 +41,7 @@ class UserApiController(http.Controller):
                     json.dumps({'success': False, 'message': 'Không tìm thấy admin profiles nào được kích hoạt', 'data': []}),
                     content_type='application/json',
                     status=404,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true'),
-                    ]
+                    headers=self._get_cors_headers()
                 )
             
             # Lấy danh sách users từ admin profiles
@@ -261,12 +257,7 @@ class UserApiController(http.Controller):
                     json.dumps({'success': True, 'message': f'Không có người phân công nào trong phòng ban "{department.name}"', 'data': []}),
                     content_type='application/json',
                     status=200,
-                    headers=[
-                        ('Access-Control-Allow-Origin', '*'),
-                        ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                        ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                        ('Access-Control-Allow-Credentials', 'true'),
-                    ]
+                    headers=self._get_cors_headers()
                 )
             
             # Lấy danh sách users từ admin profiles
@@ -502,12 +493,7 @@ class UserApiController(http.Controller):
                 }),
                 content_type='application/json',
                 status=200,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
             )
             
         except Exception as e:
@@ -515,11 +501,6 @@ class UserApiController(http.Controller):
                 json.dumps({'success': False, 'message': f'Lỗi khi lấy danh sách người phân công theo phòng ban: {str(e)}', 'data': []}),
                 content_type='application/json',
                 status=500,
-                headers=[
-                    ('Access-Control-Allow-Origin', '*'),
-                    ('Access-Control-Allow-Methods', 'GET, OPTIONS'),
-                    ('Access-Control-Allow-Headers', 'Content-Type, Authorization'),
-                    ('Access-Control-Allow-Credentials', 'true'),
-                ]
+                headers=self._get_cors_headers()
             )
     
