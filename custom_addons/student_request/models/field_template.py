@@ -29,7 +29,8 @@ class ServiceFieldTemplate(models.Model):
         ('number', 'Number'),
         ('date', 'Date'),
         ('date_multi', 'Chọn nhiều ngày'),
-        ('select', 'Dropdown'),
+        ('select', 'Dropdown (1 lựa chọn)'),
+        ('select_multi', 'Dropdown (Nhiều lựa chọn)'),
         ('checkbox', 'Checkbox'),
     ], string='Loại field đề xuất', help='Loại field được đề xuất khi sử dụng template này')
     

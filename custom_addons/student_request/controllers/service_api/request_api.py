@@ -251,7 +251,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
                 input_vals['value_date'] = normalize_date_input(value)
             elif field.field_type == 'checkbox':
                 input_vals['value_boolean'] = bool(value)
-            elif field.field_type == 'select':
+            elif field.field_type in ['select', 'select_multi']:
                 # value là list các option IDs
                 option_ids = value if isinstance(value, list) else [value] if isinstance(value, int) else []
                 if option_ids:

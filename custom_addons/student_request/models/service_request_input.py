@@ -19,6 +19,7 @@ class ServiceRequestInput(models.Model):
     ('date', 'Date'),
     ('date_multi', 'Chọn nhiều ngày'),
     ('select', 'Dropdown'),
+    ('select_multi', 'Dropdown (Nhiều lựa chọn)'),
     ('checkbox', 'Checkbox'),
     ], string='Loại dữ liệu')
     required = fields.Boolean(string='Bắt buộc')
@@ -74,7 +75,7 @@ class ServiceRequestInput(models.Model):
                 val = str(rec.value_date) if rec.value_date else ''
             elif rec.field_type == 'checkbox':
                 val = 'Có' if rec.value_boolean else 'Không'
-            elif rec.field_type == 'select':
+            elif rec.field_type in ['select', 'select_multi']:
                 val = rec.value_selection or ''
             elif rec.field_type == 'date_multi':
                 dates = rec.date_ids.mapped('date')

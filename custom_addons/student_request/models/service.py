@@ -709,7 +709,7 @@ class ServiceRequest(models.Model):
                     val = str(input_rec.value_date) if input_rec.value_date else None
                 elif input_rec.field_type == 'checkbox':
                     val = input_rec.value_boolean
-                elif input_rec.field_type == 'select':
+                elif input_rec.field_type in ['select', 'select_multi']:
                     val = input_rec.value_selection
                     
                 if val is not None and val != False and val != '':
@@ -740,7 +740,7 @@ class ServiceRequest(models.Model):
                             input_rec.value_date = val if isinstance(val, str) else False
                         elif input_rec.field_type == 'checkbox':
                             input_rec.value_boolean = bool(val)
-                        elif input_rec.field_type == 'select':
+                        elif input_rec.field_type in ['select', 'select_multi']:
                             input_rec.value_selection = val
             except Exception as e:
                 _logger.warning(f"Error parsing custom_data: {e}")
@@ -761,7 +761,7 @@ class ServiceRequest(models.Model):
                         has_value = True  # 0, False are valid
                     elif input_rec.field_type == 'date':
                         has_value = bool(input_rec.value_date)
-                    elif input_rec.field_type == 'select':
+                    elif input_rec.field_type in ['select', 'select_multi']:
                         # Check both selected_option_ids (web form) and value_selection (API)
                         has_value = bool(input_rec.selected_option_ids) or bool(input_rec.value_selection)  
                     

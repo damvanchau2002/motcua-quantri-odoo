@@ -42,7 +42,7 @@
                     <group>
                         <field name="description" placeholder="Mô tả chi tiết về field này..."/>
                     </group>
-                    <group string="Options (cho Dropdown)">
+                    <group string="Options (cho Dropdown)" invisible="field_type_suggestion not in ['select', 'select_multi']">
                         <field name="options" placeholder="Option 1&#10;Option 2&#10;Option 3" nolabel="1"/>
                     </group>
                 </sheet>

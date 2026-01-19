@@ -38,7 +38,8 @@ class ServiceFormField(models.Model):
         ('number', 'Number'),
         ('date', 'Date'),
         ('date_multi', 'Chọn nhiều ngày'),
-        ('select', 'Dropdown'),
+        ('select', 'Dropdown (1 lựa chọn)'),
+        ('select_multi', 'Dropdown (Nhiều lựa chọn)'),
         ('checkbox', 'Checkbox'),
         ('file', 'File Upload')
     ], string='Loại', required=True, default='text')
@@ -104,7 +105,7 @@ class ServiceFormField(models.Model):
     @api.onchange('options')
     def _onchange_options_to_many2many(self):
         """Auto create option_ids from options text"""
-        if self.field_type == 'select' and self.options:
+        if self.field_type in ['select', 'select_multi'] and self.options:
             # Parse options text
             option_lines = [opt.strip() for opt in self.options.split('\n') if opt.strip()]
             
@@ -124,7 +125,7 @@ class ServiceFormField(models.Model):
         """Auto create options when creating form field"""
         records = super().create(vals_list)
         for rec in records:
-            if rec.field_type == 'select' and rec.options:
+            if rec.field_type in ['select', 'select_multi'] and rec.options:
                 rec._sync_options_to_many2many()
         return records
     
@@ -133,7 +134,7 @@ class ServiceFormField(models.Model):
         result = super().write(vals)
         if 'options' in vals or 'field_type' in vals:
             for rec in self:
-                if rec.field_type == 'select' and rec.options:
+                if rec.field_type in ['select', 'select_multi'] and rec.options:
                     rec._sync_options_to_many2many()
         return result
     
@@ -178,7 +179,7 @@ class ServiceFormField(models.Model):
     def _check_select_has_options(self):
         """Select phải có options"""
         for rec in self:
-            if rec.field_type == 'select' and not rec.options:
+            if rec.field_type in ['select', 'select_multi'] and not rec.options:
                 raise ValidationError(
                     f'Field "{rec.label}" loại Dropdown phải có Options!'
                 )

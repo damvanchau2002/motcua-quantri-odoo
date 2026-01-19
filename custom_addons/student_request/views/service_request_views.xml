@@ -188,7 +188,7 @@
                                                 </field>
 
                                                 <field name="value_boolean" string="Trả lời" widget="boolean_toggle" invisible="field_type != 'checkbox'"/>
-                                                <field name="selected_option_ids" string="Trả lời" widget="many2many_tags" invisible="field_type != 'select'" required="required"/>
+                                                <field name="selected_option_ids" string="Trả lời" widget="many2many_tags" invisible="field_type not in ['select', 'select_multi']" required="required"/>
                                                 <field name="required" invisible="1"/>
                                             </group>
                                         </group>

@@ -12,7 +12,7 @@
                 <field name="field_type" required="1"/>
                 <field name="placeholder"/>
                 <field name="required"/>
-                <field name="options" invisible="field_type != 'select'"/>
+                <field name="options" invisible="field_type not in ['select', 'select_multi']"/>
             </list>
         </field>
     </record>
@@ -36,7 +36,7 @@
                             <field name="placeholder"/>
                         </group>
                     </group>
-                    <group invisible="field_type != 'select'">
+                    <group invisible="field_type not in ['select', 'select_multi']">
                         <field name="options" placeholder="Nhập mỗi option trên 1 dòng&#10;VD:&#10;CMND/CCCD&#10;Bằng lái xe&#10;Giấy khám SK"/>
                     </group>
                 </sheet>

@@ -193,7 +193,7 @@ class ServiceApiController(http.Controller):
             }
             
             # Nếu là dropdown -> Lấy options
-            if field.field_type == 'select':
+            if field.field_type in ['select', 'select_multi']:
                 field_data['options'] = [
                     {'id': opt.id, 'name': opt.name} 
                     for opt in field.option_ids
