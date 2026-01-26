@@ -1274,7 +1274,7 @@ class ServiceRequest(models.Model):
 
             expired_requests = self.search([
                 ('expired_date', '<', now),
-                ('final_state', 'not in', ['closed', 'cancelled', 'approved'])
+                ('final_state', 'not in', ['closed', 'cancelled', 'approved', 'rejected'])
             ])
 
             processed = 0
@@ -1466,7 +1466,7 @@ class ServiceRequest(models.Model):
             now = fields.Datetime.now()
             expired_requests = self.search([
                 ('expired_date', '<', now),
-                ('final_state', 'not in', ['closed', 'cancelled', 'approved'])
+                ('final_state', 'not in', ['closed', 'cancelled', 'approved', 'rejected'])
             ])
             if expired_requests:
                 self._send_daily_expired_report(expired_requests)
