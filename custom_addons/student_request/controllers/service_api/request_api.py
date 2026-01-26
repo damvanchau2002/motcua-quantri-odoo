@@ -1572,7 +1572,9 @@ class ServiceApiController(http.Controller):
                 'inputs': inputs,
                 'attachments': attachments,
                 
-                'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') else ''} for att in req.image_attachment_ids],
+                'image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') and att.public_url else f'/api/download/image/{att.id}'} for att in req.image_attachment_ids],
+                'processor_image_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') and att.public_url else f'/api/download/image/{att.id}'} for att in req.processor_image_attachment_ids],
+                'processor_file_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') and att.public_url else f'/api/download/image/{att.id}', 'mimetype': att.mimetype} for att in req.processor_file_attachment_ids],
                 'request_date': format_datetime_local(req.request_date),
                 'expired_date': format_datetime_local(req.expired_date) if hasattr(req, 'expired_date') and req.expired_date else None,
 
