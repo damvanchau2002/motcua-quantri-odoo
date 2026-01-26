@@ -164,7 +164,6 @@
                                     <field name="sequence" widget="handle"/>
                                     <field name="label" string="Tên trường"/>
                                     <field name="value_display" string="Giá trị hiển thị" decoration-bf="1"/>
-                                    <field name="field_type" string="Loại" widget="badge" decoration-info="1"/>
                                     <field name="required" column_invisible="1"/>
                                 </list>
                                 <form>
