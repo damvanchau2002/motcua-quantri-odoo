@@ -807,6 +807,7 @@ class ServiceRequest(models.Model):
 
     dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', compute='_compute_user_profile_info', store=True, readonly=False, help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này')
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
+    request_user_link = fields.Html('Người gửi yêu cầu (Link)', compute='_compute_user_profile_info', help='Link đến hồ sơ sinh viên')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
     request_user_phone = fields.Char('Số điện thoại', compute='_compute_user_profile_info', store=True, help='Số điện thoại của sinh viên gửi yêu cầu')
     request_user_dormitory_full = fields.Char('Ký túc xá', compute='_compute_user_profile_info', store=True, help='Thông tin ký túc xá đầy đủ của sinh viên')
@@ -969,6 +970,14 @@ class ServiceRequest(models.Model):
                 student_profile = self.env['student.user.profile'].sudo().search([
                     ('user_id', '=', record.request_user_id.id)
                 ], limit=1)
+
+                # Tính toán Link hồ sơ sinh viên
+                name = record.request_user_id.name or ''
+                if student_profile and student_profile.student_code:
+                    url = f"https://ql.ktxhcm.edu.vn/Student/Detail/{student_profile.student_code}"
+                    record.request_user_link = f'<a href="{url}" target="_blank" style="font-weight: bold;">{name}</a>'
+                else:
+                    record.request_user_link = name
                 
                 # Lấy phone từ user record trước, nếu không có thì lấy từ profile
                 phone = record.request_user_id.phone or record.request_user_id.mobile
@@ -1005,6 +1014,7 @@ class ServiceRequest(models.Model):
                 record.request_user_dormitory_house = ''
                 record.request_user_dormitory_room = ''
                 record.dormitory_cluster_id = False
+                record.request_user_link = ''
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):
         """Tăng thời gian hết hạn của yêu cầu dịch vụ"""
