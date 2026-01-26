@@ -647,6 +647,15 @@ class ServiceRequest(models.Model):
         help='Ảnh đính kèm do cán bộ xử lý tải lên',
         ondelete='cascade'
     )
+    processor_file_attachment_ids = fields.Many2many(
+        'ir.attachment',
+        'student_request_processor_file_rel',
+        'request_id',
+        'attachment_id',
+        string='File đính kèm (Cán bộ)',
+        help='File đính kèm do cán bộ xử lý tải lên (PDF, Word, ...)',
+        ondelete='cascade'
+    )
     input_ids = fields.One2many(
         'student.service.request.input',
         'request_id',

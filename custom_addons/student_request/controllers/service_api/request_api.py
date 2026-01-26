@@ -1844,28 +1844,38 @@ class ServiceApiController(http.Controller):
             )
 
         try:
-            # Xử lý upload ảnh (nếu có)
+            # Xử lý upload file (ảnh + tài liệu)
             files = request.httprequest.files.getlist('attachment')
-            attachment_ids = []
+            image_ids = []
+            file_ids = []
             if files:
                 for file_storage in files:
                     file_data = file_storage.read()
                     base64_data = base64.b64encode(file_data).decode('utf-8')
+                    mimetype = file_storage.mimetype or 'application/octet-stream'
                     attachment = request.env['ir.attachment'].sudo().create({
                         'name': file_storage.filename,
                         'datas': base64_data,
                         'res_model': 'student.service.request',
                         'res_id': req.id,
                         'type': 'binary',
-                        'mimetype': file_storage.mimetype or 'application/octet-stream',
+                        'mimetype': mimetype,
                     })
-                    attachment_ids.append(attachment.id)
+                    
+                    if mimetype.startswith('image/'):
+                        image_ids.append(attachment.id)
+                    else:
+                        file_ids.append(attachment.id)
                 
-                # Cập nhật ảnh vào yêu cầu (Ảnh của cán bộ xử lý)
-                if attachment_ids:
-                    req.sudo().with_user(sysuser).write({
-                        'processor_image_attachment_ids': [(4, att_id) for att_id in attachment_ids]
-                    })
+                # Cập nhật vào yêu cầu
+                vals = {}
+                if image_ids:
+                    vals['processor_image_attachment_ids'] = [(4, att_id) for att_id in image_ids]
+                if file_ids:
+                    vals['processor_file_attachment_ids'] = [(4, att_id) for att_id in file_ids]
+                
+                if vals:
+                    req.sudo().with_user(sysuser).write(vals)
 
             # Cập nhật bước duyệt
             vals = update_request_step(request.env, int(request_id), int(step_id), int(user_id), note, state, asign_user_id, checked_ids, final, department_id)

@@ -134,17 +134,40 @@
                                     </sheet>
                                 </form>
                             </field>
-                            <field name="processor_image_attachment_ids" widget="many2many" mode="kanban" string="Ảnh đính kèm (Cán bộ)">
+                         
+                            <field name="processor_file_attachment_ids" widget="many2many" mode="kanban" string="File đính kèm (Cán bộ)">
                                 <kanban>
                                     <field name="name"/>
+                                    <field name="mimetype"/>
                                     <field name="datas"/>
                                     <templates>
                                         <t t-name="card">
-                                            <div class="oe_kanban_global_click" style="display: inline-block; margin: 5px;">
-                                                <img t-att-src="'/web/image/ir.attachment/' + record.id.raw_value + '/datas'" 
-                                                    style="max-width: 150px; max-height: 150px; cursor: pointer;"/>
-                                                <div class="oe_kanban_details" style="text-align: center;">
-                                                    <field name="name"/>
+                                            <div class="oe_kanban_global_click" style="display: inline-block; margin: 5px; width: 140px; vertical-align: top;">
+                                                <div style="width: 140px; height: 120px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden; position: relative;">
+                                                    <t t-set="mimetype" t-value="record.mimetype.value"/>
+                                                    <t t-if="mimetype and mimetype.indexOf('image') > -1">
+                                                        <img t-att-src="'/web/image/ir.attachment/' + record.id.raw_value + '/datas'" style="max-width: 100%; max-height: 100%; object-fit: contain;"/>
+                                                    </t>
+                                                    <t t-if="mimetype and mimetype.indexOf('pdf') > -1">
+                                                        <i class="fa fa-file-pdf-o text-danger" style="font-size: 60px;"></i>
+                                                        <div style="position: absolute; bottom: 5px; right: 5px; font-weight: bold; color: #dc3545; font-size: 10px;">PDF</div>
+                                                    </t>
+                                                    <t t-if="mimetype and (mimetype.indexOf('word') > -1 or mimetype.indexOf('officedocument.wordprocessingml') > -1)">
+                                                        <i class="fa fa-file-word-o text-primary" style="font-size: 60px;"></i>
+                                                        <div style="position: absolute; bottom: 5px; right: 5px; font-weight: bold; color: #007bff; font-size: 10px;">DOC</div>
+                                                    </t>
+                                                    <t t-if="mimetype and (mimetype.indexOf('excel') > -1 or mimetype.indexOf('officedocument.spreadsheetml') > -1)">
+                                                        <i class="fa fa-file-excel-o text-success" style="font-size: 60px;"></i>
+                                                        <div style="position: absolute; bottom: 5px; right: 5px; font-weight: bold; color: #28a745; font-size: 10px;">XLS</div>
+                                                    </t>
+                                                    <t t-if="!mimetype or (mimetype.indexOf('image') == -1 and mimetype.indexOf('pdf') == -1 and mimetype.indexOf('word') == -1 and mimetype.indexOf('officedocument.wordprocessingml') == -1 and mimetype.indexOf('excel') == -1 and mimetype.indexOf('officedocument.spreadsheetml') == -1)">
+                                                        <i class="fa fa-file-o text-muted" style="font-size: 60px;"></i>
+                                                    </t>
+                                                </div>
+                                                <div class="oe_kanban_details" style="text-align: center; margin-top: 5px; font-size: 12px; line-height: 1.3;">
+                                                    <div style="font-weight: bold; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" t-att-title="record.name.value">
+                                                        <field name="name"/>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </t>
@@ -152,8 +175,11 @@
                                 </kanban>
                                 <form>
                                     <sheet>
-                                        <field name="name"/>
-                                        <field name="datas" widget="image"/>
+                                        <group>
+                                            <field name="name"/>
+                                            <field name="mimetype"/>
+                                            <field name="datas" widget="binary" filename="name"/>
+                                        </group>
                                     </sheet>
                                 </form>
                             </field>
