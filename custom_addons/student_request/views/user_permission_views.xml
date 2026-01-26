@@ -127,11 +127,6 @@
                   sequence="10"
                   groups="base.group_system"/>
 
-        <!-- Quick Actions Menu -->
-        <menuitem id="menu_permission_quick_actions"
-                  name="Quick Actions"
-                  sequence="11"
-                  groups="base.group_system"/>
 
         <!-- Auto Assign All Users Action -->
         <record id="action_auto_assign_all_users" model="ir.actions.server">

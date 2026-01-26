@@ -109,6 +109,7 @@
                     <group>
                         <group string="Nội dung yêu cầu">
                             <field name="service_id"/>
+                            <field name="service_titlenote" invisible="not service_titlenote"/>
                             <field name="image_attachment_ids" widget="many2many" mode="kanban" string="Ảnh đính kèm (Sinh viên)">
                                 <kanban>
                                     <field name="name"/>

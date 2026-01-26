@@ -955,6 +955,7 @@ class ServiceApiController(http.Controller):
                         'id': req.service_id.id,
                         'name': req.service_id.name,
                         'description': req.service_id.description,
+                        'titlenote': req.service_titlenote or '',
                     } if req.service_id else {},
                     'name': req.name,
                     'note': req.note,
@@ -1177,6 +1178,7 @@ class ServiceApiController(http.Controller):
                         'id': req.service_id.id,
                         'name': req.service_id.name,
                         'description': req.service_id.description,
+                        'titlenote': req.service_titlenote or '',
                     } if req.service_id else {},
 
                     # Thông tin các bước duyệt theo cấu hình dịch vụ
@@ -1454,6 +1456,7 @@ class ServiceApiController(http.Controller):
                         'id': req.service_id.id,
                         'name': req.service_id.name,
                         'description': req.service_id.description,
+                        'titlenote': req.service_titlenote or '',
                     } if req.service_id else {},
                     'inputs': inputs,
                     'attachments': attachments,

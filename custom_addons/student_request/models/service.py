@@ -617,6 +617,7 @@ class ServiceRequest(models.Model):
     # NỘI DUNG YÊU CẦU
     # Đầu vào của yêu cầu dịch vụ:
     service_id = fields.Many2one('student.service', string='Dịch vụ', required=True, help='Dịch vụ mà sinh viên yêu cầu')
+    service_titlenote = fields.Char(related='service_id.titlenote', string='Tiêu đề gửi nội dung yêu cầu', readonly=True)
     # Các bước duyệt hiển thị theo dịch vụ của yêu cầu hiện tại
     # Liên kết trực tiếp từ service_id.step_selection_ids để dùng ở form bước duyệt
     service_step_selection_ids = fields.Many2many(
