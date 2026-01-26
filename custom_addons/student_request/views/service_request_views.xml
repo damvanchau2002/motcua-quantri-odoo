@@ -37,14 +37,11 @@
         <field name="model">student.service.request.step</field>
         <field name="arch" type="xml">
             <form string="Chi tiết bước duyệt">
-                <header>
-                    <button name="action_confirm_approve" string="Xác nhận" type="object" class="btn-primary"/>
-                </header>
                 <sheet>
                     <group>
                         <group>
                             <field name="display_step_name" readonly="1"/>
-                            <field name="assign_user_id" options="{'no_create': True}"/>
+                            <field name="assign_user_id" options="{'no_create': True}" domain="[('share', '=', False)]"/>
                             <field name="department_id" options="{'no_create': True}"/>
                         </group>
                         <group>
@@ -80,6 +77,10 @@
                         </page>
                     </notebook>
                 </sheet>
+                <footer>
+                    <button name="action_confirm_approve" string="Lưu" type="object" class="btn-primary"/>
+                    <button string="Hủy bỏ" class="btn-secondary" special="cancel"/>
+                </footer>
             </form>
         </field>
     </record>

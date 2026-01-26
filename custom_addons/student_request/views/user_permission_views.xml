@@ -120,13 +120,6 @@
             </field>
         </record>
 
-        <!-- Menu Item -->
-        <menuitem id="menu_user_permission_management"
-                  name="User Permissions"
-                  action="action_user_permission_management"
-                  sequence="10"
-                  groups="base.group_system"/>
-
 
         <!-- Auto Assign All Users Action -->
         <record id="action_auto_assign_all_users" model="ir.actions.server">
@@ -181,12 +174,6 @@ action = {
 }
             </field>
         </record>
-
-        <menuitem id="menu_auto_assign_all"
-                  name="Tự động gán quyền tất cả User"
-                  parent="menu_permission_quick_actions"
-                  action="action_auto_assign_all_users"
-                  sequence="1"/>
 
     </data>
 </odoo>

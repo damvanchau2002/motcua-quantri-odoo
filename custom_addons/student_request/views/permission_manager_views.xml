@@ -93,14 +93,7 @@
             </field>
         </record>
 
-        <!-- Menu for Permission Manager -->
-        <menuitem id="menu_permission_manager"
-                  name="Quy tắc tự động"
-                  parent="menu_permission_quick_actions"
-                  action="action_permission_manager"
-                  sequence="2"/>
-
-        <!-- Enhanced User List with Actions -->
+        <!-- Action for Permission Manager -->
         <record id="view_users_permission_tree_enhanced" model="ir.ui.view">
             <field name="name">res.users.permission.tree.enhanced</field>
             <field name="model">res.users</field>

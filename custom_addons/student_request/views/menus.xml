@@ -135,6 +135,35 @@
         <field name="groups_id" eval="[(4, ref('group_menu_user_management'))]"/>
     </record>
 
+    <record id="menu_user_permission_management" model="ir.ui.menu">
+        <field name="name">User Permissions</field>
+        <field name="parent_id" ref="menu_service_user_config"/>
+        <field name="action" ref="action_user_permission_management"/>
+        <field name="sequence">10</field>
+        <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+    </record>
+
+    <record id="menu_permission_quick_actions" model="ir.ui.menu">
+        <field name="name">Tác vụ nhanh</field>
+        <field name="parent_id" ref="menu_service_user_config"/>
+        <field name="sequence">20</field>
+        <field name="groups_id" eval="[(4, ref('base.group_system'))]"/>
+    </record>
+
+    <record id="menu_auto_assign_all" model="ir.ui.menu">
+        <field name="name">Tự động gán quyền tất cả User</field>
+        <field name="parent_id" ref="menu_permission_quick_actions"/>
+        <field name="action" ref="action_auto_assign_all_users"/>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="menu_permission_manager" model="ir.ui.menu">
+        <field name="name">Quy tắc tự động</field>
+        <field name="parent_id" ref="menu_permission_quick_actions"/>
+        <field name="action" ref="action_permission_manager"/>
+        <field name="sequence">2</field>
+    </record>
+
     <record id="menu_student_email_template" model="ir.ui.menu">
         <field name="name">Mẫu gửi Email</field>
         <field name="parent_id" ref="student_request_config"/>

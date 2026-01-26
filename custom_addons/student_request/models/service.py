@@ -125,7 +125,7 @@ class Service(models.Model):
     step_ids = fields.Many2many('student.service.step',  string='Các bước duyệt')
     step_selection_ids = fields.One2many('student.service.step.selection', 'service_id', string='Thông tin duyệt dịch vụ', help='Các bước duyệt với thứ tự tùy chỉnh')
 
-    users = fields.Many2many('res.users', string='Người duyệt', help='Cụ thể người được phân công duyệt dịch vụ này')
+    users = fields.Many2many('res.users', string='Người duyệt', domain="[('share', '=', False)]", help='Cụ thể người được phân công duyệt dịch vụ này')
     role_ids = fields.Many2many('student.activity.role', string='Chức danh được duyệt', help='Các phòng ban, chức danh, vai trò có sẽ nhận được yêu cầu từ dịch vụ này')
     
     form_field_ids = fields.One2many(
