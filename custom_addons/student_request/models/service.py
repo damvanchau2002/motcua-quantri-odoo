@@ -834,14 +834,16 @@ class ServiceRequest(models.Model):
         
         count = 0
         for service in services:
-            timeout_hours = service.rating_timeout
-            deadline_dt = datetime.now() - timedelta(hours=timeout_hours)
+            timeout_minutes = service.rating_timeout
+            deadline_dt = datetime.now() - timedelta(minutes=timeout_minutes)
             
             # Tìm các bước duyệt đang ở trạng thái 'rating' thuộc dịch vụ này và update < deadline
-            # Logic: Tìm các step có state='rating' và write_date < deadline_dt
+            # Logic: Tìm các step có state='rating' HOẶC state='assigned' (nếu tên bước chứa 'Đánh giá' hoặc 'nh gi') và write_date < deadline_dt
+            # Note: Sử dụng ilike '%nh gi%' để tránh lỗi encoding trên một số môi trường nếu 'Đánh giá' bị lỗi
             steps = self.env['student.service.request.step'].search([
                 ('request_id.service_id', '=', service.id),
-                ('state', '=', 'rating'),
+                '|', ('state', '=', 'rating'),
+                     '&', ('state', '=', 'assigned'), ('selection_id.step_name', 'ilike', '%nh gi%'),
                 ('write_date', '<', deadline_dt)
             ])
             
@@ -873,7 +875,7 @@ class ServiceRequest(models.Model):
                         'request_id': request.id,
                         'step_id': step.id,
                         'state': 'closed',
-                        'note': f'Hệ thống tự động hoàn tất do quá hạn đánh giá ({timeout_hours} giờ)',
+                        'note': f'Hệ thống tự động hoàn tất do quá hạn đánh giá ({timeout_minutes} phút)',
                         'date': datetime.now()
                     })
                     
