@@ -49,7 +49,7 @@ db_name = <tên_database>
 Sau đó, khởi động Odoo với file cấu hình này:
 
 ```bash
-python odoo-bin -c odoo.cfg -i base
+  python odoo-bin -c odoo.cfg -i base
 ```
 
 # Set up Login with Microsoft in Odoo

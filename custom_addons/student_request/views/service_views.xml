@@ -31,6 +31,7 @@
                             <field name="description" help="Mô tả chi tiết về dịch vụ này, bao gồm các thông tin cần thiết cho sinh viên"/>
                             <field name="titlenote" help="Ghi chú cho SV thông tin cần nhập như thế nào"/>
                             <field name="duration"/>
+                            <field name="rating_timeout"/>
                             <field name="state"/>
                             <field name="group_id" />
                         </group>

@@ -18,6 +18,7 @@
         'data/service_request_state_data.xml',
         'data/field_template_data.xml',  # Field template initial data
         'data/cron_data.xml',
+        'data/ir_cron_data.xml',
         'data/stats_cron.xml',
         'data/email_templates.xml',
         'data/automated_actions.xml',  # Fixed XML validation error

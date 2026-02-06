@@ -113,7 +113,10 @@ class Service(models.Model):
 
     duration = fields.Integer('Thời gian xử lý (giờ)', default=168, help='Thời gian dự kiến để xử lý yêu cầu dịch vụ này, tính bằng giờ')
     per_week = fields.Integer('Số lượng yêu cầu tối đa mỗi tuần', default=1, help='Số lượng yêu cầu tối đa User được phép gửi mỗi tuần')
-
+    
+    # Cấu hình tự động hoàn tất đánh giá
+    rating_timeout = fields.Integer('Thời gian chờ đánh giá (giờ)', default=24, help='Thời gian tối đa chờ sinh viên đánh giá trước khi tự động hoàn tất. Nhập 0 để tắt tính năng này.')
+    
     state = fields.Selection([
         ('enabled', 'Enabled'),
         ('disabled', 'Disabled')
@@ -262,6 +265,7 @@ class ServiceRequestState(models.Model):
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối'),
         ('adjust_profile', 'Điều chỉnh hồ sơ'),
+        ('rating', 'Đánh giá chất lượng'), # Trạng thái chờ đánh giá
         ('cancelled', 'Đã hủy'),
         ('closed', 'Đã đóng')
     ], string='Loại trạng thái (Hệ thống)', required=True, default='pending', help="Mapping với logic xử lý của hệ thống")
@@ -293,6 +297,7 @@ class ServiceRequestStepHistory(models.Model):
         ('approved', 'Đã duyệt'),
         ('rejected', 'Từ chối'),
         ('adjust_profile', 'Điều chỉnh hồ sơ'),
+        ('rating', 'Đánh giá chất lượng'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
     
@@ -423,6 +428,7 @@ class ServiceRequestStep(models.Model):
         ('approved', 'Đã duyệt'), # Trạng thái đã duyệt: Hoàn thành xử lý yêu cầu
         ('rejected', 'Từ chối'),
         ('adjust_profile', 'Điều chỉnh hồ sơ'), # Trạng thái yêu cầu sinh viên điều chỉnh hồ sơ
+        ('rating', 'Đánh giá chất lượng'), # Trạng thái chờ đánh giá
         ('cancelled', 'Đã hủy'),
         ('closed', 'Đã đóng')
     ], string='Trạng thái', default='pending', help='Trạng thái hiện tại của bước duyệt này')
@@ -814,14 +820,90 @@ class ServiceRequest(models.Model):
             # Gán recordset trực tiếp để đảm bảo domain xử lý đúng
             rec.student_user_ids = users
 
-    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', compute='_compute_user_profile_info', store=True, readonly=False, help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này')
+    # CRON JOB: Tự động hoàn tất yêu cầu khi quá hạn đánh giá
+    @api.model
+    def _cron_auto_complete_rating(self):
+        """
+        Kiểm tra các yêu cầu đang ở trạng thái 'rating' (Đánh giá chất lượng)
+        Nếu quá thời gian quy định (rating_timeout) mà chưa có hành động -> Tự động chuyển sang 'closed'
+        """
+        _logger.info("CRON: Bắt đầu kiểm tra timeout đánh giá chất lượng...")
+        
+        # Lấy tất cả dịch vụ có cấu hình rating_timeout > 0
+        services = self.env['student.service'].search([('rating_timeout', '>', 0)])
+        
+        count = 0
+        for service in services:
+            timeout_hours = service.rating_timeout
+            deadline_dt = datetime.now() - timedelta(hours=timeout_hours)
+            
+            # Tìm các bước duyệt đang ở trạng thái 'rating' thuộc dịch vụ này và update < deadline
+            # Logic: Tìm các step có state='rating' và write_date < deadline_dt
+            steps = self.env['student.service.request.step'].search([
+                ('request_id.service_id', '=', service.id),
+                ('state', '=', 'rating'),
+                ('write_date', '<', deadline_dt)
+            ])
+            
+            for step in steps:
+                try:
+                    request = step.request_id
+                    _logger.info(f"Auto-completing request {request.id} (Step {step.id}) due to rating timeout.")
+                    
+                    # 1. Cập nhật trạng thái step -> closed
+                    # Sử dụng update_request_step để đảm bảo logic (nếu cần) hoặc write trực tiếp
+                    # Vì đây là cron job, ta nên dùng hàm chuẩn nếu có, hoặc write trực tiếp và ghi log
+                    
+                    # Cập nhật trạng thái step
+                    step.write({
+                        'state': 'closed',
+                        'final_data': 'Tự động hoàn tất do quá hạn đánh giá',
+                        'approve_date': datetime.now()
+                    })
+
+                    # Cập nhật trạng thái request
+                    request.write({
+                        'final_state': 'closed',
+                        'final_data': 'Tự động hoàn tất do quá hạn đánh giá',
+                        'approve_date': datetime.now()
+                    })
+                    
+                    # 2. Ghi log lịch sử
+                    self.env['student.service.request.step.history'].create({
+                        'request_id': request.id,
+                        'step_id': step.id,
+                        'state': 'closed',
+                        'note': f'Hệ thống tự động hoàn tất do quá hạn đánh giá ({timeout_hours} giờ)',
+                        'date': datetime.now()
+                    })
+                    
+                    # 3. Gửi thông báo (Tuỳ chọn)
+                    if request.request_user_id:
+                        self.env['student.notify'].sudo().create({
+                            'title': 'Yêu cầu đã hoàn tất',
+                            'body': f'Yêu cầu "{request.name}" đã được hệ thống tự động hoàn tất do quá thời gian chờ đánh giá.',
+                            'notify_type': 'users',
+                            'user_ids': [(4, request.request_user_id.id)],
+                            'data': f'{{"request_id": {request.id}}}'
+                        })
+                        
+                    count += 1
+                    
+                except Exception as e:
+                    _logger.error(f"Error auto-completing request {step.request_id.id}: {str(e)}")
+
+        _logger.info(f"CRON: Đã hoàn tất {count} yêu cầu.")
+
+        # Code moved to _compute_student_user_ids
+
+    dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm KTX', compute='_compute_user_profile_info_stored', store=True, readonly=False, help='Cụm ký túc xá của sinh viên gửi yêu cầu dịch vụ này')
     request_user_name = fields.Char('Tên người gửi', required=False, related='request_user_id.name', help='Họ và tên của người gửi yêu cầu dịch vụ')
-    request_user_link = fields.Html('Người gửi yêu cầu (Link)', compute='_compute_user_profile_info', help='Link đến hồ sơ sinh viên')
+    request_user_link = fields.Html('Người gửi yêu cầu (Link)', compute='_compute_user_profile_info_non_stored', help='Link đến hồ sơ sinh viên')
     request_user_avatar = fields.Binary('Ảnh đại diện', required=False, related='request_user_id.image_1920', help='Ảnh đại diện của người gửi yêu cầu dịch vụ')
-    request_user_phone = fields.Char('Số điện thoại', compute='_compute_user_profile_info', store=True, help='Số điện thoại của sinh viên gửi yêu cầu')
-    request_user_dormitory_full = fields.Char('Ký túc xá', compute='_compute_user_profile_info', store=True, help='Thông tin ký túc xá đầy đủ của sinh viên')
-    request_user_dormitory_house = fields.Char('Nhà ký túc xá', compute='_compute_user_profile_info', store=True, help='Tên nhà ký túc xá của sinh viên')
-    request_user_dormitory_room = fields.Char('Phòng ký túc xá', compute='_compute_user_profile_info', store=True, help='Phòng ký túc xá của sinh viên')
+    request_user_phone = fields.Char('Số điện thoại', compute='_compute_user_profile_info_stored', store=True, help='Số điện thoại của sinh viên gửi yêu cầu')
+    request_user_dormitory_full = fields.Char('Ký túc xá', compute='_compute_user_profile_info_stored', store=True, help='Thông tin ký túc xá đầy đủ của sinh viên')
+    request_user_dormitory_house = fields.Char('Nhà ký túc xá', compute='_compute_user_profile_info_stored', store=True, help='Tên nhà ký túc xá của sinh viên')
+    request_user_dormitory_room = fields.Char('Phòng ký túc xá', compute='_compute_user_profile_info_stored', store=True, help='Phòng ký túc xá của sinh viên')
     request_date = fields.Datetime('Ngày gửi', default=fields.Datetime.now, help='Ngày và giờ gửi yêu cầu dịch vụ')
     expired_date = fields.Datetime('Ngày hết hạn', default=fields.Datetime.now() + timedelta(days=7), help='Ngày và giờ hết hạn gửi yêu cầu dịch vụ')
     send_expired_warning = fields.Boolean('Đã gửi cảnh báo sắp hết hạn', default=False, help='Đánh dấu đã gửi cảnh báo yêu cầu sắp hết hạn cho sinh viên')
@@ -869,6 +951,7 @@ class ServiceRequest(models.Model):
         ('approved', 'Đã duyệt'), 
         ('rejected', 'Từ chối'),    # Hủy bỏ yêu cầu
         ('adjust_profile', 'Điều chỉnh hồ sơ'),  # Trạng thái yêu cầu sinh viên điều chỉnh hồ sơ
+        ('rating', 'Đánh giá chất lượng'), # Trạng thái chờ đánh giá
         ('cancelled', 'Đã hủy'),
         ('closed', 'Đã đóng')       # Là hoàn thành và đóng
     ], string='Trạng thái duyệt', default='pending', help='Trạng thái duyệt hiện tại của yêu cầu dịch vụ này')
@@ -971,8 +1054,8 @@ class ServiceRequest(models.Model):
             rec.step_ids = rec.step_ids_active | rec.step_ids.filtered(lambda s: s.disabled)
 
     @api.depends('request_user_id')
-    def _compute_user_profile_info(self):
-        """Tính toán thông tin profile của sinh viên gửi yêu cầu"""
+    def _compute_user_profile_info_stored(self):
+        """Tính toán thông tin profile của sinh viên gửi yêu cầu (Stored fields)"""
         for record in self:
             if record.request_user_id:
                 # Tìm profile sinh viên
@@ -980,14 +1063,6 @@ class ServiceRequest(models.Model):
                     ('user_id', '=', record.request_user_id.id)
                 ], limit=1)
 
-                # Tính toán Link hồ sơ sinh viên
-                name = record.request_user_id.name or ''
-                if student_profile and student_profile.student_code:
-                    url = f"https://ql.ktxhcm.edu.vn/Student/Detail/{student_profile.student_code}"
-                    record.request_user_link = f'<a href="{url}" target="_blank" style="font-weight: bold;">{name}</a>'
-                else:
-                    record.request_user_link = name
-                
                 # Lấy phone từ user record trước, nếu không có thì lấy từ profile
                 phone = record.request_user_id.phone or record.request_user_id.mobile
                 if not phone and student_profile:
@@ -1023,6 +1098,25 @@ class ServiceRequest(models.Model):
                 record.request_user_dormitory_house = ''
                 record.request_user_dormitory_room = ''
                 record.dormitory_cluster_id = False
+
+    @api.depends('request_user_id')
+    def _compute_user_profile_info_non_stored(self):
+        """Tính toán thông tin profile của sinh viên gửi yêu cầu (Non-stored fields)"""
+        for record in self:
+            if record.request_user_id:
+                # Tìm profile sinh viên
+                student_profile = self.env['student.user.profile'].sudo().search([
+                    ('user_id', '=', record.request_user_id.id)
+                ], limit=1)
+
+                # Tính toán Link hồ sơ sinh viên
+                name = record.request_user_id.name or ''
+                if student_profile and student_profile.student_code:
+                    url = f"https://ql.ktxhcm.edu.vn/Student/Detail/{student_profile.student_code}"
+                    record.request_user_link = f'<a href="{url}" target="_blank" style="font-weight: bold;">{name}</a>'
+                else:
+                    record.request_user_link = name
+            else:
                 record.request_user_link = ''
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):

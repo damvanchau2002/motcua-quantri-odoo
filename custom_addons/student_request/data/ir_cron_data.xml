@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Cron Job: Tự động hoàn tất đánh giá chất lượng khi quá hạn -->
+        <record id="ir_cron_auto_complete_rating" model="ir.cron">
+            <field name="name">Student Service: Auto-complete rating steps on timeout</field>
+            <field name="model_id" ref="model_student_service_request"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_auto_complete_rating()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>
