@@ -115,7 +115,7 @@ class Service(models.Model):
     per_week = fields.Integer('Số lượng yêu cầu tối đa mỗi tuần', default=1, help='Số lượng yêu cầu tối đa User được phép gửi mỗi tuần')
     
     # Cấu hình tự động hoàn tất đánh giá
-    rating_timeout = fields.Integer('Thời gian chờ đánh giá (giờ)', default=24, help='Thời gian tối đa chờ sinh viên đánh giá trước khi tự động hoàn tất. Nhập 0 để tắt tính năng này.')
+    rating_timeout = fields.Integer('Thời gian chờ đánh giá (phút)', default=60, help='Thời gian tối đa chờ sinh viên đánh giá trước khi tự động hoàn tất (phút). Nhập 0 để tắt tính năng này.')
     
     state = fields.Selection([
         ('enabled', 'Enabled'),
