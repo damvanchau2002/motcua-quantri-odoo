@@ -828,7 +828,23 @@ class ServiceRequest(models.Model):
         Nếu quá thời gian quy định (rating_timeout) mà chưa có hành động -> Tự động chuyển sang 'closed'
         """
         _logger.info("CRON: Bắt đầu kiểm tra timeout đánh giá chất lượng...")
-        
+
+        # Ensure 'rating' state exists in dynamic states table
+        try:
+            State = self.env['student.service.request.state']
+            if not State.search([('type', '=', 'rating')], limit=1):
+                _logger.info("CRON: Creating missing 'rating' state...")
+                State.create({
+                    'name': 'Đánh giá chất lượng',
+                    'code': 'rating',
+                    'type': 'rating',
+                    'sequence': 90,
+                    'color': 3,
+                    'description': 'Trạng thái chờ sinh viên đánh giá chất lượng dịch vụ'
+                })
+        except Exception as e:
+            _logger.warning(f"CRON: Error checking/creating rating state: {e}")
+
         # Lấy tất cả dịch vụ có cấu hình rating_timeout > 0
         services = self.env['student.service'].search([('rating_timeout', '>', 0)])
         
