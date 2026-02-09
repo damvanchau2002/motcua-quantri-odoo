@@ -53,7 +53,8 @@ def get_cors_headers(request):
     return [
         ('Access-Control-Allow-Origin', origin if origin else '*'),
         ('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE'),
-        ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With'),
+        ('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, token, access_token'),
+        ('Access-Control-Expose-Headers', 'Content-Disposition, Content-Type, Content-Length, Cache-Control'),
         ('Access-Control-Allow-Credentials', 'true'),
         ('Access-Control-Max-Age', '86400')
     ]
