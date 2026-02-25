@@ -1129,11 +1129,24 @@ class ServiceRequest(models.Model):
 
                 # Tính toán Link hồ sơ sinh viên
                 name = record.request_user_id.name or ''
-                if student_profile and student_profile.student_code:
-                    url = f"https://ql.ktxhcm.edu.vn/Student/Detail/{student_profile.student_code}"
-                    record.request_user_link = f'<a href="{url}" target="_blank" style="font-weight: bold;">{name}</a>'
+                
+                qlsv_id = False
+                if student_profile:
+                    qlsv_id = student_profile.qlsv_student_id
+
+                # STRICTLY use qlsv_id only - NO FALLBACK to student_code
+                if qlsv_id:
+                    url = f"https://ql.ktxhcm.edu.vn/Student/Detail/{qlsv_id}"
+                    record.request_user_link = (
+                        f'<a href="{url}" target="_blank" class="btn btn-link p-0" '
+                        f'data-bs-toggle="tooltip" data-bs-placement="top" title="ID Hệ thống: {qlsv_id}" '
+                        f'style="font-weight: bold; color: #017e84; text-decoration: underline; pointer-events: auto;">'
+                        f'{name} <i class="fa fa-external-link ms-1"></i>'
+                        f'</a>'
+                    )
                 else:
-                    record.request_user_link = name
+                    # If no System ID, show name only (no link)
+                    record.request_user_link = f"<span style='color: black; pointer-events: none;'>{name}</span>"
             else:
                 record.request_user_link = ''
     @api.onchange('expired_date')
@@ -1637,6 +1650,7 @@ class StudentUserProfile(models.Model):
     rent_id = fields.Char('Mã hợp đồng thuê')
     university_name = fields.Char('Tên trường đại học')
     student_code = fields.Char('Mã sinh viên')
+    qlsv_student_id = fields.Char('ID Sinh viên (QLSV)')
     id_card_number = fields.Char('Số CMND/CCCD')
     id_card_date = fields.Char('Ngày cấp CMND/CCCD')
     id_card_issued_name = fields.Char('Nơi cấp CMND/CCCD')
@@ -1682,6 +1696,8 @@ class StudentUserProfile(models.Model):
         # Thành công: xử lý dữ liệu từ external API
         data = external_data.get("Data", {})
 
+        raw_id = data.get("Id")
+        qlsv_student_id = str(raw_id) if raw_id else False
         student_code = data.get("StudentCode")
         full_name = data.get("FullName")
         email = data.get("Email")
@@ -1808,6 +1824,7 @@ class StudentUserProfile(models.Model):
                 self.with_context(skip_ktx_api=True).sudo().env["student.user.profile"].create(
                     {
                         "user_id": user.id,
+                        "qlsv_student_id": qlsv_student_id,
                         "student_code": student_code,
                         "avatar_url": avatar_url,
                         "birthday": birthday,
@@ -1859,6 +1876,7 @@ class StudentUserProfile(models.Model):
             # Cập nhật hoặc tạo profile
             profile = self.env["student.user.profile"].sudo().search([("user_id", "=", user.id)], limit=1)
             profile_vals = {
+                "qlsv_student_id": qlsv_student_id,
                 "student_code": student_code,
                 "avatar_url": avatar_url,
                 "birthday": birthday,
