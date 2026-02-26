@@ -1149,6 +1149,55 @@ class ServiceRequest(models.Model):
                     record.request_user_link = f"<span style='color: black; pointer-events: none;'>{name}</span>"
             else:
                 record.request_user_link = ''
+
+    def action_quick_sync_profile(self):
+        """Action to quickly sync user profile data from external API"""
+        self.ensure_one()
+        if not self.request_user_id:
+             raise UserError("Yêu cầu này chưa có người gửi.")
+             
+        # Find profile
+        profile = self.env['student.user.profile'].search([('user_id', '=', self.request_user_id.id)], limit=1)
+        
+        if not profile:
+            # Try to find by login name if it looks like an ID card number or student code
+            login = self.request_user_id.login
+            if login and login.isdigit():
+                 try:
+                     self.env['student.user.profile'].action_fetch_and_create_profile(login)
+                     # Re-search after create
+                     profile = self.env['student.user.profile'].search([('user_id', '=', self.request_user_id.id)], limit=1)
+                 except Exception as e:
+                     raise UserError(f"Không tìm thấy hồ sơ và không thể đồng bộ tự động: {str(e)}")
+            else:
+                raise UserError("Không tìm thấy hồ sơ sinh viên liên kết với tài khoản này.")
+        
+        if profile:
+            id_card = profile.id_card_number or profile.student_code or self.request_user_id.login
+            if not id_card:
+                raise UserError("Hồ sơ thiếu số CCCD/Mã SV để đồng bộ.")
+                
+            try:
+                # Call the sync method
+                profile.action_fetch_and_create_profile(id_card)
+                
+                # Force recompute of the link
+                self._compute_user_profile_info_non_stored()
+                
+                return {
+                    'type': 'ir.actions.client',
+                    'tag': 'display_notification',
+                    'params': {
+                        'title': 'Đồng bộ thành công',
+                        'message': 'Đã cập nhật thông tin mới nhất từ hệ thống KTX.',
+                        'type': 'success',
+                        'sticky': False,
+                        'next': {'type': 'ir.actions.client', 'tag': 'reload'}
+                    }
+                }
+            except Exception as e:
+                raise UserError(f"Lỗi khi đồng bộ: {str(e)}")
+
     @api.onchange('expired_date')
     def _onchange_increase_expired(self):
         """Tăng thời gian hết hạn của yêu cầu dịch vụ"""

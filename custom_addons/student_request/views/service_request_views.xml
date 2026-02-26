@@ -226,7 +226,16 @@
                         </group>
                         <group string="Thông tin yêu cầu">
                             <field name="name" readonly="1"/>
-                            <field name="request_user_link" string="Tên người gửi" widget="html" readonly="1"/>
+                            <label for="request_user_link" string="Tên người gửi"/>
+                            <div class="o_row">
+                                <field name="request_user_link" widget="html" readonly="1" nolabel="1"/>
+                                <button name="action_quick_sync_profile" 
+                                        type="object" 
+                                        icon="fa-refresh" 
+                                        class="btn btn-link"
+                                        title="Đồng bộ lại thông tin sinh viên từ hệ thống KTX"
+                                        confirm="Bạn có chắc chắn muốn đồng bộ lại thông tin sinh viên này từ hệ thống KTX?"/>
+                            </div>
                             <field name="request_user_avatar" readonly="1" widget="image" options="{'size': [48, 48]}"/>
                             <field name="request_user_phone" string="Số điện thoại" readonly="1"/>
                             <field name="request_user_dormitory_full" string="Ký túc xá" readonly="1"/>

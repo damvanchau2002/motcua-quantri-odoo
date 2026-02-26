@@ -33,7 +33,37 @@
                         <field name="rating"/>
                         <field name="ispublic"/>
                         <field name="comments"/>
-                        <field name="image_ids" widget="many2many_binary"/>
+                        <field name="image_ids" widget="many2many" mode="kanban" string="Hình ảnh">
+                            <kanban>
+                                <field name="name"/>
+                                <field name="datas"/>
+                                <field name="mimetype"/>
+                                <templates>
+                                    <t t-name="card">
+                                        <div class="oe_kanban_global_click" style="display: inline-block; margin: 5px;">
+                                            <t t-if="record.mimetype.value &amp;&amp; record.mimetype.value.indexOf('image') &gt; -1">
+                                                <img t-att-src="'/web/image/ir.attachment/' + record.id.raw_value + '/datas'" 
+                                                    style="max-width: 150px; max-height: 150px; cursor: pointer;"/>
+                                            </t>
+                                            <t t-else="">
+                                                <div style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px solid #dee2e6;">
+                                                    <i class="fa fa-file-o" style="font-size: 48px; color: #6c757d;"></i>
+                                                </div>
+                                            </t>
+                                            <div class="oe_kanban_details" style="text-align: center;">
+                                                <field name="name"/>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </templates>
+                            </kanban>
+                            <form>
+                                <sheet>
+                                    <field name="name"/>
+                                    <field name="datas" widget="image"/>
+                                </sheet>
+                            </form>
+                        </field>
                     </group>
                 </sheet>
             </form>
@@ -74,7 +104,37 @@
                         <field name="user_id"/>
                         <field name="complaint_date"/>
                         <field name="description"/>
-                        <field name="image_ids" widget="many2many_binary"/>
+                        <field name="image_ids" widget="many2many" mode="kanban" string="Hình ảnh">
+                            <kanban>
+                                <field name="name"/>
+                                <field name="datas"/>
+                                <field name="mimetype"/>
+                                <templates>
+                                    <t t-name="card">
+                                        <div class="oe_kanban_global_click" style="display: inline-block; margin: 5px;">
+                                            <t t-if="record.mimetype.value &amp;&amp; record.mimetype.value.indexOf('image') &gt; -1">
+                                                <img t-att-src="'/web/image/ir.attachment/' + record.id.raw_value + '/datas'" 
+                                                    style="max-width: 150px; max-height: 150px; cursor: pointer;"/>
+                                            </t>
+                                            <t t-else="">
+                                                <div style="width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px solid #dee2e6;">
+                                                    <i class="fa fa-file-o" style="font-size: 48px; color: #6c757d;"></i>
+                                                </div>
+                                            </t>
+                                            <div class="oe_kanban_details" style="text-align: center;">
+                                                <field name="name"/>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </templates>
+                            </kanban>
+                            <form>
+                                <sheet>
+                                    <field name="name"/>
+                                    <field name="datas" widget="image"/>
+                                </sheet>
+                            </form>
+                        </field>
                     </group>
                 </sheet>
             </form>
