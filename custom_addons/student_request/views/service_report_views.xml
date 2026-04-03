@@ -13,6 +13,11 @@
                             string="Lọc báo cáo"
                             type="object"
                             class="btn-primary"/>
+                    <button name="action_export_excel"
+                            string="Xuất Excel"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="not report_line_ids"/>
                 </header>
 
                 <sheet>
@@ -27,11 +32,11 @@
                             <field name="from_date"
                                    invisible="mode != 'day'"
                                    placeholder="dd/mm/yyyy"
-                                   options="{'datepicker': {'dateFormat': 'dd/MM/yyyy'}}"/>
+                                   options="{'datepicker': {'format': 'DD/MM/YYYY'}}"/>
                             <field name="to_date"
                                    invisible="mode != 'day'"
                                    placeholder="dd/mm/yyyy"
-                                   options="{'datepicker': {'dateFormat': 'dd/MM/yyyy'}}"/>
+                                   options="{'datepicker': {'format': 'DD/MM/YYYY'}}"/>
 
                             <!-- Lọc theo tháng -->
                             <field name="from_month"

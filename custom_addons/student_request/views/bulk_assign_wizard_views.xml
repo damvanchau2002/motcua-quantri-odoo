@@ -49,6 +49,7 @@
                     <button name="action_deselect_all" type="object" string="Bỏ chọn tất cả" class="btn-secondary"/>
                     <button name="action_assign_by_service" type="object" string="Phân công (theo dịch vụ)" class="oe_highlight"/> -->
                     <button name="action_assign_by_requests" type="object" string="Phân công (theo yêu cầu)" class="oe_highlight"/>
+                    <button name="action_close_to_discuss" type="object" string="Đóng" class="btn-secondary"/>
                 </header>
                 <sheet>
                     <notebook>

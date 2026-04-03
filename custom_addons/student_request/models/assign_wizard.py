@@ -288,6 +288,11 @@ class StudentRequestBulkAssignWizard(models.TransientModel):
 
         return {'type': 'ir.actions.act_window_close'}
 
+    def action_close_to_discuss(self):
+        """Đóng màn hình phân công và quay về trang Discuss"""
+        action = self.env.ref('mail.action_discuss').read()[0]
+        return action
+
 
 class StudentRequestBulkAssignLine(models.TransientModel):
     _name = 'student.request.bulk.assign.line'

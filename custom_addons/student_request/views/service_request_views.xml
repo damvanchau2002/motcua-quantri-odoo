@@ -109,7 +109,7 @@
                     </header> -->
                     <group>
                         <group string="Nội dung yêu cầu">
-                            <field name="service_id"/>
+                            <field name="service_id" domain="[('state', '=', 'enabled')]"/>
                             <field name="service_titlenote" invisible="not service_titlenote"/>
                             <field name="image_attachment_ids" widget="many2many" mode="kanban" string="Ảnh đính kèm (Sinh viên)">
                                 <kanban>
@@ -593,7 +593,7 @@
             <form string="Tạo yêu cầu dịch vụ (Mới)" create="true" delete="false" edit="true">
                 <sheet>
                     <group string="Thông tin yêu cầu">
-                        <field name="service_id" required="1" options="{'no_create': True, 'no_create_edit': True}"/>
+                        <field name="service_id" required="1" options="{'no_create': True, 'no_create_edit': True}" domain="[('state', '=', 'enabled')]"/>
                         <field name="note" placeholder="Mô tả thêm về yêu cầu của bạn"/>
                         <field name="image_attachment_ids" widget="many2many_binary" string="Ảnh đính kèm"/>
                         <!-- Hidden helper field so the domain can read computed values -->

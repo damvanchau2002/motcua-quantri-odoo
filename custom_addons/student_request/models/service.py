@@ -2333,7 +2333,7 @@ class StudentServiceReportWizard(models.TransientModel):
                 END AS period,
                 COUNT(r.id) AS total_requests,
                 COUNT(CASE WHEN r.final_state NOT IN ('pending','assigned') THEN 1 END) AS processed_requests,
-                COUNT(CASE WHEN r.final_state IN ('pending','assigned') THEN 1 END) AS pending_requests,
+                COUNT(CASE WHEN r.final_state IN ('pending','assigned') AND (r.expired_date >= NOW() OR r.expired_date IS NULL) THEN 1 END) AS pending_requests,
                 COUNT(DISTINCT CASE 
                         WHEN r.expired_date < NOW() 
                             AND r.final_state IN ('pending','assigned') 
@@ -2402,6 +2402,64 @@ class StudentServiceReportWizard(models.TransientModel):
         #     'type': 'rainbow_man', 
         #     } 
         # }
+
+    def action_export_excel(self):
+        self.ensure_one()
+        try:
+            import xlsxwriter
+            import io
+            import base64
+        except ImportError:
+            raise UserError("Thư viện xlsxwriter chưa được cài đặt. Vui lòng cài đặt (pip install xlsxwriter).")
+
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        sheet = workbook.add_worksheet("Báo cáo")
+
+        # Define formats
+        header_format = workbook.add_format({'bold': True, 'align': 'center', 'valign': 'vcenter', 'bg_color': '#D3D3D3', 'border': 1})
+        cell_format = workbook.add_format({'border': 1})
+
+        headers = ['Kỳ thống kê', 'Khu vực', 'Cụm', 'Nhóm dịch vụ', 'Dịch vụ', 'Tổng yêu cầu', 'Đã xử lý', 'Đang xử lý', 'Quá hạn', 'Tỷ lệ xử lý (%)']
+        for col, head in enumerate(headers):
+            sheet.write(0, col, head, header_format)
+
+        sheet.set_column(0, 4, 20)
+        sheet.set_column(5, 9, 15)
+
+        row = 1
+        for line in self.report_line_ids:
+            sheet.write(row, 0, line.period or '', cell_format)
+            sheet.write(row, 1, line.area_name or '', cell_format)
+            sheet.write(row, 2, line.cluster_name or '', cell_format)
+            sheet.write(row, 3, line.group_name or '', cell_format)
+            sheet.write(row, 4, line.service_name or '', cell_format)
+            sheet.write(row, 5, line.total_requests or 0, cell_format)
+            sheet.write(row, 6, line.processed_requests or 0, cell_format)
+            sheet.write(row, 7, line.pending_requests or 0, cell_format)
+            sheet.write(row, 8, line.overdue_requests or 0, cell_format)
+            sheet.write(row, 9, line.processed_percent or 0.0, cell_format)
+            row += 1
+
+        workbook.close()
+        output.seek(0)
+        excel_file = base64.b64encode(output.read())
+        output.close()
+
+        attachment = self.env['ir.attachment'].create({
+            'name': 'Bao_Cao_Yeu_Cau_Dich_Vu.xlsx',
+            'type': 'binary',
+            'datas': excel_file,
+            'res_model': 'student.service.report.wizard',
+            'res_id': self.id,
+            'mimetype': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'new',
+        }
 
 
 class StudentServiceReport(models.TransientModel):

@@ -99,6 +99,27 @@ class RequestExtension(models.Model):
         help='Tổng số giờ đã gia hạn cho yêu cầu này'
     )
 
+    def _search(self, args, offset=0, limit=None, order=None):
+        """Kế thừa phân quyền từ student.service.request
+        Ai thấy được request thì mới thấy được extension của request đó"""
+        uid = self.env.user.id
+        user = self.env.user
+        
+        # Cho phép Superuser (uid=1) thấy hết
+        if uid == 1:
+            return super()._search(args, offset=offset, limit=limit, order=order)
+
+        admin_profile = self.env['student.admin.profile'].search([('user_id', '=', uid)], limit=1)
+        if (user.has_group('base.group_system') or user.has_group('base.group_erp_manager')) and not admin_profile:
+            return super()._search(args, offset=offset, limit=limit, order=order)
+
+        # Lấy danh sách ID trực tiếp thông qua hàm search() của request để tận dụng hàm _search() đã customize ở đó
+        allowed_request_ids = self.env['student.service.request'].search([]).ids
+        
+        domain = [('request_id', 'in', allowed_request_ids)]
+        final_args = domain + args
+        return super()._search(final_args, offset=offset, limit=limit, order=order)
+
     @api.depends('request_id', 'hours')
     def _compute_name(self):
         for record in self:
