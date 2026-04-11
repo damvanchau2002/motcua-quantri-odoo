@@ -2011,6 +2011,9 @@ class StudentUserProfileWizard(models.TransientModel):
 class StudentAdminProfile(models.Model):
     _name = 'student.admin.profile'
     _description = 'Thông tin quản trị viên sinh viên KTX'
+    _sql_constraints = [
+        ('student_admin_profile_user_unique', 'unique(user_id)', 'Mỗi user chỉ có một hồ sơ quản trị viên.'),
+    ]
 
     user_id = fields.Many2one('res.users', string='User', required=True, ondelete='cascade')
     oauth_ids = fields.One2many('student.admin.oauth', 'profile_id', string='Các provider đăng nhập')
@@ -2023,7 +2026,13 @@ class StudentAdminProfile(models.Model):
     device_id = fields.Char('Device ID', help='Mã thiết bị của sinh viên')
     # Thông tin chờ duyệt:
     title_name = fields.Char('Mô tả tài khoản', help='Chức danh, khu vực quản lý của quản trị viên sinh viên')
-    activated = fields.Boolean('Đã kích hoạt', default=False, help='Trạng thái kích hoạt tài khoản quản trị viên sinh viên')
+    activated = fields.Boolean(
+        related='user_id.active',
+        readonly=False,
+        store=True,
+        string='Đã kích hoạt',
+        help='Đồng bộ trực tiếp với trạng thái hoạt động của tài khoản user'
+    )
     dormitory_area_id = fields.Many2one('student.dormitory.area', string='Khu ký túc xá')
     #dormitory_cluster_id = fields.Many2one('student.dormitory.cluster', string='Cụm ký túc xá')
     dormitory_clusters = fields.Many2many('student.dormitory.cluster', string='Cụm KTX quản lý', help='Các cụm ký túc xá mà quản trị viên này quản lý')
