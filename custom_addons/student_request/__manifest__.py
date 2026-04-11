@@ -54,6 +54,7 @@
         'views/student_manage_views.xml',
         'views/user_permission_views.xml',
         'views/permission_manager_views.xml',
+        'views/mail_menu_security_views.xml',
         'views/ir_attachment_views.xml',
         
         # Menu (phải load trước các file cần reference menu)
