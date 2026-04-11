@@ -98,5 +98,17 @@
             <field name="perm_unlink" eval="False"/>
         </record>
 
+        <!-- Allow internal users to read only attachments used by student request flows -->
+        <record id="student_request_attachment_read_user_rule" model="ir.rule">
+            <field name="name">User Read Access to Student Request Attachments</field>
+            <field name="model_id" ref="base.model_ir_attachment"/>
+            <field name="domain_force">['|', ('create_uid', '=', user.id), ('res_model', 'in', ['student.service.request', 'student.service.request.review', 'student.service.request.complaint'])]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
     </data>
 </odoo>

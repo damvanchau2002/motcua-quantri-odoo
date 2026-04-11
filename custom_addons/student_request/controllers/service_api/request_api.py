@@ -94,6 +94,25 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
     
     sysuser = env['res.users'].sudo().browse(1)  # User hệ thống để tạo request
 
+    def _relink_request_attachments(request_rec, attachment_ids):
+        """Đảm bảo attachment được gắn đúng res_model/res_id của request."""
+        if not request_rec or not request_rec.exists() or not attachment_ids:
+            return
+        safe_ids = [int(att_id) for att_id in attachment_ids if att_id]
+        if not safe_ids:
+            return
+        relink_atts = env['ir.attachment'].sudo().search([
+            ('id', 'in', safe_ids),
+            '|',
+            ('res_model', '=', False),
+            ('res_model', '=', 'student.service.request'),
+        ])
+        if relink_atts:
+            relink_atts.write({
+                'res_model': 'student.service.request',
+                'res_id': request_rec.id,
+            })
+
     attachments = attachments or []
     vals = {}
     # Nếu có request_id => cập nhật (chô này nếu tạo trên Web sẽ luôn có request_id và không có step_ids)
@@ -111,6 +130,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
                 'final_state': 'pending',
                 'dormitory_cluster_id': cluster_id,  # Gán cụm KTX nếu có
             })
+            _relink_request_attachments(vals, attachments)
             if len(vals.step_ids.ids) > 0:
                 # Sửa yêu cầu ok
                 send_fcm_request(env, vals, 1)
@@ -203,6 +223,7 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
         raise ValueError("Thiếu ID yêu cầu")
     except Exception as e:
         vals = env['student.service.request'].sudo().with_user(sysuser).create(vals)
+        _relink_request_attachments(vals, attachments)
         
         # Cập nhật lại thông tin profile để đảm bảo dữ liệu được lưu (do field compute có thể ghi đè bằng giá trị rỗng)
         vals.sudo().write({
@@ -322,6 +343,17 @@ def update_request(env, requestid, userid, note=None, attachments=None, final_st
 
     # Cập nhật
     request.sudo().with_user(sysuser).write(vals)
+
+    if attachments:
+        env['ir.attachment'].sudo().search([
+            ('id', 'in', [int(attach_id) for attach_id in attachments if attach_id]),
+            '|',
+            ('res_model', '=', False),
+            ('res_model', '=', 'student.service.request'),
+        ]).write({
+            'res_model': 'student.service.request',
+            'res_id': request.id,
+        })
 
     # Gửi FCM thông báo cập nhật yêu cầu
     send_fcm_request(env, request, 1)
