@@ -622,6 +622,12 @@ class ServiceApiController(http.Controller):
 
             # Gọi hàm tạo yêu cầu
             request_rec = create_request(request.env, service_id, request_id, request_user_id, note, attachment_ids, input_data)
+            
+            # NOW update res_id on all attachments with the actual request id
+            if attachment_ids and request_rec:
+                request.env['ir.attachment'].sudo().browse(attachment_ids).write({
+                    'res_id': request_rec.id
+                })
 
             return Response(
                 json.dumps({
