@@ -723,6 +723,11 @@ class ServiceRequest(models.Model):
                     val = input_rec.value_float
                 elif input_rec.field_type == 'date':
                     val = str(input_rec.value_date) if input_rec.value_date else None
+                elif input_rec.field_type == 'date_range':
+                    val = {
+                        'start_date': str(input_rec.value_date) if input_rec.value_date else None,
+                        'end_date': str(input_rec.value_date_end) if input_rec.value_date_end else None
+                    }
                 elif input_rec.field_type == 'checkbox':
                     val = input_rec.value_boolean
                 elif input_rec.field_type in ['select', 'select_multi']:
@@ -754,6 +759,13 @@ class ServiceRequest(models.Model):
                             input_rec.value_float = float(val) if val else 0.0
                         elif input_rec.field_type == 'date':
                             input_rec.value_date = val if isinstance(val, str) else False
+                        elif input_rec.field_type == 'date_range':
+                            if isinstance(val, dict):
+                                input_rec.value_date = val.get('start_date') or False
+                                input_rec.value_date_end = val.get('end_date') or False
+                            elif isinstance(val, list) and len(val) == 2:
+                                input_rec.value_date = val[0] if isinstance(val[0], str) else False
+                                input_rec.value_date_end = val[1] if isinstance(val[1], str) else False
                         elif input_rec.field_type == 'checkbox':
                             input_rec.value_boolean = bool(val)
                         elif input_rec.field_type in ['select', 'select_multi']:
@@ -777,6 +789,8 @@ class ServiceRequest(models.Model):
                         has_value = True  # 0, False are valid
                     elif input_rec.field_type == 'date':
                         has_value = bool(input_rec.value_date)
+                    elif input_rec.field_type == 'date_range':
+                        has_value = bool(input_rec.value_date) and bool(input_rec.value_date_end)
                     elif input_rec.field_type in ['select', 'select_multi']:
                         # Check both selected_option_ids (web form) and value_selection (API)
                         has_value = bool(input_rec.selected_option_ids) or bool(input_rec.value_selection)  
@@ -926,6 +940,40 @@ class ServiceRequest(models.Model):
     expired_date = fields.Datetime('Ngày hết hạn', default=fields.Datetime.now() + timedelta(days=7), help='Ngày và giờ hết hạn gửi yêu cầu dịch vụ')
     send_expired_warning = fields.Boolean('Đã gửi cảnh báo sắp hết hạn', default=False, help='Đánh dấu đã gửi cảnh báo yêu cầu sắp hết hạn cho sinh viên')
     is_new = fields.Boolean('Yêu cầu mới', default=True, help='Đánh dấu yêu cầu này là mới')
+
+    is_overdue = fields.Boolean(
+        string='Đã hết hạn',
+        compute='_compute_deadline_status',
+        store=False,
+        help='Yêu cầu đã quá hạn xử lý'
+    )
+    is_warning = fields.Boolean(
+        string='Gần đến hạn',
+        compute='_compute_deadline_status',
+        store=False,
+        help='Yêu cầu sắp hết hạn (còn <= 10% thời gian xử lý)'
+    )
+
+    @api.depends('create_date', 'expired_date', 'final_state')
+    def _compute_deadline_status(self):
+        now = fields.Datetime.now()
+        for record in self:
+            overdue = False
+            warning = False
+
+            if record.final_state in ['pending', 'assigned'] and record.expired_date:
+                if record.expired_date < now:
+                    overdue = True
+                else:
+                    start_dt = record.create_date or now
+                    total_seconds = (record.expired_date - start_dt).total_seconds()
+                    if total_seconds > 0:
+                        remaining_seconds = (record.expired_date - now).total_seconds()
+                        if 0 < remaining_seconds <= total_seconds * 0.1:
+                            warning = True
+
+            record.is_overdue = overdue
+            record.is_warning = warning
 
     # Thông tin hủy yêu cầu
     cancel_reason = fields.Text('Lý do hủy')

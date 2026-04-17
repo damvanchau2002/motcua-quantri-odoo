@@ -37,6 +37,7 @@ class ServiceFormField(models.Model):
         ('textarea', 'Textarea (nhiều dòng)'),
         ('number', 'Number'),
         ('date', 'Date'),
+        ('date_range', 'Khoảng thời gian'),
         ('date_multi', 'Chọn nhiều ngày'),
         ('select', 'Dropdown (1 lựa chọn)'),
         ('select_multi', 'Dropdown (Nhiều lựa chọn)'),

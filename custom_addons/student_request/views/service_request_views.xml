@@ -92,6 +92,10 @@
         <field name="arch" type="xml">
             <form delete="false">
                 <sheet>
+                    <field name="is_overdue" invisible="1"/>
+                    <field name="is_warning" invisible="1"/>
+                    <widget name="web_ribbon" title="Đã hết hạn" bg_color="bg-danger" invisible="not is_overdue"/>
+                    <widget name="web_ribbon" title="Gần đến hạn" bg_color="bg-warning" invisible="not is_warning"/>
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_extensions" type="object" 
                                 class="oe_stat_button" icon="fa-clock-o"
@@ -206,7 +210,8 @@
                                                 <field name="value_char" string="Trả lời" invisible="field_type != 'text'" required="required"/>
                                                 <field name="value_text" string="Trả lời" widget="text" invisible="field_type != 'textarea'" required="required"/>
                                                 <field name="value_float" string="Trả lời" invisible="field_type != 'number'" required="required"/>
-                                                <field name="value_date" string="Trả lời" invisible="field_type != 'date'" required="required"/>
+                                                <field name="value_date" string="Trả lời" invisible="field_type not in ['date', 'date_range']" required="required"/>
+                                                <field name="value_date_end" string="Đến ngày" invisible="field_type != 'date_range'" required="required"/>
                                                 
                                                 <field name="date_ids" string="Chọn các ngày" invisible="field_type != 'date_multi'" required="required">
                                                     <list editable="bottom">
@@ -373,6 +378,8 @@
                                             Mã yêu cầu: <field name="id"/>
                                             <field name="has_unresolved_complaint" invisible="1"/>
                                             <field name="has_complaint" invisible="1"/>
+                                            <field name="is_overdue" invisible="1"/>
+                                            <field name="is_warning" invisible="1"/>
                                             <t t-if="record.has_unresolved_complaint.raw_value">
                                                 <span class="badge bg-danger ms-2" title="Có khiếu nại chưa giải quyết">
                                                     <i class="fa fa-flag"></i>
@@ -384,6 +391,12 @@
                                                     <i class="fa fa-flag"></i>
                                                     KN: <field name="complaint_count"/>
                                                 </span>
+                                            </t>
+                                            <t t-if="record.is_overdue.raw_value">
+                                                <span class="badge bg-danger ms-2" title="Yêu cầu đã hết hạn">Đã hết hạn</span>
+                                            </t>
+                                            <t t-elif="record.is_warning.raw_value">
+                                                <span class="badge bg-warning text-dark ms-2" title="Yêu cầu gần đến hạn">Gần đến hạn</span>
                                             </t>
                                         </div>
                                     </div>
@@ -470,7 +483,9 @@
         <field name="name">student.service.request.list</field>
         <field name="model">student.service.request</field>
         <field name="arch" type="xml">
-            <list decoration-danger="has_unresolved_complaint" decoration-warning="has_complaint">
+            <list decoration-danger="has_unresolved_complaint or (final_state in ['pending', 'assigned'] and is_overdue)" decoration-warning="has_complaint or (final_state in ['pending', 'assigned'] and is_warning and not is_overdue)">
+               <field name="is_overdue" column_invisible="1"/>
+               <field name="is_warning" column_invisible="1"/>
                <field name="id"/>
                <field name="service_id"/>
                <field name="request_user_id"/>
@@ -498,6 +513,11 @@
                 <filter string="Chưa duyệt" name="not_approved" domain="[('final_state','!=','approved')]"/>
                 <filter string="Có khiếu nại" name="has_complaint" domain="[('has_complaint','=',True)]"/>
                 <filter string="KN chưa giải quyết" name="has_unresolved_complaint" domain="[('has_unresolved_complaint','=',True)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter string="Dịch vụ" name="group_by_service" context="{'group_by':'service_id'}"/>
+                    <filter string="Trạng thái" name="group_by_final_state" context="{'group_by':'final_state'}"/>
+                    <filter string="Tháng" name="group_by_month" context="{'group_by':'create_date:month'}"/>
+                </group>
             </search>
         </field>
     </record>
@@ -619,7 +639,8 @@
                                     <field name="value_char" string="Giá trị" invisible="field_type not in ['text']"/>
                                     <field name="value_text" string="Giá trị" widget="text" invisible="field_type not in ['textarea']"/>
                                     <field name="value_float" string="Giá trị" invisible="field_type not in ['number']"/>
-                                    <field name="value_date" string="Giá trị" invisible="field_type not in ['date']"/>
+                                    <field name="value_date" string="Giá trị" invisible="field_type not in ['date', 'date_range']"/>
+                                    <field name="value_date_end" string="Đến ngày" invisible="field_type != 'date_range'"/>
                                     <field name="value_boolean" string="Giá trị" invisible="field_type not in ['checkbox']"/>
                                     <field name="value_selection" string="Giá trị" invisible="field_type not in ['select']"/>
                                 </group>

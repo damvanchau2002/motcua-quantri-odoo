@@ -17,6 +17,7 @@ class ServiceRequestInput(models.Model):
     ('textarea', 'Textarea'),
     ('number', 'Number'),
     ('date', 'Date'),
+    ('date_range', 'Khoảng thời gian'),
     ('date_multi', 'Chọn nhiều ngày'),
     ('select', 'Dropdown'),
     ('select_multi', 'Dropdown (Nhiều lựa chọn)'),
@@ -50,6 +51,7 @@ class ServiceRequestInput(models.Model):
     value_integer = fields.Integer(string='Giá trị')
     value_float = fields.Float(string='Giá trị')
     value_date = fields.Date(string='Giá trị')
+    value_date_end = fields.Date(string='Đến ngày (Khoảng TG)')
     value_datetime = fields.Datetime(string='Giá trị')
     value_boolean = fields.Boolean(string='Giá trị')
     value_selection = fields.Char(string='Giá trị', compute='_compute_value_selection', store=True)
@@ -59,7 +61,7 @@ class ServiceRequestInput(models.Model):
     
 
     @api.depends('field_type', 'value_char', 'value_text', 'value_integer', 'value_float', 
-                 'value_date', 'value_datetime', 'value_boolean', 'value_selection',
+                 'value_date', 'value_date_end', 'value_datetime', 'value_boolean', 'value_selection',
                  'date_ids', 'date_ids.date')
     def _compute_value_display(self):
         for rec in self:
@@ -72,7 +74,14 @@ class ServiceRequestInput(models.Model):
             elif rec.field_type == 'number':
                 val = str(rec.value_float) if rec.value_float else ''
             elif rec.field_type == 'date':
-                val = str(rec.value_date) if rec.value_date else ''
+                val = rec.value_date.strftime('%d-%m-%Y') if rec.value_date else ''
+            elif rec.field_type == 'date_range':
+                start = rec.value_date.strftime('%d-%m-%Y') if rec.value_date else ''
+                end = rec.value_date_end.strftime('%d-%m-%Y') if rec.value_date_end else ''
+                if start or end:
+                    val = f"Từ {start} đến {end}"
+                else:
+                    val = ''
             elif rec.field_type == 'checkbox':
                 val = 'Có' if rec.value_boolean else 'Không'
             elif rec.field_type in ['select', 'select_multi']:

@@ -2,43 +2,34 @@
 <odoo>
     <!-- Graph: thống kê theo dịch vụ -->
     <record id="view_student_request_service_stats_graph" model="ir.ui.view">
-        <field name="name">student.request.stats.service.graph</field>
-        <field name="model">student.request.stats.service</field>
+        <field name="name">student.service.request.graph</field>
+        <field name="model">student.service.request</field>
         <field name="arch" type="xml">
             <graph string="Thống kê theo dịch vụ" type="bar">
                 <field name="service_id" type="row"/>
-                <field name="created_requests" type="measure"/>
-                <field name="new_requests" type="measure"/>
-                <field name="overdue_requests" type="measure"/>
             </graph>
         </field>
     </record>
 
-    <!-- Search: lọc nhanh theo dịch vụ và trạng thái -->
-    <record id="view_student_request_service_stats_search" model="ir.ui.view">
-        <field name="name">student.request.stats.service.search</field>
-        <field name="model">student.request.stats.service</field>
+    <!-- Pivot: thống kê theo dịch vụ -->
+    <record id="view_student_request_service_stats_pivot" model="ir.ui.view">
+        <field name="name">student.service.request.pivot</field>
+        <field name="model">student.service.request</field>
         <field name="arch" type="xml">
-            <search string="Lọc thống kê theo dịch vụ">
-                <field name="service_id"/>
-                <separator string="Trạng thái"/>
-                <filter name="new_only" string="Yêu cầu mới" domain="[('new_requests','>',0)]"/>
-                <filter name="overdue_only" string="Yêu cầu quá hạn" domain="[('overdue_requests','>',0)]"/>
-                <group expand="0" string="Nhóm theo">
-                    <filter name="group_by_service" string="Dịch vụ" context="{'group_by': 'service_id'}"/>
-                </group>
-            </search>
+            <pivot string="Thống kê theo dịch vụ">
+                <field name="service_id" type="row"/>
+            </pivot>
         </field>
     </record>
 
     <!-- Action: mở trực tiếp graph theo dịch vụ -->
     <record id="action_student_request_stats_graph" model="ir.actions.act_window">
         <field name="name">Biểu đồ thống kê</field>
-        <field name="res_model">student.request.stats.service</field>
-        <field name="view_mode">graph</field>
+        <field name="res_model">student.service.request</field>
+        <field name="view_mode">graph,pivot,list,form</field>
         <field name="view_id" ref="view_student_request_service_stats_graph"/>
-        <field name="search_view_id" ref="view_student_request_service_stats_search"/>
-        <field name="context">{"graph_measure": "created_requests", "graph_groupby": "service_id", "graph_stacked": true}</field>
+        <!-- Chúng ta dùng trực tiếp group_by trong context -->
+        <field name="context">{"search_default_group_by_service": 1}</field>
     </record>
 
 </odoo>

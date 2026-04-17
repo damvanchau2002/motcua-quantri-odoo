@@ -14,6 +14,35 @@ _logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 from .utils import send_fcm_request, send_fcm_users, send_fcm_notify, format_datetime_local
 
+def check_request_deadline_status(req):
+    """
+    Kiểm tra trạng thái hạn của yêu cầu
+    Trả về dict chứa is_overdue (đã quá hạn) và is_warning (sắp đến hạn <= 10%)
+    """
+    result = {'is_overdue': False, 'is_warning': False}
+    
+    if not req or req.final_state not in ['pending', 'assigned']:
+        return result
+        
+    try:
+        now = fields.Datetime.now()
+        if not req.expired_date:
+            return result
+            
+        if req.expired_date < now:
+            result['is_overdue'] = True
+        else:
+            start_dt = req.create_date or now
+            total_seconds = (req.expired_date - start_dt).total_seconds()
+            if total_seconds > 0:
+                remaining_seconds = (req.expired_date - now).total_seconds()
+                if 0 < remaining_seconds <= total_seconds * 0.1:
+                    result['is_warning'] = True
+    except Exception:
+        pass
+        
+    return result
+
 
 def normalize_date_input(date_str):
     if not date_str:
@@ -22,7 +51,15 @@ def normalize_date_input(date_str):
         # Try parsing DD/MM/YYYY
         return datetime.strptime(date_str, '%d/%m/%Y').strftime('%Y-%m-%d')
     except ValueError:
-        return date_str # Assume it's already YYYY-MM-DD or let Odoo handle the error
+        pass
+    
+    try:
+        # Try parsing DD-MM-YYYY
+        return datetime.strptime(date_str, '%d-%m-%Y').strftime('%Y-%m-%d')
+    except ValueError:
+        pass
+        
+    return date_str # Assume it's already YYYY-MM-DD or let Odoo handle the error
 
 
 def get_user_received_requests(env, cluster_id, service, step):
@@ -270,11 +307,37 @@ def create_request(env, serviceid, requestid, userid, note, attachments, input_d
                 input_vals['value_float'] = float(value) if value else 0.0
             elif field.field_type == 'date':
                 input_vals['value_date'] = normalize_date_input(value)
+            elif field.field_type == 'date_range':
+                if isinstance(value, dict):
+                    s_d = value.get('start_date') or value.get('start') or ''
+                    e_d = value.get('end_date') or value.get('end') or ''
+                    
+                    # Nếu frontend gửi chuỗi "Từ DD-MM-YYYY đến DD-MM-YYYY" cho cả startDate và endDate 
+                    if isinstance(s_d, str) and 'Từ' in s_d and 'đến' in s_d:
+                        parts = s_d.split()
+                        if len(parts) >= 4 and parts[0] == 'Từ' and parts[-2] == 'đến':
+                            s_d = parts[1]
+                            e_d = parts[-1]
+                            
+                    input_vals['value_date'] = normalize_date_input(s_d)
+                    input_vals['value_date_end'] = normalize_date_input(e_d)
+                elif isinstance(value, list) and len(value) == 2:
+                    input_vals['value_date'] = normalize_date_input(value[0])
+                    input_vals['value_date_end'] = normalize_date_input(value[1])
+                else: # Fallback to splitting by space or just assign to one
+                    input_vals['value_char'] = str(value)
             elif field.field_type == 'checkbox':
                 input_vals['value_boolean'] = bool(value)
             elif field.field_type in ['select', 'select_multi']:
                 # value là list các option IDs
-                option_ids = value if isinstance(value, list) else [value] if isinstance(value, int) else []
+                option_ids = []
+                if isinstance(value, list):
+                    option_ids = [int(v) for v in value if str(v).isdigit()]
+                elif isinstance(value, int):
+                    option_ids = [value]
+                elif isinstance(value, str) and value.isdigit():
+                    option_ids = [int(value)]
+                
                 if option_ids:
                     input_vals['selected_option_ids'] = [(6, 0, option_ids)]
             elif field.field_type == 'date_multi':
@@ -807,10 +870,36 @@ class ServiceApiController(http.Controller):
                         input_vals['value_float'] = float(value) if value else 0.0
                     elif field.field_type == 'date':
                         input_vals['value_date'] = normalize_date_input(value)
+                    elif field.field_type == 'date_range':
+                        if isinstance(value, dict):
+                            s_d = value.get('start_date') or value.get('start') or ''
+                            e_d = value.get('end_date') or value.get('end') or ''
+                            
+                            # Nếu frontend gửi chuỗi "Từ DD-MM-YYYY đến DD-MM-YYYY"
+                            if isinstance(s_d, str) and 'Từ' in s_d and 'đến' in s_d:
+                                parts = s_d.split()
+                                if len(parts) >= 4 and parts[0] == 'Từ' and parts[-2] == 'đến':
+                                    s_d = parts[1]
+                                    e_d = parts[-1]
+                                    
+                            input_vals['value_date'] = normalize_date_input(s_d)
+                            input_vals['value_date_end'] = normalize_date_input(e_d)
+                        elif isinstance(value, list) and len(value) == 2:
+                            input_vals['value_date'] = normalize_date_input(value[0])
+                            input_vals['value_date_end'] = normalize_date_input(value[1])
+                        else:
+                            input_vals['value_char'] = str(value)
                     elif field.field_type == 'checkbox':
                         input_vals['value_boolean'] = bool(value)
-                    elif field.field_type == 'select':
-                        option_ids = value if isinstance(value, list) else [value] if isinstance(value, int) else []
+                    elif field.field_type in ['select', 'select_multi']:
+                        option_ids = []
+                        if isinstance(value, list):
+                            option_ids = [int(v) for v in value if str(v).isdigit()]
+                        elif isinstance(value, int):
+                            option_ids = [value]
+                        elif isinstance(value, str) and value.isdigit():
+                            option_ids = [int(value)]
+                        
                         if option_ids:
                             input_vals['selected_option_ids'] = [(6, 0, option_ids)]
                     elif field.field_type == 'date_multi':
@@ -987,6 +1076,8 @@ class ServiceApiController(http.Controller):
                 )
 
 
+                status_info = check_request_deadline_status(req)
+
                 result.append({
                     'id': req.id,
                     'service': {
@@ -1005,6 +1096,8 @@ class ServiceApiController(http.Controller):
                     'final_state': req.final_state,
                     'final_data': req.final_data,
                     'expired_date': format_datetime_local(req.expired_date, user_id),
+                    'is_overdue': status_info['is_overdue'],
+                    'is_warning': status_info['is_warning'],
                     'histories': sorted(sumhistories, key=lambda x: x['date'], reverse=True),
                 })
 
@@ -1195,6 +1288,8 @@ class ServiceApiController(http.Controller):
                 # Debug log để kiểm tra giá trị student_phone
                 _logger.info(f"DEBUG RESPONSE: req.id={req.id}, student_phone='{student_phone}', request_user_name='{req.request_user_name}'")
                 
+                status_info = check_request_deadline_status(req)
+
                 result_item = {
                     'id': req.id,
                     'name': req.name,
@@ -1207,6 +1302,8 @@ class ServiceApiController(http.Controller):
                     'final_state': req.final_state,
                     'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
                     'expired_date': format_datetime_local(req.expired_date, user_id),
+                    'is_overdue': status_info['is_overdue'],
+                    'is_warning': status_info['is_warning'],
 
                     # Thông tin sinh viên
                     'request_user_name': req.request_user_name,
@@ -1469,6 +1566,8 @@ class ServiceApiController(http.Controller):
                         'mimetype': att.mimetype
                     })
 
+                status_info = check_request_deadline_status(req)
+
                 results.append({
                     'id': req.id,
 
@@ -1482,6 +1581,8 @@ class ServiceApiController(http.Controller):
                     'final_state': req.final_state,
                     'final_data': True if req.final_data else False,  # Chuyển đổi rõ ràng
                     'expired_date': format_datetime_local(req.expired_date, user_id),
+                    'is_overdue': status_info['is_overdue'],
+                    'is_warning': status_info['is_warning'],
 
                     # Thông tin sinh viên
                     'request_user_name': req.request_user_name,
@@ -1597,6 +1698,8 @@ class ServiceApiController(http.Controller):
             if req.image_attachment_ids:
                 attachments = req.image_attachment_ids.ids
 
+            status_info = check_request_deadline_status(req)
+
             req_data = {
                 'id': req.id,
                 
@@ -1615,6 +1718,8 @@ class ServiceApiController(http.Controller):
                 'processor_file_attachment_ids': [{'id': att.id, 'name': att.name, 'url': att.public_url if hasattr(att, 'public_url') and att.public_url else f'/api/download/image/{att.id}', 'mimetype': att.mimetype} for att in req.processor_file_attachment_ids],
                 'request_date': format_datetime_local(req.request_date),
                 'expired_date': format_datetime_local(req.expired_date) if hasattr(req, 'expired_date') and req.expired_date else None,
+                'is_overdue': status_info['is_overdue'],
+                'is_warning': status_info['is_warning'],
 
                 'request_user_id': req.request_user_id.id if req.request_user_id else None,
                 'request_user_name': req.request_user_id.name if req.request_user_id else '',
