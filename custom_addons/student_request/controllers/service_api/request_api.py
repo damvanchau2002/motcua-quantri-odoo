@@ -1667,6 +1667,76 @@ class ServiceApiController(http.Controller):
             # Sắp xếp steps theo base_secquence
             sorted_steps = req.step_ids.sorted(lambda s: s.base_secquence or 0)
             
+            # Tính toán active_step_info CHUẨN
+            active_step_info = {
+                'step_id': 0,
+                'step_name': '',
+                'step_order': 0,
+                'department_id': None,
+                'assign_user_id': None,
+                'user_ids': []
+            }
+            
+            active_steps = sorted_steps.filtered(lambda s: s.state in ['pending', 'assigned', 'repairing'])
+            preferred_step_id = request.httprequest.args.get('step_id')
+            try:
+                preferred_step_id = int(preferred_step_id) if preferred_step_id else None
+            except (TypeError, ValueError):
+                preferred_step_id = None
+
+            current_step = None
+            if active_steps:
+                if preferred_step_id:
+                    preferred_step = active_steps.filtered(lambda s: s.id == preferred_step_id)
+                    if preferred_step:
+                        current_step = preferred_step[0]
+
+                if not current_step:
+                    assigned_steps = active_steps.filtered(lambda s: s.state == 'assigned').sorted(lambda s: (s.base_secquence or 0, s.id or 0))
+                    if assigned_steps:
+                        current_step = assigned_steps[-1]
+
+                if not current_step:
+                    repairing_steps = active_steps.filtered(lambda s: s.state == 'repairing').sorted(lambda s: (s.base_secquence or 0, s.id or 0))
+                    if repairing_steps:
+                        current_step = repairing_steps[-1]
+
+                if not current_step:
+                    pending_steps = active_steps.filtered(lambda s: s.state == 'pending').sorted(lambda s: (s.base_secquence or 0, s.id or 0))
+                    current_step = pending_steps[0] if pending_steps else None
+
+            if current_step:
+                base_step = current_step.base_step_id
+                
+                # Resolving lists
+                step_user_ids = [u.id for u in base_step.user_ids] if base_step and base_step.user_ids else []
+                
+                # Rule assigning default
+                default_assign_user_id = None
+                if current_step.assign_user_id:
+                    default_assign_user_id = current_step.assign_user_id.id
+                elif step_user_ids:
+                    default_assign_user_id = step_user_ids[0]
+                
+                default_department_id = None
+                if current_step.department_id:
+                    default_department_id = current_step.department_id.id
+                elif base_step and base_step.department_id:
+                    default_department_id = base_step.department_id.id
+                
+                active_step_info = {
+                    'step_id': current_step.id,
+                    'step_name': current_step.display_step_name or (base_step.name if base_step else ''),
+                    'step_order': current_step.base_secquence or 0,
+                    'department_id': default_department_id,
+                    'assign_user_id': default_assign_user_id,
+                    'asign_user_id': default_assign_user_id,
+                    'user_ids': step_user_ids
+                }
+                
+                # Log debug backend
+                _logger.info(f"API Detail Active Step Info Resolved: req_id={req.id}, step={active_step_info['step_id']}, dept={active_step_info['department_id']}, assign_user={active_step_info['assign_user_id']}, users={active_step_info['user_ids']}")
+
             sumhistories = []
             for step in sorted_steps:
                 for h in step.history_ids:
@@ -1737,6 +1807,9 @@ class ServiceApiController(http.Controller):
                 'cancel_date': format_datetime_local(req.cancel_date) if req.cancel_date else None,
                 'cancel_user_id': req.cancel_user_id.id if req.cancel_user_id else None,
                 'cancel_user_name': req.cancel_user_id.name if req.cancel_user_id else '',
+                
+                # CHUẨN active_step_info
+                'active_step_info': active_step_info,
 
                 # Service step selections được sắp xếp theo sequence
                 'service_step_selection_ids': [{
@@ -1905,7 +1978,8 @@ class ServiceApiController(http.Controller):
         try:
             request_id = params.get('request_id')
             user_id = params.get('user_id')
-            asign_user_id = int(params.get('asign_user_id', 0) or 0)
+            raw_assign_user_id = params.get('assign_user_id', params.get('asign_user_id', 0))
+            asign_user_id = int(raw_assign_user_id or 0)
             department_id = int(params.get('department_id', 0) or 0)
             step_id = params.get('step_id')
             checked_ids = params.get('checked_ids')
@@ -1957,7 +2031,7 @@ class ServiceApiController(http.Controller):
 
         if asign_user_id == 0 and department_id == 0:
             return Response(
-                json.dumps({'success': False, 'message': 'Phải có 1 trong 2 asign_user_id hoặc department_id'}),
+             json.dumps({'success': False, 'message': 'Phải có 1 trong 2 assign_user_id hoặc department_id'}),
                 content_type='application/json',
                 status=400,
                       headers=[

@@ -498,7 +498,8 @@ class AuthApiController(http.Controller):
                 except Exception:
                     image_data = False
             # Kiểm tra xem user_id có được cung cấp không
-            user = request.env['res.users'].sudo().browse(user_id) if user_id else request.env['res.users'].sudo().search([('login', '=', email)], limit=1)
+            users_model = request.env['res.users'].sudo().with_context(active_test=False)
+            user = users_model.browse(user_id) if user_id else users_model.search([('login', '=', email)], limit=1)
             if not user.exists():
                 # Nếu không có user_id, tạo mới user
                 # Đảm bảo login không null
@@ -509,7 +510,7 @@ class AuthApiController(http.Controller):
                 vals = {
                     'name': fullname or 'Oauth User',
                     'login': login_value,
-                    'active': True,
+                    'active': False,
                     'email': email,
                     'groups_id': [(6, 0, [request.env.ref('base.group_system').id])],
                     'image_1920': image_data,
@@ -596,17 +597,21 @@ class AuthApiController(http.Controller):
                         'avatar_url': avatar,
                     })
             oauths = request.env['student.admin.oauth'].sudo().search([('user_id', '=', user.id)])
-            
-            jwt_token = generate_jwt_token(user.id, SECRET_KEY)
-            refresh_token = generate_jwt_token(user.id, REFRESH_KEY)
+            is_activated = bool(profile and profile.activated)
+
+            jwt_token = ''
+            refresh_token = ''
+            if is_activated:
+                jwt_token = generate_jwt_token(user.id, SECRET_KEY)
+                refresh_token = generate_jwt_token(user.id, REFRESH_KEY)
             # Trả về thông tin Đăng nhập thành công        
             return Response(
-                json.dumps({'success': True if profile.activated else False, 'message':  'Thành công' if profile.activated else 'Tài khoản chưa được kích hoạt', 'data': {
+                json.dumps({'success': is_activated, 'message':  'Thành công' if is_activated else 'Tài khoản chưa được kích hoạt', 'data': {
                     'id': user.id,
                     'email': email,
                     'fullname': fullname,
                     'avatar_url': avatar,
-                    'activated': profile.activated if profile else False,
+                    'activated': is_activated,
                     'title_name': str(profile.title_name or '') if profile else '',
                     'dormitory_area_id': profile.dormitory_area_id.id if profile and profile.dormitory_area_id else 0,
                     'dormitory_clusters': profile.dormitory_clusters.ids if profile and profile.dormitory_clusters else [],

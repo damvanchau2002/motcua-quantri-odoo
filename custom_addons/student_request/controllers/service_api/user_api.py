@@ -129,7 +129,7 @@ class UserApiController(http.Controller):
             ]
         )
 
-    def _get_active_step_info(self, request_id):
+    def _get_active_step_info(self, request_id, preferred_step_id=None):
         """Lấy thông tin bước xử lý hiện tại của request"""
         import logging
         _logger = logging.getLogger(__name__)
@@ -137,9 +137,13 @@ class UserApiController(http.Controller):
         try:
             if not request_id:
                 return {
-                    'request_id': None,
-                    'error': 'no_request_id',
-                    'message': 'Không có request_id được cung cấp'
+                    'step_id': 0,
+                    'step_name': '',
+                    'step_order': 0,
+                    'department_id': None,
+                    'assign_user_id': None,
+                    'user_ids': [],
+                    'is_active_step': False
                 }
             
             # Tìm service request
@@ -149,9 +153,13 @@ class UserApiController(http.Controller):
             
             if not service_request:
                 return {
-                    'request_id': request_id,
-                    'error': 'request_not_found',
-                    'message': f'Không tìm thấy request với ID {request_id}'
+                    'step_id': 0,
+                    'step_name': '',
+                    'step_order': 0,
+                    'department_id': None,
+                    'assign_user_id': None,
+                    'user_ids': [],
+                    'is_active_step': False
                 }
             
             # Lấy tất cả steps của request
@@ -166,52 +174,83 @@ class UserApiController(http.Controller):
             
             _logger.info(f"Tìm thấy {len(active_steps)} active steps (pending/assigned/repairing)")
             
-            # Lấy step hiện tại (step đầu tiên theo sequence)
-            current_step = active_steps.sorted(lambda s: s.base_secquence)[0] if active_steps else None
+            # Chọn step hiện tại theo ưu tiên:
+            # 1) step được chỉ định từ client (nếu có và đang active)
+            # 2) step assigned mới nhất theo sequence
+            # 3) step repairing mới nhất theo sequence
+            # 4) step pending sớm nhất theo sequence
+            current_step = None
+            if active_steps:
+                if preferred_step_id:
+                    preferred_step = active_steps.filtered(lambda s: s.id == preferred_step_id)
+                    if preferred_step:
+                        current_step = preferred_step[0]
+
+                if not current_step:
+                    assigned_steps = active_steps.filtered(lambda s: s.state == 'assigned').sorted(lambda s: (s.base_secquence or 0, s.id or 0))
+                    if assigned_steps:
+                        current_step = assigned_steps[-1]
+
+                if not current_step:
+                    repairing_steps = active_steps.filtered(lambda s: s.state == 'repairing').sorted(lambda s: (s.base_secquence or 0, s.id or 0))
+                    if repairing_steps:
+                        current_step = repairing_steps[-1]
+
+                if not current_step:
+                    pending_steps = active_steps.filtered(lambda s: s.state == 'pending').sorted(lambda s: (s.base_secquence or 0, s.id or 0))
+                    current_step = pending_steps[0] if pending_steps else None
             
             if current_step:
                 _logger.info(f"Active step: {current_step.display_step_name} (ID: {current_step.id})")
+                base_step = current_step.base_step_id
+
+                # Resolving logic same as detail API
+                step_user_ids = [u.id for u in base_step.user_ids] if base_step and base_step.user_ids else []
+                
+                default_assign_user_id = None
+                if current_step.assign_user_id:
+                    default_assign_user_id = current_step.assign_user_id.id
+                elif step_user_ids:
+                    default_assign_user_id = step_user_ids[0]
+                
+                default_department_id = None
+                if current_step.department_id:
+                    default_department_id = current_step.department_id.id
+                elif base_step and base_step.department_id:
+                    default_department_id = base_step.department_id.id
+
                 return {
-                    'request_id': service_request.id,
-                    'request_code': service_request.name,
-                    'request_state': service_request.final_state,
-                    'current_step_id': current_step.id,
-                    'current_step_name': current_step.display_step_name,
-                    'current_step_state': current_step.state,
-                    'current_step_sequence': current_step.base_secquence,
-                    'current_department_id': current_step.department_id.id if current_step.department_id else None,
-                    'current_department_name': current_step.department_id.name if current_step.department_id else '',
-                    'step_department_id': current_step.base_step_id.department_id.id if current_step.base_step_id and current_step.base_step_id.department_id else None,
-                    'step_department_name': current_step.base_step_id.department_id.name if current_step.base_step_id and current_step.base_step_id.department_id else '',
-                    'assign_user_id': current_step.assign_user_id.id if current_step.assign_user_id else None,
-                    'assign_user_name': current_step.assign_user_id.name if current_step.assign_user_id else '',
+                    'step_id': current_step.id,
+                    'step_name': current_step.display_step_name or (base_step.name if base_step else ''),
+                    'step_order': current_step.base_secquence or 0,
+                    'department_id': default_department_id,
+                    'assign_user_id': default_assign_user_id,
+                    'asign_user_id': default_assign_user_id,
+                    'user_ids': step_user_ids,
                     'is_active_step': True
                 }
             else:
                 _logger.info(f"Không tìm thấy active step cho request {request_id}")
                 return {
-                    'request_id': service_request.id,
-                    'request_code': service_request.name,
-                    'request_state': service_request.final_state,
-                    'current_step_id': None,
-                    'current_step_name': '',
-                    'current_step_state': '',
-                    'current_step_sequence': 0,
-                    'current_department_id': None,
-                    'current_department_name': '',
-                    'step_department_id': None,
-                    'step_department_name': '',
+                    'step_id': 0,
+                    'step_name': '',
+                    'step_order': 0,
+                    'department_id': None,
                     'assign_user_id': None,
-                    'assign_user_name': '',
+                    'user_ids': [],
                     'is_active_step': False
                 }
                 
         except Exception as e:
             _logger.error(f"Lỗi khi lấy active step info cho request {request_id}: {str(e)}")
             return {
-                'request_id': request_id,
-                'error': 'exception',
-                'message': f'Lỗi khi xử lý request: {str(e)}'
+                'step_id': 0,
+                'step_name': '',
+                'step_order': 0,
+                'department_id': None,
+                'assign_user_id': None,
+                'user_ids': [],
+                'is_active_step': False
             }
 
    # Lấy danh sách người phân công theo department_id
@@ -281,6 +320,7 @@ class UserApiController(http.Controller):
                 
                 user_data = {
                     'id': user.id,
+                    'user_id': user.id,
                     'name': user.name,
                     'login': user.login,
                     'email': user.email,
@@ -305,8 +345,14 @@ class UserApiController(http.Controller):
                 except ValueError:
                     request_id = None
             
+            preferred_step_id = request.httprequest.args.get('step_id')
+            try:
+                preferred_step_id = int(preferred_step_id) if preferred_step_id else None
+            except (TypeError, ValueError):
+                preferred_step_id = None
+
             # Lấy thông tin active step
-            active_step_info = self._get_active_step_info(request_id)
+            active_step_info = self._get_active_step_info(request_id, preferred_step_id=preferred_step_id)
             
             # Danh sách trạng thái có thể chọn với thông tin phòng ban và người xử lý
             status_options = [
@@ -438,13 +484,26 @@ class UserApiController(http.Controller):
                 status_value = status['value']
                 if status_value in status_department_mapping:
                     mapping_info = status_department_mapping[status_value]
+                    suggested_department_id = mapping_info['departments'][0]['id'] if mapping_info['departments'] else None
+                    suggested_handler_id = mapping_info['handlers'][0]['id'] if mapping_info['handlers'] else None
+
+                    # Với trạng thái assigned/approved, luôn ưu tiên người/phòng ban của active step
+                    # để UI mở popup có thể preselect đúng bản ghi vừa phân công.
+                    if status_value in ['assigned', 'approved'] and active_step_info and active_step_info.get('step_id'):
+                        if active_step_info.get('department_id'):
+                            suggested_department_id = active_step_info.get('department_id')
+                        if active_step_info.get('assign_user_id'):
+                            suggested_handler_id = active_step_info.get('assign_user_id')
+
                     status.update({
                         'departments': mapping_info['departments'],
                         'handlers': mapping_info['handlers'],
                         'current_step': mapping_info['current_step'],
                         # Thêm thông tin để UI có thể tự động chọn
-                        'suggested_department_id': mapping_info['departments'][0]['id'] if mapping_info['departments'] else None,
-                        'suggested_handler_id': mapping_info['handlers'][0]['id'] if mapping_info['handlers'] else None,
+                        'suggested_department_id': suggested_department_id,
+                        'suggested_handler_id': suggested_handler_id,
+                        'suggested_assign_user_id': suggested_handler_id,
+                        'suggested_asign_user_id': suggested_handler_id,
                         'has_mapping': True
                     })
                 else:
@@ -455,15 +514,16 @@ class UserApiController(http.Controller):
                     # Logic để xác định department/handler mặc định dựa trên status
                     if status_value in ['assigned', 'approved']:
                         # Lấy thông tin từ active_step_info nếu có
-                        if active_step_info:
-                            default_department = {
-                                'id': active_step_info.get('current_department_id'),
-                                'name': active_step_info.get('current_department_name', 'Phòng ban hiện tại')
-                            }
+                        if active_step_info and active_step_info.get('step_id'):
+                            if active_step_info.get('department_id'):
+                                default_department = {
+                                    'id': active_step_info.get('department_id'),
+                                    'name': 'Phòng ban được cấu hình'
+                                }
                             if active_step_info.get('assign_user_id'):
                                 default_handler = {
                                     'id': active_step_info.get('assign_user_id'),
-                                    'name': active_step_info.get('assign_user_name', 'Người xử lý hiện tại')
+                                    'name': 'Người xử lý được cấu hình'
                                 }
                     
                     status.update({
@@ -472,8 +532,15 @@ class UserApiController(http.Controller):
                         'current_step': None,
                         'suggested_department_id': default_department['id'] if default_department else None,
                         'suggested_handler_id': default_handler['id'] if default_handler else None,
+                        'suggested_assign_user_id': default_handler['id'] if default_handler else None,
+                        'suggested_asign_user_id': default_handler['id'] if default_handler else None,
                         'has_mapping': False
                     })
+
+            selected_handler = None
+            assign_user_id = active_step_info.get('assign_user_id') if active_step_info else None
+            if assign_user_id:
+                selected_handler = next((u for u in data if u.get('id') == assign_user_id), None)
             
             return Response(
                 json.dumps({
@@ -486,7 +553,15 @@ class UserApiController(http.Controller):
                         'description': department.description,
                         'active': department.active if hasattr(department, 'active') else True
                     },
-                    'active_step_info': active_step_info,
+                    'active_step_info': {
+                        **active_step_info,
+                        'asign_user_id': active_step_info.get('assign_user_id'),
+                        'assign_user': selected_handler,
+                        'assigned_user': selected_handler,
+                        'selected_handler': selected_handler,
+                        'handler_id': active_step_info.get('assign_user_id'),
+                        'user_id': active_step_info.get('assign_user_id')
+                    },
                     'status_options': status_options,
                     'total_users': len(data),
                     'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
