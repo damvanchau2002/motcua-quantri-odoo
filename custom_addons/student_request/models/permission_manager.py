@@ -46,6 +46,21 @@ class PermissionManager(models.Model):
 class ResUsers(models.Model):
     _inherit = 'res.users'
     
+    department_id = fields.Many2one(
+        'student.activity.department',
+        string='Phòng ban (Admin Profile)',
+        compute='_compute_department_id',
+        store=False,
+    )
+
+    def _compute_department_id(self):
+        for user in self:
+            if user.id:
+                profile = self.env['student.admin.profile'].sudo().search([('user_id', '=', user.id)], limit=1)
+                user.department_id = profile.department_id.id if profile and profile.department_id else False
+            else:
+                user.department_id = False
+    
 
     
 
