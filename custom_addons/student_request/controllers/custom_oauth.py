@@ -13,10 +13,10 @@ class CustomOAuthController(OAuthController):
     @http.route('/auth_oauth/signin', type='http', auth='none', readonly=False)
     def signin(self, **kw):
         """
-        Kế thừa logic gốc của Odoo, sau đó bổ sung tạo/cập nhật user, profile, oauth record
+        Extend base Odoo OAuth signin to create/update user, profile, oauth record.
         """
         try:
-            # --- gọi logic gốc (để xử lý OAuth + login session)
+            # --- call base logic (handles OAuth + login session)
             resp = super(CustomOAuthController, self).signin(**kw)
 
             params = kw or request.params
@@ -25,7 +25,7 @@ class CustomOAuthController(OAuthController):
             access_token = params.get('access_token')
             id_token = params.get('id_token')
 
-            # --- lấy user đã đăng nhập
+            # --- get logged-in user
             user = request.env.user
             if user and user.id != SUPERUSER_ID:
                 state = json.loads(kw.get("state", "{}"))
@@ -41,12 +41,12 @@ class CustomOAuthController(OAuthController):
                 provider = state.get("p")
                 token = kw.get("access_token") or kw.get("id_token")
 
-                # lấy thông tin từ Microsoft (ví dụ email, fullname, avatar) 
+                # get info from provider (email, fullname, avatar)
                 email = user.email
                 fullname = user.name
-                avatar = None  # bạn có thể call Microsoft Graph API để lấy avatar
+                avatar = None  # call provider Graph API to get avatar if needed
 
-                # --- xử lý avatar
+                # --- handle avatar
                 image_data = False
                 if avatar:
                     try:

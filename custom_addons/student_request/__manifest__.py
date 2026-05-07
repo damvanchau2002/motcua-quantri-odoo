@@ -24,6 +24,7 @@
         'data/automated_actions.xml',  # Fixed XML validation error
         'data/user_group_assignments.xml',  # User group assignments
         'data/update_cluster_action.xml',   # Server action to update cluster info
+        'data/fcm_config_data.xml',         # Firebase Web Push config params
         # 'data/permission_rules_data.xml',  # Commented out to remove permission restrictions
         
         # View files
@@ -77,6 +78,8 @@
             # Dynamic Form Widget
             'student_request/static/src/js/dynamic_form_widget.js',
             'student_request/static/src/xml/dynamic_form_widget.xml',
+            # Firebase Web Push Notification
+            'student_request/static/src/js/fcm_web_push.js',
         ],
     },
 }

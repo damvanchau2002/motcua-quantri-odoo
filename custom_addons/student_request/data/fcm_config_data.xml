@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- FCM Web Config Parameters -->
+        <record id="fcm_web_api_key" model="ir.config_parameter">
+            <field name="key">student_request.firebase_web_api_key</field>
+            <field name="value">AIzaSyDUukh_4BHT_Btedq-hDa2cFkyaCnXI544</field>
+        </record>
+        
+        <record id="fcm_web_auth_domain" model="ir.config_parameter">
+            <field name="key">student_request.firebase_web_auth_domain</field>
+            <field name="value">motcua-ef32d.firebaseapp.com</field>
+        </record>
+        
+        <record id="fcm_web_project_id" model="ir.config_parameter">
+            <field name="key">student_request.firebase_web_project_id</field>
+            <field name="value">motcua-ef32d</field>
+        </record>
+        
+        <record id="fcm_web_storage_bucket" model="ir.config_parameter">
+            <field name="key">student_request.firebase_web_storage_bucket</field>
+            <field name="value">motcua-ef32d.firebasestorage.app</field>
+        </record>
+        
+        <record id="fcm_web_messaging_sender_id" model="ir.config_parameter">
+            <field name="key">student_request.firebase_web_messaging_sender_id</field>
+            <field name="value">776181268130</field>
+        </record>
+        
+        <record id="fcm_web_app_id" model="ir.config_parameter">
+            <field name="key">student_request.firebase_web_app_id</field>
+            <field name="value">1:776181268130:web:18817c132623512ef3a1fb</field>
+        </record>
+        
+        <record id="fcm_web_vapid_key" model="ir.config_parameter">
+            <field name="key">student_request.firebase_web_vapid_key</field>
+            <field name="value">BKqKUDXQWsB81KQKzMvaXjA1kkWS9E4CluVArc_Zs7Z62VZLIVQgE0j1gbAC4DHBFyVtX1azy-e4_dUI3nPOCZ0</field>
+        </record>
+    </data>
+</odoo>

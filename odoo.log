@@ -1,0 +1,1184 @@
+2026-05-05 08:08:29,176 12136 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:08:29,176 12136 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:08:29,176 12136 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:08:29,177 12136 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:08:29,317 12136 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:08:29,320 12136 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:08:29,530 12136 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:08:29,533 12136 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:08:29,545 12136 INFO odoo_db odoo.modules.loading: updating modules list 
+2026-05-05 08:08:29,547 12136 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-05-05 08:08:30,243 12136 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['Student Service Management'] to user __system__ #1 via n/a 
+2026-05-05 08:08:30,243 12136 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['Student Service Management'] to user __system__ #1 via n/a 
+2026-05-05 08:08:30,574 12136 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
+2026-05-05 08:08:30,607 12136 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:08:31,042 12136 INFO odoo_db odoo.modules.loading: Loading module student_request (31/31) 
+2026-05-05 08:08:31,258 12136 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:08:31,294 12136 INFO odoo_db odoo.modules.registry: module student_request: creating or updating database tables 
+2026-05-05 08:08:31,419 12136 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_text, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:08:31,419 12136 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_integer, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:08:31,419 12136 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_float, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:08:31,419 12136 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_date, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:08:31,419 12136 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_datetime, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:08:31,419 12136 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_boolean, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:08:31,419 12136 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_selection, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:08:31,566 12136 INFO odoo_db odoo.modules.loading: loading student_request/security/extension_security.xml 
+2026-05-05 08:08:31,589 12136 INFO odoo_db odoo.modules.loading: loading student_request/security/ir.model.access.csv 
+2026-05-05 08:08:31,633 12136 INFO odoo_db odoo.modules.loading: loading student_request/security/ir_rules.xml 
+2026-05-05 08:08:31,660 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/service_step_data.xml 
+2026-05-05 08:08:31,680 12136 INFO odoo_db odoo.addons.student_request.models.service: Service write called with vals: {'name': 'Xin trọ', 'titlenote': 'Điền thông tin phòng muốn thuê:', 'description': 'Dịch vụ xin thuê trọ ký túc xá cho sinh viên.', 'group_id': 1, 'files': [(4, 1), (4, 2), (4, 3)], 'step_ids': [(4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7)], 'users': [(4, 1)]} 
+2026-05-05 08:08:31,683 12136 INFO odoo_db odoo.addons.student_request.models.service: Service write completed successfully 
+2026-05-05 08:08:31,684 12136 INFO odoo_db odoo.addons.student_request.models.service: Service write called with vals: {'name': 'Sửa điện', 'titlenote': 'Mô tả thiết bị hỏng và chụp ảnh:', 'description': 'Dịch vụ sửa chữa điện trong ký túc xá.', 'group_id': 2, 'files': [(4, 1), (4, 2)], 'step_ids': [(4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7)], 'users': [(4, 1)]} 
+2026-05-05 08:08:31,686 12136 INFO odoo_db odoo.addons.student_request.models.service: Service write completed successfully 
+2026-05-05 08:08:31,686 12136 INFO odoo_db odoo.addons.student_request.models.service: Service write called with vals: {'name': 'Xin cấp giấy chứng nhận', 'titlenote': 'Điền thông tin giấy chứng nhận cần cấp:', 'description': 'Dịch vụ xin cấp giấy chứng nhận cho sinh viên.', 'group_id': 3, 'files': [(4, 1), (4, 2)], 'step_ids': [(4, 1), (4, 2), (4, 4), (4, 5), (4, 7)], 'users': [(4, 1)]} 
+2026-05-05 08:08:31,688 12136 INFO odoo_db odoo.addons.student_request.models.service: Service write completed successfully 
+2026-05-05 08:08:31,699 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/service_request_state_data.xml 
+2026-05-05 08:08:31,703 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/field_template_data.xml 
+2026-05-05 08:08:31,708 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/cron_data.xml 
+2026-05-05 08:08:31,721 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/ir_cron_data.xml 
+2026-05-05 08:08:31,722 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/stats_cron.xml 
+2026-05-05 08:08:31,727 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/email_templates.xml 
+2026-05-05 08:08:31,731 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/automated_actions.xml 
+2026-05-05 08:08:31,732 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/user_group_assignments.xml 
+2026-05-05 08:08:31,769 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/update_cluster_action.xml 
+2026-05-05 08:08:31,771 12136 INFO odoo_db odoo.modules.loading: loading student_request/data/fcm_config_data.xml 
+2026-05-05 08:08:31,774 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_group_views.xml 
+2026-05-05 08:08:31,788 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/field_template_views.xml 
+2026-05-05 08:08:31,799 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_views.xml 
+2026-05-05 08:08:31,810 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_form_field_views.xml 
+2026-05-05 08:08:31,816 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_step_views.xml 
+2026-05-05 08:08:31,824 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_request_state_views.xml 
+2026-05-05 08:08:31,830 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_file_views.xml 
+2026-05-05 08:08:31,838 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_request_views.xml 
+2026-05-05 08:08:31,854 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,856 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,856 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 32,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:08:31,857 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,857 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,857 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 59,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:08:31,857 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-pdf-o text-danger) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 62,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:08:31,857 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-word-o text-primary) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 66,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:08:31,857 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-excel-o text-success) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 70,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:08:31,858 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-o text-muted) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 74,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:08:31,858 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,859 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,859 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,861 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,861 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:08:31,863 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-star text-warning) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 230,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:08:31,866 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-calendar) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 55,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:08:31,866 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-calendar) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 61,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:08:31,867 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-sticky-note) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 67,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:08:31,867 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-tasks) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 73,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:08:31,867 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-archive) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 81,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:08:31,895 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/request_extension_views.xml 
+2026-05-05 08:08:31,914 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/request_stats_views.xml 
+2026-05-05 08:08:31,925 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/bulk_assign_wizard_views.xml 
+2026-05-05 08:08:31,938 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/admin_profile_views.xml 
+2026-05-05 08:08:31,953 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/notification_views.xml 
+2026-05-05 08:08:31,961 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/dormitory_views.xml 
+2026-05-05 08:08:31,976 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/request_review_views.xml 
+2026-05-05 08:08:31,984 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 24,
+ 'name': 'student.service.request.review.form',
+ 'view': ir.ui.view(525,),
+ 'view.model': 'student.service.request.review',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_review_form'} 
+2026-05-05 08:08:31,984 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-o) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 28,
+ 'name': 'student.service.request.review.form',
+ 'view': ir.ui.view(525,),
+ 'view.model': 'student.service.request.review',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_review_form'} 
+2026-05-05 08:08:31,991 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 19,
+ 'name': 'student.service.request.complaint.form',
+ 'view': ir.ui.view(527,),
+ 'view.model': 'student.service.request.complaint',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_complaint_form'} 
+2026-05-05 08:08:31,991 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-o) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 23,
+ 'name': 'student.service.request.complaint.form',
+ 'view': ir.ui.view(527,),
+ 'view.model': 'student.service.request.complaint',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_complaint_form'} 
+2026-05-05 08:08:31,993 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/roles_views.xml 
+2026-05-05 08:08:32,000 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/department_views.xml 
+2026-05-05 08:08:32,008 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/service_report_views.xml 
+2026-05-05 08:08:32,014 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/request_stats_wizard_views.xml 
+2026-05-05 08:08:32,019 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/request_stats_board_views.xml 
+2026-05-05 08:08:32,025 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/email_template.xml 
+2026-05-05 08:08:32,032 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/maintenance_user_friendly_views.xml 
+2026-05-05 08:08:32,053 12136 WARNING odoo_db odoo.addons.base.models.ir_ui_view: An alert (class alert-*) must have an alert, alertdialog or status role or an alert-link class. Please use alert and alertdialog only for what expects to stop any activity to be read immediately.
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\maintenance_user_friendly_views.xml',
+ 'line': 31,
+ 'name': 'maintenance.dashboard.form',
+ 'view': ir.ui.view(537,),
+ 'view.model': 'maintenance.dashboard',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_maintenance_dashboard_form'} 
+2026-05-05 08:08:32,062 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/maintenance_simple_views.xml 
+2026-05-05 08:08:32,076 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/student_manage_views.xml 
+2026-05-05 08:08:32,084 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/user_permission_views.xml 
+2026-05-05 08:08:32,125 12136 INFO odoo_db odoo.models.unlink: User #1 deleted ir.actions.act_window.view records with IDs: [119, 120, 121] 
+2026-05-05 08:08:32,129 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/permission_manager_views.xml 
+2026-05-05 08:08:32,163 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/mail_menu_security_views.xml 
+2026-05-05 08:08:32,166 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/ir_attachment_views.xml 
+2026-05-05 08:08:32,172 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/menus.xml 
+2026-05-05 08:08:32,231 12136 INFO odoo_db odoo.modules.loading: loading student_request/views/menu_permission_views.xml 
+2026-05-05 08:08:32,299 12136 INFO odoo_db odoo.modules.loading: Module student_request loaded in 1.26s, 2129 queries (+2130 other) 
+2026-05-05 08:08:32,299 12136 INFO odoo_db odoo.modules.loading: 31 modules loaded in 1.69s, 2129 queries (+2130 extra) 
+2026-05-05 08:08:32,639 12136 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:08:32,641 12136 INFO odoo_db odoo.modules.registry: Registry changed, signaling through the database 
+2026-05-05 08:08:32,641 12136 INFO odoo_db odoo.modules.registry: Registry loaded in 3.144s 
+2026-05-05 08:08:32,641 12136 INFO odoo_db odoo.service.server: Initiating shutdown 
+2026-05-05 08:08:32,641 12136 INFO odoo_db odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-05-05 08:08:32,641 12136 INFO odoo_db odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  
+2026-05-05 08:10:06,885 31660 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:10:06,885 31660 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:10:06,885 31660 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:10:06,885 31660 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:10:07,006 31660 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:10:07,009 31660 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:10:07,207 31660 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:10:07,211 31660 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:10:07,222 31660 INFO odoo_db odoo.modules.loading: updating modules list 
+2026-05-05 08:10:07,224 31660 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-05-05 08:10:07,986 31660 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.button_upgrade on ['Student Service Management'] to user __system__ #1 via n/a 
+2026-05-05 08:10:07,986 31660 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.update_list on ['Student Service Management'] to user __system__ #1 via n/a 
+2026-05-05 08:10:08,337 31660 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.button_install on [] to user __system__ #1 via n/a 
+2026-05-05 08:10:08,361 31660 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:10:08,760 31660 INFO odoo_db odoo.modules.loading: Loading module student_request (31/31) 
+2026-05-05 08:10:08,863 31660 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:10:08,896 31660 INFO odoo_db odoo.modules.registry: module student_request: creating or updating database tables 
+2026-05-05 08:10:09,017 31660 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_text, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:10:09,017 31660 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_integer, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:10:09,017 31660 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_float, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:10:09,017 31660 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_date, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:10:09,017 31660 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_datetime, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:10:09,017 31660 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_boolean, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:10:09,017 31660 WARNING odoo_db odoo.addons.base.models.ir_model: Two fields (value_selection, value_char) of student.service.request.input() have the same label: Giá trị. [Modules: student_request and student_request] 
+2026-05-05 08:10:09,167 31660 INFO odoo_db odoo.modules.loading: loading student_request/security/extension_security.xml 
+2026-05-05 08:10:09,188 31660 INFO odoo_db odoo.modules.loading: loading student_request/security/ir.model.access.csv 
+2026-05-05 08:10:09,232 31660 INFO odoo_db odoo.modules.loading: loading student_request/security/ir_rules.xml 
+2026-05-05 08:10:09,258 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/service_step_data.xml 
+2026-05-05 08:10:09,271 31660 INFO odoo_db odoo.addons.student_request.models.service: Service write called with vals: {'name': 'Xin trọ', 'titlenote': 'Điền thông tin phòng muốn thuê:', 'description': 'Dịch vụ xin thuê trọ ký túc xá cho sinh viên.', 'group_id': 1, 'files': [(4, 1), (4, 2), (4, 3)], 'step_ids': [(4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7)], 'users': [(4, 1)]} 
+2026-05-05 08:10:09,274 31660 INFO odoo_db odoo.addons.student_request.models.service: Service write completed successfully 
+2026-05-05 08:10:09,275 31660 INFO odoo_db odoo.addons.student_request.models.service: Service write called with vals: {'name': 'Sửa điện', 'titlenote': 'Mô tả thiết bị hỏng và chụp ảnh:', 'description': 'Dịch vụ sửa chữa điện trong ký túc xá.', 'group_id': 2, 'files': [(4, 1), (4, 2)], 'step_ids': [(4, 1), (4, 2), (4, 3), (4, 4), (4, 5), (4, 6), (4, 7)], 'users': [(4, 1)]} 
+2026-05-05 08:10:09,277 31660 INFO odoo_db odoo.addons.student_request.models.service: Service write completed successfully 
+2026-05-05 08:10:09,278 31660 INFO odoo_db odoo.addons.student_request.models.service: Service write called with vals: {'name': 'Xin cấp giấy chứng nhận', 'titlenote': 'Điền thông tin giấy chứng nhận cần cấp:', 'description': 'Dịch vụ xin cấp giấy chứng nhận cho sinh viên.', 'group_id': 3, 'files': [(4, 1), (4, 2)], 'step_ids': [(4, 1), (4, 2), (4, 4), (4, 5), (4, 7)], 'users': [(4, 1)]} 
+2026-05-05 08:10:09,279 31660 INFO odoo_db odoo.addons.student_request.models.service: Service write completed successfully 
+2026-05-05 08:10:09,290 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/service_request_state_data.xml 
+2026-05-05 08:10:09,294 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/field_template_data.xml 
+2026-05-05 08:10:09,299 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/cron_data.xml 
+2026-05-05 08:10:09,310 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/ir_cron_data.xml 
+2026-05-05 08:10:09,311 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/stats_cron.xml 
+2026-05-05 08:10:09,316 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/email_templates.xml 
+2026-05-05 08:10:09,319 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/automated_actions.xml 
+2026-05-05 08:10:09,321 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/user_group_assignments.xml 
+2026-05-05 08:10:09,357 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/update_cluster_action.xml 
+2026-05-05 08:10:09,359 31660 INFO odoo_db odoo.modules.loading: loading student_request/data/fcm_config_data.xml 
+2026-05-05 08:10:09,362 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_group_views.xml 
+2026-05-05 08:10:09,376 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/field_template_views.xml 
+2026-05-05 08:10:09,384 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_views.xml 
+2026-05-05 08:10:09,397 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_form_field_views.xml 
+2026-05-05 08:10:09,403 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_step_views.xml 
+2026-05-05 08:10:09,410 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_request_state_views.xml 
+2026-05-05 08:10:09,418 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_file_views.xml 
+2026-05-05 08:10:09,426 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_request_views.xml 
+2026-05-05 08:10:09,443 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,445 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,445 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 32,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:10:09,446 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,446 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,446 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 59,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:10:09,446 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-pdf-o text-danger) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 62,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:10:09,446 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-word-o text-primary) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 66,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:10:09,446 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-excel-o text-success) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 70,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:10:09,446 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-o text-muted) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 74,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:10:09,447 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,448 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,448 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,449 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,450 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: 'kanban-box' is deprecated, define a 'card' template instead 
+2026-05-05 08:10:09,451 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-star text-warning) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 230,
+ 'name': 'student.service.request.form',
+ 'view': ir.ui.view(498,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_form'} 
+2026-05-05 08:10:09,456 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-calendar) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 55,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:10:09,456 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-calendar) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 61,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:10:09,456 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-sticky-note) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 67,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:10:09,457 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-tasks) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 73,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:10:09,457 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-archive) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\service_request_views.xml',
+ 'line': 81,
+ 'name': 'student.service.request.kanban',
+ 'view': ir.ui.view(499,),
+ 'view.model': 'student.service.request',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_service_request_kanban'} 
+2026-05-05 08:10:09,483 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/request_extension_views.xml 
+2026-05-05 08:10:09,503 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/request_stats_views.xml 
+2026-05-05 08:10:09,514 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/bulk_assign_wizard_views.xml 
+2026-05-05 08:10:09,528 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/admin_profile_views.xml 
+2026-05-05 08:10:09,542 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/notification_views.xml 
+2026-05-05 08:10:09,550 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/dormitory_views.xml 
+2026-05-05 08:10:09,567 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/request_review_views.xml 
+2026-05-05 08:10:09,574 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 24,
+ 'name': 'student.service.request.review.form',
+ 'view': ir.ui.view(525,),
+ 'view.model': 'student.service.request.review',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_review_form'} 
+2026-05-05 08:10:09,574 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-o) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 28,
+ 'name': 'student.service.request.review.form',
+ 'view': ir.ui.view(525,),
+ 'view.model': 'student.service.request.review',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_review_form'} 
+2026-05-05 08:10:09,582 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: <img> tag must contain an alt attribute
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 19,
+ 'name': 'student.service.request.complaint.form',
+ 'view': ir.ui.view(527,),
+ 'view.model': 'student.service.request.complaint',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_complaint_form'} 
+2026-05-05 08:10:09,582 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: A <i> with fa class (fa fa-file-o) must have title in its tag, parents, descendants or have text
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\request_review_views.xml',
+ 'line': 23,
+ 'name': 'student.service.request.complaint.form',
+ 'view': ir.ui.view(527,),
+ 'view.model': 'student.service.request.complaint',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_student_service_request_complaint_form'} 
+2026-05-05 08:10:09,584 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/roles_views.xml 
+2026-05-05 08:10:09,592 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/department_views.xml 
+2026-05-05 08:10:09,600 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/service_report_views.xml 
+2026-05-05 08:10:09,613 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/request_stats_wizard_views.xml 
+2026-05-05 08:10:09,620 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/request_stats_board_views.xml 
+2026-05-05 08:10:09,630 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/email_template.xml 
+2026-05-05 08:10:09,641 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/maintenance_user_friendly_views.xml 
+2026-05-05 08:10:09,672 31660 WARNING odoo_db odoo.addons.base.models.ir_ui_view: An alert (class alert-*) must have an alert, alertdialog or status role or an alert-link class. Please use alert and alertdialog only for what expects to stop any activity to be read immediately.
+View error context:
+{'file': 'd:\\ktx\\motcua-quantri-odoo\\custom_addons\\student_request\\views\\maintenance_user_friendly_views.xml',
+ 'line': 31,
+ 'name': 'maintenance.dashboard.form',
+ 'view': ir.ui.view(537,),
+ 'view.model': 'maintenance.dashboard',
+ 'view.parent': ir.ui.view(),
+ 'xmlid': 'view_maintenance_dashboard_form'} 
+2026-05-05 08:10:09,690 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/maintenance_simple_views.xml 
+2026-05-05 08:10:09,715 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/student_manage_views.xml 
+2026-05-05 08:10:09,728 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/user_permission_views.xml 
+2026-05-05 08:10:09,771 31660 INFO odoo_db odoo.models.unlink: User #1 deleted ir.actions.act_window.view records with IDs: [122, 123, 124] 
+2026-05-05 08:10:09,776 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/permission_manager_views.xml 
+2026-05-05 08:10:09,825 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/mail_menu_security_views.xml 
+2026-05-05 08:10:09,830 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/ir_attachment_views.xml 
+2026-05-05 08:10:09,842 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/menus.xml 
+2026-05-05 08:10:09,910 31660 INFO odoo_db odoo.modules.loading: loading student_request/views/menu_permission_views.xml 
+2026-05-05 08:10:09,978 31660 INFO odoo_db odoo.modules.loading: Module student_request loaded in 1.22s, 2129 queries (+2130 other) 
+2026-05-05 08:10:09,978 31660 INFO odoo_db odoo.modules.loading: 31 modules loaded in 1.62s, 2129 queries (+2130 extra) 
+2026-05-05 08:10:10,310 31660 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:10:10,313 31660 INFO odoo_db odoo.modules.registry: Registry changed, signaling through the database 
+2026-05-05 08:10:10,313 31660 INFO odoo_db odoo.modules.registry: Registry loaded in 3.138s 
+2026-05-05 08:10:10,313 31660 INFO odoo_db odoo.service.server: Initiating shutdown 
+2026-05-05 08:10:10,313 31660 INFO odoo_db odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-05-05 08:10:10,313 31660 INFO odoo_db odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 1 connections  
+2026-05-05 08:10:11,304 20460 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:10:11,304 20460 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:10:11,304 20460 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:10:11,305 20460 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:10:11,437 20460 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:10:11,440 20460 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:10:11,665 20460 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:10:11,699 20460 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:10:11,702 20460 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:10:11,719 20460 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:10:12,197 20460 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:10:12,205 20460 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.49s, 0 queries (+0 extra) 
+2026-05-05 08:10:12,241 20460 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:10:12,244 20460 INFO odoo_db odoo.modules.registry: Registry loaded in 0.577s 
+2026-05-05 08:11:49,115 20460 INFO odoo_db odoo.service.server: Initiating shutdown 
+2026-05-05 08:11:49,116 20460 INFO odoo_db odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-05-05 08:11:49,124 20460 INFO odoo_db odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 3 connections  
+2026-05-05 08:11:52,542 21468 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:11:52,542 21468 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:11:52,542 21468 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:11:52,543 21468 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:11:52,668 21468 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:11:52,671 21468 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:11:52,843 21468 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:11:52,974 21468 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:11:52,977 21468 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:11:52,994 21468 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:11:53,479 21468 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:11:53,488 21468 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.49s, 0 queries (+0 extra) 
+2026-05-05 08:11:53,525 21468 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:11:53,528 21468 INFO odoo_db odoo.modules.registry: Registry loaded in 0.684s 
+2026-05-05 08:11:56,155 21468 INFO odoo_db odoo.service.server: Initiating shutdown 
+2026-05-05 08:11:56,155 21468 INFO odoo_db odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-05-05 08:11:56,417 21468 INFO odoo_db odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 3 connections  
+2026-05-05 08:12:04,047 22136 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:12:04,047 22136 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:12:04,047 22136 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:12:04,047 22136 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:12:04,168 22136 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:12:04,171 22136 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:12:04,337 22136 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:12:04,367 22136 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:12:04,370 22136 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:12:04,386 22136 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:12:04,859 22136 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:12:04,866 22136 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.48s, 0 queries (+0 extra) 
+2026-05-05 08:12:04,904 22136 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:12:04,906 22136 INFO odoo_db odoo.modules.registry: Registry loaded in 0.568s 
+2026-05-05 08:12:23,289 29120 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:12:23,289 29120 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:12:23,289 29120 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:12:23,289 29120 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:12:23,409 29120 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:12:23,412 29120 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:12:23,580 29120 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:12:23,714 29120 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:12:23,717 29120 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:12:23,735 29120 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:12:24,195 29120 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:12:24,203 29120 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.47s, 0 queries (+0 extra) 
+2026-05-05 08:12:24,240 29120 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:12:24,243 29120 INFO odoo_db odoo.modules.registry: Registry loaded in 0.662s 
+2026-05-05 08:12:24,331 29120 INFO odoo_db odoo.service.server: Initiating shutdown 
+2026-05-05 08:12:24,331 29120 INFO odoo_db odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-05-05 08:12:24,604 29120 INFO odoo_db odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 3 connections  
+2026-05-05 08:12:27,992 9812 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:12:27,992 9812 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:12:27,992 9812 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:12:27,992 9812 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:12:28,114 9812 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:12:28,117 9812 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:12:28,282 9812 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:12:28,314 9812 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:12:28,318 9812 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:12:28,334 9812 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:12:28,845 9812 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:12:28,853 9812 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.52s, 0 queries (+0 extra) 
+2026-05-05 08:12:28,891 9812 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:12:28,893 9812 INFO odoo_db odoo.modules.registry: Registry loaded in 0.610s 
+2026-05-05 08:21:01,375 6816 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:21:01,375 6816 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:21:01,376 6816 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:21:01,376 6816 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:21:01,501 6816 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:21:01,504 6816 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:21:01,676 6816 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:21:01,706 6816 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:21:01,710 6816 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:21:01,726 6816 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:21:02,217 6816 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:21:02,225 6816 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.50s, 0 queries (+0 extra) 
+2026-05-05 08:21:02,263 6816 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:21:02,265 6816 INFO odoo_db odoo.modules.registry: Registry loaded in 0.589s 
+2026-05-05 08:21:16,436 6816 INFO odoo_db odoo.service.server: Initiating shutdown 
+2026-05-05 08:21:16,436 6816 INFO odoo_db odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-05-05 08:21:16,872 6816 INFO odoo_db odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 3 connections  
+2026-05-05 08:21:19,031 30252 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:21:19,031 30252 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:21:19,031 30252 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:21:19,031 30252 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:21:19,151 30252 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:21:19,154 30252 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:21:19,319 30252 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:21:19,352 30252 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:21:19,352 30252 INFO odoo_db odoo.modules.loading: Loading module base (1/1) 
+2026-05-05 08:21:19,365 30252 INFO odoo_db odoo.modules.registry: module base: creating or updating database tables 
+2026-05-05 08:21:19,786 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_bank.xml 
+2026-05-05 08:21:19,787 30252 INFO odoo_db odoo.modules.loading: loading base/data/res.lang.csv 
+2026-05-05 08:21:19,890 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_lang_data.xml 
+2026-05-05 08:21:19,905 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_data.xml 
+2026-05-05 08:21:19,960 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_currency_data.xml 
+2026-05-05 08:21:20,248 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_company_data.xml 
+2026-05-05 08:21:20,253 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_users_data.xml 
+2026-05-05 08:21:21,142 30252 INFO odoo_db odoo.modules.loading: loading base/data/report_paperformat_data.xml 
+2026-05-05 08:21:21,146 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_country_data.xml 
+2026-05-05 08:21:21,319 30252 INFO odoo_db odoo.modules.loading: loading base/data/ir_demo_data.xml 
+2026-05-05 08:21:21,330 30252 INFO odoo_db odoo.modules.loading: loading base/security/base_groups.xml 
+2026-05-05 08:21:21,423 30252 INFO odoo_db odoo.modules.loading: loading base/security/base_security.xml 
+2026-05-05 08:21:21,500 30252 INFO odoo_db odoo.modules.loading: loading base/views/base_menus.xml 
+2026-05-05 08:21:21,537 30252 INFO odoo_db odoo.modules.loading: loading base/views/decimal_precision_views.xml 
+2026-05-05 08:21:21,548 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_config_views.xml 
+2026-05-05 08:21:21,551 30252 INFO odoo_db odoo.modules.loading: loading base/data/res.country.state.csv 
+2026-05-05 08:21:21,866 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_actions_views.xml 
+2026-05-05 08:21:21,954 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_asset_views.xml 
+2026-05-05 08:21:21,970 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_config_parameter_views.xml 
+2026-05-05 08:21:21,982 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_cron_views.xml 
+2026-05-05 08:21:22,003 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_cron_trigger_views.xml 
+2026-05-05 08:21:22,014 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_filters_views.xml 
+2026-05-05 08:21:22,025 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_mail_server_views.xml 
+2026-05-05 08:21:22,037 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_model_views.xml 
+2026-05-05 08:21:22,118 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_attachment_views.xml 
+2026-05-05 08:21:22,132 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_rule_views.xml 
+2026-05-05 08:21:22,147 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_sequence_views.xml 
+2026-05-05 08:21:22,159 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_ui_menu_views.xml 
+2026-05-05 08:21:22,169 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_ui_view_views.xml 
+2026-05-05 08:21:22,197 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_default_views.xml 
+2026-05-05 08:21:22,210 30252 INFO odoo_db odoo.modules.loading: loading base/data/ir_config_parameter_data.xml 
+2026-05-05 08:21:22,212 30252 INFO odoo_db odoo.modules.loading: loading base/data/ir_cron_data.xml 
+2026-05-05 08:21:22,218 30252 INFO odoo_db odoo.modules.loading: loading base/report/ir_model_report.xml 
+2026-05-05 08:21:22,219 30252 INFO odoo_db odoo.modules.loading: loading base/report/ir_model_templates.xml 
+2026-05-05 08:21:22,223 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_logging_views.xml 
+2026-05-05 08:21:22,233 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_qweb_widget_templates.xml 
+2026-05-05 08:21:22,243 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_module_views.xml 
+2026-05-05 08:21:22,273 30252 INFO odoo_db odoo.modules.loading: loading base/data/ir_module_category_data.xml 
+2026-05-05 08:21:22,390 30252 INFO odoo_db odoo.modules.loading: loading base/data/ir_module_module.xml 
+2026-05-05 08:21:22,413 30252 INFO odoo_db odoo.modules.loading: loading base/report/ir_module_reports.xml 
+2026-05-05 08:21:22,414 30252 INFO odoo_db odoo.modules.loading: loading base/report/ir_module_report_templates.xml 
+2026-05-05 08:21:22,419 30252 INFO odoo_db odoo.modules.loading: loading base/wizard/base_module_update_views.xml 
+2026-05-05 08:21:22,426 30252 INFO odoo_db odoo.modules.loading: loading base/wizard/base_language_install_views.xml 
+2026-05-05 08:21:22,434 30252 INFO odoo_db odoo.modules.loading: loading base/wizard/base_import_language_views.xml 
+2026-05-05 08:21:22,440 30252 INFO odoo_db odoo.modules.loading: loading base/wizard/base_module_upgrade_views.xml 
+2026-05-05 08:21:22,451 30252 INFO odoo_db odoo.modules.loading: loading base/wizard/base_module_uninstall_views.xml 
+2026-05-05 08:21:22,458 30252 INFO odoo_db odoo.modules.loading: loading base/wizard/base_export_language_views.xml 
+2026-05-05 08:21:22,464 30252 INFO odoo_db odoo.modules.loading: loading base/wizard/base_partner_merge_views.xml 
+2026-05-05 08:21:22,474 30252 INFO odoo_db odoo.modules.loading: loading base/data/ir_demo_failure_data.xml 
+2026-05-05 08:21:22,482 30252 INFO odoo_db odoo.modules.loading: loading base/views/ir_profile_views.xml 
+2026-05-05 08:21:22,496 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_company_views.xml 
+2026-05-05 08:21:22,510 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_lang_views.xml 
+2026-05-05 08:21:22,526 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_partner_views.xml 
+2026-05-05 08:21:22,585 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_bank_views.xml 
+2026-05-05 08:21:22,626 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_country_views.xml 
+2026-05-05 08:21:22,652 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_currency_views.xml 
+2026-05-05 08:21:22,675 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_users_views.xml 
+2026-05-05 08:21:22,750 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_device_views.xml 
+2026-05-05 08:21:22,761 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_users_identitycheck_views.xml 
+2026-05-05 08:21:22,766 30252 INFO odoo_db odoo.modules.loading: loading base/views/res_config_settings_views.xml 
+2026-05-05 08:21:22,770 30252 INFO odoo_db odoo.modules.loading: loading base/views/report_paperformat_views.xml 
+2026-05-05 08:21:22,784 30252 INFO odoo_db odoo.modules.loading: loading base/security/ir.model.access.csv 
+2026-05-05 08:21:22,869 30252 INFO odoo_db odoo.modules.loading: Module base: loading demo 
+2026-05-05 08:21:22,869 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_users_demo.xml 
+2026-05-05 08:21:24,126 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_bank_demo.xml 
+2026-05-05 08:21:24,126 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_currency_demo.xml 
+2026-05-05 08:21:24,130 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_currency_rate_demo.xml 
+2026-05-05 08:21:24,223 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_bank_demo.xml 
+2026-05-05 08:21:24,225 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_demo.xml 
+2026-05-05 08:21:24,372 30252 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_image_demo.xml 
+2026-05-05 08:21:24,736 30252 INFO odoo_db odoo.modules.loading: Module base loaded in 5.38s, 8193 queries (+8193 other) 
+2026-05-05 08:21:24,736 30252 INFO odoo_db odoo.modules.loading: 1 modules loaded in 5.38s, 8193 queries (+8193 extra) 
+2026-05-05 08:21:24,746 30252 INFO odoo_db odoo.modules.loading: updating modules list 
+2026-05-05 08:21:24,747 30252 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-05-05 08:21:25,473 30252 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:21:25,963 30252 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:21:25,969 30252 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.50s, 0 queries (+0 extra) 
+2026-05-05 08:21:26,307 30252 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:21:26,341 30252 INFO odoo_db odoo.modules.registry: Registry changed, signaling through the database 
+2026-05-05 08:21:26,341 30252 INFO odoo_db odoo.modules.registry: Registry loaded in 7.020s 
+2026-05-05 08:21:32,964 30252 INFO odoo_db odoo.service.server: Initiating shutdown 
+2026-05-05 08:21:32,964 30252 INFO odoo_db odoo.service.server: Hit CTRL-C again or send a second signal to force the shutdown. 
+2026-05-05 08:21:32,986 30252 INFO odoo_db odoo.sql_db: ConnectionPool(read/write;used=0/count=0/max=64): Closed 3 connections  
+2026-05-05 08:21:35,233 28380 INFO ? odoo: Odoo version 18.0 
+2026-05-05 08:21:35,233 28380 INFO ? odoo: Using configuration file at D:\ktx\motcua-quantri-odoo\odoo.cfg 
+2026-05-05 08:21:35,233 28380 INFO ? odoo: addons paths: ['D:\\ktx\\motcua-quantri-odoo\\odoo\\addons', 'c:\\users\\chau bui\\appdata\\local\\openerp s.a\\odoo\\addons\\18.0', 'd:\\ktx\\motcua-quantri-odoo\\custom_addons', 'd:\\ktx\\motcua-quantri-odoo\\addons', 'd:\\ktx\\motcua-quantri-odoo\\odoo\\addons'] 
+2026-05-05 08:21:35,233 28380 INFO ? odoo: database: odoo@localhost:5432 
+2026-05-05 08:21:35,360 28380 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltopdf to print a pdf version of the reports. 
+2026-05-05 08:21:35,363 28380 INFO ? odoo.addons.base.models.ir_actions_report: You need Wkhtmltoimage to generate images from html. 
+2026-05-05 08:21:35,527 28380 INFO ? odoo.service.server: HTTP service (werkzeug) running on DESKTOP-C4GLHD9.lan:8069 
+2026-05-05 08:21:35,662 28380 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:21:35,662 28380 INFO odoo_db odoo.modules.loading: Loading module base (1/1) 
+2026-05-05 08:21:35,675 28380 INFO odoo_db odoo.modules.registry: module base: creating or updating database tables 
+2026-05-05 08:21:36,095 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_bank.xml 
+2026-05-05 08:21:36,100 28380 INFO odoo_db odoo.modules.loading: loading base/data/res.lang.csv 
+2026-05-05 08:21:36,203 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_lang_data.xml 
+2026-05-05 08:21:36,217 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_data.xml 
+2026-05-05 08:21:36,261 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_currency_data.xml 
+2026-05-05 08:21:36,536 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_company_data.xml 
+2026-05-05 08:21:36,541 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_users_data.xml 
+2026-05-05 08:21:37,423 28380 INFO odoo_db odoo.modules.loading: loading base/data/report_paperformat_data.xml 
+2026-05-05 08:21:37,426 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_country_data.xml 
+2026-05-05 08:21:37,599 28380 INFO odoo_db odoo.modules.loading: loading base/data/ir_demo_data.xml 
+2026-05-05 08:21:37,609 28380 INFO odoo_db odoo.modules.loading: loading base/security/base_groups.xml 
+2026-05-05 08:21:37,713 28380 INFO odoo_db odoo.modules.loading: loading base/security/base_security.xml 
+2026-05-05 08:21:37,793 28380 INFO odoo_db odoo.modules.loading: loading base/views/base_menus.xml 
+2026-05-05 08:21:37,827 28380 INFO odoo_db odoo.modules.loading: loading base/views/decimal_precision_views.xml 
+2026-05-05 08:21:37,837 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_config_views.xml 
+2026-05-05 08:21:37,843 28380 INFO odoo_db odoo.modules.loading: loading base/data/res.country.state.csv 
+2026-05-05 08:21:38,146 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_actions_views.xml 
+2026-05-05 08:21:38,242 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_asset_views.xml 
+2026-05-05 08:21:38,255 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_config_parameter_views.xml 
+2026-05-05 08:21:38,263 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_cron_views.xml 
+2026-05-05 08:21:38,283 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_cron_trigger_views.xml 
+2026-05-05 08:21:38,295 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_filters_views.xml 
+2026-05-05 08:21:38,306 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_mail_server_views.xml 
+2026-05-05 08:21:38,319 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_model_views.xml 
+2026-05-05 08:21:38,409 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_attachment_views.xml 
+2026-05-05 08:21:38,422 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_rule_views.xml 
+2026-05-05 08:21:38,436 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_sequence_views.xml 
+2026-05-05 08:21:38,449 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_ui_menu_views.xml 
+2026-05-05 08:21:38,463 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_ui_view_views.xml 
+2026-05-05 08:21:38,490 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_default_views.xml 
+2026-05-05 08:21:38,507 28380 INFO odoo_db odoo.modules.loading: loading base/data/ir_config_parameter_data.xml 
+2026-05-05 08:21:38,509 28380 INFO odoo_db odoo.modules.loading: loading base/data/ir_cron_data.xml 
+2026-05-05 08:21:38,516 28380 INFO odoo_db odoo.modules.loading: loading base/report/ir_model_report.xml 
+2026-05-05 08:21:38,519 28380 INFO odoo_db odoo.modules.loading: loading base/report/ir_model_templates.xml 
+2026-05-05 08:21:38,523 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_logging_views.xml 
+2026-05-05 08:21:38,535 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_qweb_widget_templates.xml 
+2026-05-05 08:21:38,543 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_module_views.xml 
+2026-05-05 08:21:38,574 28380 INFO odoo_db odoo.modules.loading: loading base/data/ir_module_category_data.xml 
+2026-05-05 08:21:38,689 28380 INFO odoo_db odoo.modules.loading: loading base/data/ir_module_module.xml 
+2026-05-05 08:21:38,707 28380 INFO odoo_db odoo.modules.loading: loading base/report/ir_module_reports.xml 
+2026-05-05 08:21:38,709 28380 INFO odoo_db odoo.modules.loading: loading base/report/ir_module_report_templates.xml 
+2026-05-05 08:21:38,712 28380 INFO odoo_db odoo.modules.loading: loading base/wizard/base_module_update_views.xml 
+2026-05-05 08:21:38,722 28380 INFO odoo_db odoo.modules.loading: loading base/wizard/base_language_install_views.xml 
+2026-05-05 08:21:38,729 28380 INFO odoo_db odoo.modules.loading: loading base/wizard/base_import_language_views.xml 
+2026-05-05 08:21:38,736 28380 INFO odoo_db odoo.modules.loading: loading base/wizard/base_module_upgrade_views.xml 
+2026-05-05 08:21:38,747 28380 INFO odoo_db odoo.modules.loading: loading base/wizard/base_module_uninstall_views.xml 
+2026-05-05 08:21:38,753 28380 INFO odoo_db odoo.modules.loading: loading base/wizard/base_export_language_views.xml 
+2026-05-05 08:21:38,760 28380 INFO odoo_db odoo.modules.loading: loading base/wizard/base_partner_merge_views.xml 
+2026-05-05 08:21:38,768 28380 INFO odoo_db odoo.modules.loading: loading base/data/ir_demo_failure_data.xml 
+2026-05-05 08:21:38,777 28380 INFO odoo_db odoo.modules.loading: loading base/views/ir_profile_views.xml 
+2026-05-05 08:21:38,790 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_company_views.xml 
+2026-05-05 08:21:38,804 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_lang_views.xml 
+2026-05-05 08:21:38,818 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_partner_views.xml 
+2026-05-05 08:21:38,875 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_bank_views.xml 
+2026-05-05 08:21:38,919 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_country_views.xml 
+2026-05-05 08:21:38,948 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_currency_views.xml 
+2026-05-05 08:21:38,969 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_users_views.xml 
+2026-05-05 08:21:39,050 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_device_views.xml 
+2026-05-05 08:21:39,061 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_users_identitycheck_views.xml 
+2026-05-05 08:21:39,063 28380 INFO odoo_db odoo.modules.loading: loading base/views/res_config_settings_views.xml 
+2026-05-05 08:21:39,069 28380 INFO odoo_db odoo.modules.loading: loading base/views/report_paperformat_views.xml 
+2026-05-05 08:21:39,083 28380 INFO odoo_db odoo.modules.loading: loading base/security/ir.model.access.csv 
+2026-05-05 08:21:39,171 28380 INFO odoo_db odoo.modules.loading: Module base: loading demo 
+2026-05-05 08:21:39,171 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_users_demo.xml 
+2026-05-05 08:21:40,410 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_bank_demo.xml 
+2026-05-05 08:21:40,413 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_currency_demo.xml 
+2026-05-05 08:21:40,413 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_currency_rate_demo.xml 
+2026-05-05 08:21:40,495 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_bank_demo.xml 
+2026-05-05 08:21:40,496 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_demo.xml 
+2026-05-05 08:21:40,637 28380 INFO odoo_db odoo.modules.loading: loading base/data/res_partner_image_demo.xml 
+2026-05-05 08:21:40,948 28380 INFO odoo_db odoo.modules.loading: Module base loaded in 5.29s, 8191 queries (+8191 other) 
+2026-05-05 08:21:40,948 28380 INFO odoo_db odoo.modules.loading: 1 modules loaded in 5.29s, 8191 queries (+8191 extra) 
+2026-05-05 08:21:40,957 28380 INFO odoo_db odoo.modules.loading: updating modules list 
+2026-05-05 08:21:40,957 28380 INFO odoo_db odoo.addons.base.models.ir_module: ALLOW access to module.update_list on [] to user __system__ #1 via n/a 
+2026-05-05 08:21:41,630 28380 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:21:42,095 28380 WARNING odoo_db py.warnings: D:\ktx\motcua-quantri-odoo\odoo\api.py:482: DeprecationWarning: The model odoo.addons.student_request.models.service is not overriding the create method in batch
+  File "D:\ktx\motcua-quantri-odoo\odoo-bin", line 8, in <module>
+    odoo.cli.main()
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\command.py", line 66, in main
+    o.run(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 182, in run
+    main(args)
+  File "D:\ktx\motcua-quantri-odoo\odoo\cli\server.py", line 175, in main
+    rc = odoo.service.server.start(preload=preload, stop=stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1457, in start
+    rc = server.run(preload, stop)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 622, in run
+    rc = preload_registries(preload)
+  File "D:\ktx\motcua-quantri-odoo\odoo\service\server.py", line 1361, in preload_registries
+    registry = Registry.new(dbname, update_module=update_module)
+  File "<decorator-gen-13>", line 2, in new
+  File "D:\ktx\motcua-quantri-odoo\odoo\tools\func.py", line 97, in locked
+    return func(inst, *args, **kwargs)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\registry.py", line 129, in new
+    odoo.modules.load_modules(registry, force_demo, status, update_module)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 480, in load_modules
+    processed_modules += load_marked_modules(env, graph,
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 365, in load_marked_modules
+    loaded, processed = load_module_graph(
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\loading.py", line 186, in load_module_graph
+    load_openerp_module(package.name)
+  File "D:\ktx\motcua-quantri-odoo\odoo\modules\module.py", line 384, in load_openerp_module
+    __import__(qualname)
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\__init__.py", line 1, in <module>
+    from . import models
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\__init__.py", line 13, in <module>
+    from . import service
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 281, in <module>
+    class ServiceRequestStepHistory(models.Model):
+  File "d:\ktx\motcua-quantri-odoo\custom_addons\student_request\models\service.py", line 304, in ServiceRequestStepHistory
+    @api.model
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 429, in model
+    return model_create_single(method)
+  File "D:\ktx\motcua-quantri-odoo\odoo\api.py", line 482, in model_create_single
+    warnings.warn(
+ 
+2026-05-05 08:21:42,103 28380 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.47s, 0 queries (+0 extra) 
+2026-05-05 08:21:42,443 28380 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:21:42,444 28380 INFO odoo_db odoo.modules.registry: Registry changed, signaling through the database 
+2026-05-05 08:21:42,444 28380 INFO odoo_db odoo.modules.registry: Registry loaded in 6.917s 
+2026-05-05 08:40:01,094 28380 INFO odoo_db odoo.modules.registry: Reloading the model registry after database signaling. 
+2026-05-05 08:40:01,125 28380 INFO odoo_db odoo.modules.loading: loading 1 modules... 
+2026-05-05 08:40:01,129 28380 INFO odoo_db odoo.modules.loading: 1 modules loaded in 0.00s, 0 queries (+0 extra) 
+2026-05-05 08:40:01,131 28380 INFO odoo_db odoo.modules.loading: loading 31 modules... 
+2026-05-05 08:40:01,146 28380 INFO odoo_db odoo.modules.loading: 31 modules loaded in 0.01s, 0 queries (+0 extra) 
+2026-05-05 08:40:01,181 28380 INFO odoo_db odoo.modules.loading: Modules loaded. 
+2026-05-05 08:40:01,184 28380 INFO odoo_db odoo.modules.registry: Registry loaded in 0.090s 
+2026-05-05 09:11:33,225 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Student Service: Auto-complete rating steps on timeout' (18) starting 
+2026-05-05 09:11:33,246 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Student Service: Auto-complete rating steps on timeout' (18) done in 0.022s 
+2026-05-05 09:11:33,249 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Student Service: Auto-complete rating steps on timeout' (18) processed 0 records, 0 records remaining 
+2026-05-05 09:11:33,251 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Student Service: Auto-complete rating steps on timeout' (18) completed 
+2026-05-05 09:11:33,258 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Check Request Timeout' (20) starting 
+2026-05-05 09:11:33,285 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Check Request Timeout' (20) done in 0.027s 
+2026-05-05 09:11:33,286 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Check Request Timeout' (20) processed 0 records, 0 records remaining 
+2026-05-05 09:11:33,288 28380 INFO odoo_db odoo.addons.base.models.ir_cron: Job 'Check Request Timeout' (20) completed 
